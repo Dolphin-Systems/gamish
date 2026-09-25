@@ -10,6 +10,7 @@ Ember Crown Arcade is a premium fantasy-casino world built around blackened bras
 - **Game Zone:** a grand portal hall containing four original game worlds presented as interactive cabinets.
 - **Motion:** slow atmospheric drift, ember particles, pulsing brass light, short tactile button responses, and camera fades between scenes.
 - **Typography:** Cinzel Decorative for high-value display moments; DM Sans for readable controls and supporting copy.
+- **Audio:** lightweight synthesized cues for navigation, reels, wins, losses, payments, and messages. Audio begins only after a user gesture and includes a persistent top-level mute control.
 
 ## Original game worlds
 

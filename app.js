@@ -8,6 +8,8 @@
   ]);
   const viewTriggers = [...document.querySelectorAll(".view-trigger")];
   const utilityButtons = [...document.querySelectorAll(".utility-button")];
+  const soundToggle = document.getElementById("sound-toggle");
+  const audio = window.GamishAudio;
   const toast = document.getElementById("toast");
   let toastTimer;
 
@@ -36,8 +38,26 @@
     if (name === "messages") document.querySelector(".unread-dot")?.remove();
   };
 
-  viewTriggers.forEach((item) => item.addEventListener("click", () => showView(item.dataset.view)));
+  viewTriggers.forEach((item) => item.addEventListener("click", () => {
+    audio?.play("nav");
+    showView(item.dataset.view);
+  }));
   window.addEventListener("gamish:navigate", (event) => showView(event.detail));
+
+  const refreshSoundToggle = () => {
+    const isEnabled = audio?.isEnabled() ?? false;
+    soundToggle.classList.toggle("muted", !isEnabled);
+    soundToggle.setAttribute("aria-pressed", String(isEnabled));
+    soundToggle.setAttribute("aria-label", isEnabled ? "Mute sound" : "Turn sound on");
+    soundToggle.title = isEnabled ? "Sound on" : "Sound off";
+  };
+
+  soundToggle.addEventListener("click", () => {
+    audio?.toggle();
+    refreshSoundToggle();
+  });
+  window.addEventListener("gamish:soundchange", refreshSoundToggle);
+  refreshSoundToggle();
 
   const amountButtons = [...document.querySelectorAll(".amount-chip")];
   const customAmount = document.getElementById("custom-amount");
@@ -55,6 +75,7 @@
   };
 
   amountButtons.forEach((button) => button.addEventListener("click", () => {
+    audio?.play("tap");
     customAmount.value = "";
     updateAmount(button.dataset.amount, button);
   }));
@@ -75,9 +96,13 @@
     detailKicker.textContent = `SEND WITH ${card.dataset.method.toUpperCase()}`;
   };
 
-  methodCards.forEach((card) => card.addEventListener("click", () => selectMethod(card)));
+  methodCards.forEach((card) => card.addEventListener("click", () => {
+    audio?.play("tap");
+    selectMethod(card);
+  }));
 
   document.getElementById("copy-handle").addEventListener("click", async (event) => {
+    audio?.play("payment");
     try {
       await navigator.clipboard.writeText(selectedMethod.dataset.handle);
       event.currentTarget.textContent = "Copied ✓";
@@ -89,6 +114,7 @@
   });
 
   reviewButton.addEventListener("click", () => {
+    audio?.play("payment");
     showToast(`Demo ready: $${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })} via ${selectedMethod.dataset.method}`);
   });
 
@@ -157,12 +183,14 @@
   const sendMessage = (text) => {
     const clean = text.trim();
     if (!clean) return;
+    audio?.play("message");
     addUserMessage(clean);
     messageInput.value = "";
     const typing = addTyping();
     window.setTimeout(() => {
       typing.remove();
       addAgentMessage(replyFor(clean));
+      audio?.play("reply");
     }, 900);
   };
 
@@ -176,6 +204,7 @@
   });
 
   document.querySelector(".attach-button").addEventListener("click", () => {
+    audio?.play("tap");
     showToast("Screenshot attachments are available in the connected support build");
   });
 })();

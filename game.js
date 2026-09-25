@@ -133,7 +133,10 @@
     container.setSize(width, height).setInteractive({ useHandCursor: true });
     container.on("pointerover", () => scene.tweens.add({ targets: container, scale: 1.035, duration: 120 }));
     container.on("pointerout", () => scene.tweens.add({ targets: container, scale: 1, duration: 140 }));
-    container.on("pointerdown", () => scene.tweens.add({ targets: container, scale: 0.97, duration: 70, yoyo: true }));
+    container.on("pointerdown", () => {
+      window.GamishAudio?.play("tap");
+      scene.tweens.add({ targets: container, scale: 0.97, duration: 70, yoyo: true });
+    });
     container.on("pointerup", onClick);
     scene.tweens.add({ targets: halo, alpha: { from: 0.28, to: 0.7 }, duration: 1200, yoyo: true, repeat: -1 });
     return container;
@@ -149,7 +152,10 @@
       const disk = scene.add.circle(0, 0, 27, 0x0e0912, 0.94).setStrokeStyle(2, COLORS.gold, 0.65);
       const arrow = scene.add.text(-1, -2, "‹", { fontFamily: BODY_FONT, fontSize: "45px", color: "#ffe4a3" }).setOrigin(0.5);
       back.add([disk, arrow]).setSize(64, 64).setInteractive({ useHandCursor: true });
-      back.on("pointerup", options.back);
+      back.on("pointerup", () => {
+        window.GamishAudio?.play("nav");
+        options.back();
+      });
       back.on("pointerover", () => scene.tweens.add({ targets: back, scale: 1.08, duration: 120 }));
       back.on("pointerout", () => scene.tweens.add({ targets: back, scale: 1, duration: 120 }));
     }
@@ -416,7 +422,10 @@
         this.tweens.add({ targets: card, scale: 1, duration: 160 });
         this.tweens.add({ targets: glow, alpha: 0.2, duration: 180 });
       });
-      card.on("pointerdown", () => this.tweens.add({ targets: card, scale: 0.97, duration: 70, yoyo: true }));
+      card.on("pointerdown", () => {
+        window.GamishAudio?.play("tap");
+        this.tweens.add({ targets: card, scale: 0.97, duration: 70, yoyo: true });
+      });
       card.on("pointerup", () => {
         if (index === 0) {
           this.cameras.main.fadeOut(320, 12, 4, 10);
@@ -720,6 +729,7 @@
       }
 
       this.isSpinning = true;
+      window.GamishAudio?.play("spin");
       this.credits -= this.bet;
       this.totalWagered += this.bet;
       this.spinCount += 1;
@@ -739,7 +749,10 @@
           this.reelTexts.forEach((text, index) => {
             if (ticks < 7 + (index % 3) * 2) this.setSymbol(text, this.randomSymbol());
           });
-          if (ticks % 3 === 0) this.cameras.main.shake(45, 0.0014);
+          if (ticks % 3 === 0) {
+            window.GamishAudio?.play("tick");
+            this.cameras.main.shake(45, 0.0014);
+          }
         },
       });
 
@@ -753,12 +766,14 @@
         this.totalReturned += payout;
 
         if (payout > 0) {
+          window.GamishAudio?.play(outcome.multiplier === 3 ? "win-big" : "win-small");
           this.resultText.setText(`WIN  +${payout.toLocaleString("en-US")} CREDITS  •  ${outcome.multiplier}×`).setColor("#ffdc83");
           this.tweens.add({ targets: this.reelTexts.slice(3, 6), scale: 1.16, duration: 180, yoyo: true, repeat: 2 });
           this.tweens.add({ targets: this.winLine, alpha: 1, scaleX: 1.05, duration: 190, yoyo: true, repeat: 3 });
           this.cameras.main.flash(220, 255, 126, 34, false);
           setStatus(`Phoenix Ruby win. ${payout} virtual credits returned at ${outcome.multiplier} times the bet.`);
         } else {
+          window.GamishAudio?.play("lose");
           this.resultText.setText("NO WIN  •  THE PHOENIX RISES AGAIN").setColor("#c4abb1");
           setStatus("Phoenix Ruby spin complete. No win on this virtual-credit spin.");
         }
@@ -799,6 +814,7 @@
 
     resetDemo() {
       if (this.isSpinning) return;
+      window.GamishAudio?.play("reset");
       this.credits = 1000;
       this.lastWin = 0;
       this.totalWagered = 0;

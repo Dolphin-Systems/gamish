@@ -719,6 +719,11 @@ button {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.sound-muted-mark { display: none; }
+.sound-toggle:not(.muted) { color: #ffd899; }
+.sound-toggle.muted { color: #8f818d; }
+.sound-toggle.muted .sound-waves { display: none; }
+.sound-toggle.muted .sound-muted-mark { display: block; }
 .utility-button:hover { color: #ffe2af; transform: translateY(-1px); background: rgba(255,255,255,0.05); }
 .utility-button.active {
   background: linear-gradient(180deg, rgba(255, 156, 61, 0.15), rgba(141, 45, 35, 0.08));
