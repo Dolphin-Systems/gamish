@@ -18,6 +18,16 @@ Ember Crown Arcade is a premium fantasy-casino world built around blackened bras
 3. **Solar Fortune** — crowned lion and amber wheel of fortune.
 4. **Moon Fox** — celestial fox, moon ring, and opal coin rewards.
 
+## Phoenix Ruby game model
+
+Phoenix Ruby is the first complete playable game and uses virtual credits with no cash value. Each bet level has its own cryptographically shuffled 30-spin outcome bag:
+
+- 18 outcomes pay `0×`.
+- 8 outcomes pay `1.5×`.
+- 4 outcomes pay `3×`.
+
+That produces 12 winning outcomes per 30 spins (`40%` hit rate) and returns 24 stakes across each completed same-bet cycle (`80%` RTP). Short sequences can return more or less because the outcomes are shuffled; the configured return is measured across the complete cycle for a given bet level.
+
 ## Generated assets
 
 - `assets/ember-citadel.webp` — landing environment.
