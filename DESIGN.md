@@ -31,6 +31,10 @@ That produces 12 winning outcomes per 30 spins (`40%` hit rate) and returns 24 s
 
 ## Generated assets
 
+- `assets/gamish777-icon-master.png` — original high-resolution Ember Crown brand mark.
+- `icon-192.png` / `icon-512.png` — standard PWA icons.
+- `icon-maskable-192.png` / `icon-maskable-512.png` — opaque safe-area PWA icons for adaptive launcher crops.
+- `favicon-16.png` / `favicon-32.png` / `apple-touch-icon.png` — browser and iOS home-screen icons.
 - `assets/ember-citadel.webp` — landing environment.
 - `assets/portal-hall.webp` — Game Zone environment.
 - `assets/phoenix-ruby.webp` — Phoenix Ruby cabinet art.

@@ -1,1 +1,18 @@
-{"background_color":"#07040b","description":"Gamish777 — enter the Ember Crown Arcade.","display":"standalone","icons":[{"purpose":"any maskable","sizes":"192x192","src":"icon-192.png","type":"image/png"},{"purpose":"any maskable","sizes":"512x512","src":"icon-512.png","type":"image/png"}],"id":"/","name":"Gamish777 — Ember Crown Arcade","orientation":"portrait","scope":"/","short_name":"Gamish777","start_url":"/","theme_color":"#160a19"}
+{
+  "background_color": "#07040b",
+  "description": "Gamish777 — enter the Ember Crown Arcade.",
+  "display": "standalone",
+  "icons": [
+    { "purpose": "any", "sizes": "192x192", "src": "icon-192.png", "type": "image/png" },
+    { "purpose": "any", "sizes": "512x512", "src": "icon-512.png", "type": "image/png" },
+    { "purpose": "maskable", "sizes": "192x192", "src": "icon-maskable-192.png", "type": "image/png" },
+    { "purpose": "maskable", "sizes": "512x512", "src": "icon-maskable-512.png", "type": "image/png" }
+  ],
+  "id": "/",
+  "name": "Gamish777 — Ember Crown Arcade",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "Gamish777",
+  "start_url": "/",
+  "theme_color": "#160a19"
+}
