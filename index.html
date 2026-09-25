@@ -1,984 +1,154 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#0b0d12" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Gamish777" />
-<link rel="manifest" href="manifest.webmanifest" />
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" />
-<title>Gamish777</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Rye&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<style>
-:root{
-  --bg:#120703; --paper:#1c0d05; --panel:#241108; --panel2:#2e150a; --line:#3d2110;
-  --ink:#fff6ec; --muted:#c09a78; --faint:#7a5f45;
-  --gold:#ff9e1b; --gold2:#ff9e2e; --gold-deep:#d94f04; --gold-soft:rgba(255,158,27,.12);
-  --green:#2fbf71; --cash:#00d632; --green-soft:rgba(47,191,113,.12);
-  --red:#ff4d1c; --red-soft:rgba(255,77,28,.12);
-  --amber:#ff8c1a; --amber-soft:rgba(255,140,26,.12);
-  --blue:#4f9cf9; --blue-soft:rgba(79,156,249,.12);
-  --radius:18px;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
-body{margin:0;background:
-  radial-gradient(120% 42% at 50% -8%, rgba(255,110,20,.16), transparent 62%),
-  var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:16px;line-height:1.45;overscroll-behavior-y:none}
-#app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;position:relative}
-
-/* ---------- start screen : casino machine ---------- */
-#startScreen{position:fixed;inset:0;z-index:100;overflow:hidden;overflow-y:auto;
-  background:
-    radial-gradient(120% 60% at 50% -10%, rgba(120,80,255,.30), transparent 60%),
-    radial-gradient(90% 45% at 12% 30%, rgba(45,212,191,.16), transparent 60%),
-    radial-gradient(100% 55% at 50% 112%, rgba(255,60,10,.24), transparent 60%),
-    linear-gradient(180deg,#1b0f4d 0%,#2a1458 30%,#3d1650 55%,#571b2e 78%,#120703 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  padding:18px 18px calc(18px + env(safe-area-inset-bottom));text-align:center;
-  transition:opacity .3s ease, visibility .3s}
-#startScreen.hide{opacity:0;visibility:hidden;pointer-events:none}
-#fx-embers{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
-.sl-mountains{position:absolute;left:0;right:0;bottom:0;width:100%;height:36%;z-index:2;pointer-events:none;opacity:.9}
-.sl-wrap{position:relative;z-index:3;width:100%;max-width:400px;margin:auto;display:flex;flex-direction:column;align-items:center;gap:9px}
-/* jackpot ladder */
-.jp-ladder{position:relative;width:100%;padding:16px 16px 14px}
-.jp{margin-bottom:7px}
-.jp-name{font-weight:900;letter-spacing:5px;line-height:1.15;color:transparent;
-  background:linear-gradient(180deg,#fff6d8 0%,#ffd76a 35%,#ff9e1b 60%,#a35400 100%);
-  -webkit-background-clip:text;background-clip:text;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.75))}
-.jp-mega .jp-name{font-size:23px}
-.jp-major .jp-name{font-size:17px}
-.jp-minor .jp-name,.jp-mini .jp-name{font-size:13px;letter-spacing:3px}
-.jp-frame{background:linear-gradient(180deg,#fff0b8,#d69c22 38%,#7a5208 62%,#ffe38e);
-  padding:3px;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);
-  filter:drop-shadow(0 3px 8px rgba(0,0,0,.65))}
-.jp-panel{background:radial-gradient(120% 150% at 50% 0%,#1c0606,#050203 72%);
-  clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);
-  padding:7px 36px}
-.jp-num{font-family:"DotGothic16",ui-monospace,monospace;color:#ff2d1e;line-height:1;white-space:nowrap;
-  text-shadow:0 0 6px rgba(255,45,30,.95),0 0 20px rgba(255,45,30,.5)}
-.jp-mega .jp-num{font-size:32px}
-.jp-major .jp-num{font-size:25px}
-.jp-minor .jp-num,.jp-mini .jp-num{font-size:20px}
-.jp-minor .jp-panel,.jp-mini .jp-panel{padding:6px 20px}
-.jp-duo{display:flex;gap:8px}
-.jp-duo .jp{flex:1;margin-bottom:0}
-.sl-bulb{position:absolute;width:9px;height:9px;border-radius:50%;background:#4a2f0c;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.7);z-index:4;pointer-events:none}
-.sl-bulb.on{background:radial-gradient(circle at 35% 35%,#fff8dc,#ffd76a 55%,#ff9e1b);
-  box-shadow:0 0 10px 2px rgba(255,200,80,.9);animation:bulbChase 1.1s infinite}
-@keyframes bulbChase{0%,100%{opacity:1}50%{opacity:.3}}
-/* hero logo */
-.sl-logo{position:relative;margin-top:2px}
-.sl-logo-top{font-weight:900;font-size:46px;letter-spacing:7px;line-height:1;
-  background:linear-gradient(180deg,#ffffff 0%,#d7e6ff 28%,#8b9bb5 46%,#f8fbfe 52%,#a7b4c9 62%,#e8eef7 78%,#93a1b8 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  -webkit-text-stroke:1px rgba(20,20,40,.5);
-  filter:drop-shadow(0 3px 0 #4a3b10) drop-shadow(0 6px 0 #241b06) drop-shadow(0 12px 16px rgba(0,0,0,.7))}
-.sl-logo-fire{font-weight:900;font-size:60px;letter-spacing:12px;line-height:1.05;margin:2px 0 0;
-  background:linear-gradient(180deg,#fff6b8 0%,#ffcf3d 25%,#ff9e1b 45%,#ff5a1c 65%,#e01e00 85%,#8f0e00 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  -webkit-text-stroke:1px rgba(80,10,0,.55);
-  animation:fireFlicker 1.6s ease-in-out infinite}
-@keyframes fireFlicker{0%,100%{filter:drop-shadow(0 0 16px rgba(255,110,20,.7)) drop-shadow(0 4px 0 #571400) drop-shadow(0 10px 16px rgba(0,0,0,.7))}
-  50%{filter:drop-shadow(0 0 32px rgba(255,150,40,.95)) drop-shadow(0 4px 0 #571400) drop-shadow(0 10px 16px rgba(0,0,0,.7))}}
-.sl-ribbon{position:relative;display:inline-block;margin-top:10px;padding:8px 28px;
-  background:linear-gradient(180deg,#b01515,#6d0a0a 60%,#430505);
-  border:2px solid #ffcf3d;border-radius:6px;color:#ffe9a8;
-  font-weight:900;letter-spacing:4px;font-size:13px;
-  box-shadow:0 4px 12px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.25);z-index:1}
-.sl-ribbon::before,.sl-ribbon::after{content:"";position:absolute;top:9px;border:13px solid transparent;z-index:-1}
-.sl-ribbon::before{left:-23px;border-right-color:#430505}
-.sl-ribbon::after{right:-23px;border-left-color:#430505}
-/* mini slot machine */
-.sl-machine{width:100%;max-width:302px;background:linear-gradient(180deg,#3a2410,#1c1105);
-  border:3px solid #ffcf3d;border-radius:14px;padding:10px 12px;
-  box-shadow:0 0 32px rgba(255,160,40,.35), inset 0 2px 10px rgba(0,0,0,.75)}
-.sl-reels{display:flex;gap:8px;justify-content:center}
-.reel{width:78px;height:78px;background:linear-gradient(180deg,#fffdf4,#f1e6cc);border-radius:8px;overflow:hidden;
-  border:2px solid #b98a1e;box-shadow:inset 0 5px 12px rgba(0,0,0,.4);position:relative}
-.reel-strip{display:flex;flex-direction:column;align-items:center;will-change:transform}
-.reel-sym{width:78px;height:78px;display:flex;align-items:center;justify-content:center;font-size:42px;flex:none}
-.reel.spinning .reel-strip{filter:blur(5px)}
-.sl-winbox{margin-top:9px;background:#050203;border:2px solid #ffcf3d;border-radius:8px;padding:5px 10px;
-  font-family:"DotGothic16",ui-monospace,monospace;color:#ff2d1e;font-size:21px;letter-spacing:2px;
-  text-shadow:0 0 8px rgba(255,45,30,.9)}
-.sl-winbox.win{animation:winFlash .45s ease 6}
-@keyframes winFlash{50%{background:#431007;box-shadow:0 0 20px rgba(255,60,20,.85)}}
-/* wooden plank */
-.sl-plank{width:100%;max-width:332px;position:relative;margin-top:2px;
-  background:repeating-linear-gradient(90deg,#71401c 0 46px,#5e3515 46px 92px);
-  border-radius:12px;padding:13px;
-  box-shadow:0 12px 26px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,220,150,.28), inset 0 -4px 0 rgba(0,0,0,.45)}
-.sl-plank::before{content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;
-  background:repeating-linear-gradient(0deg,transparent 0 6px,rgba(0,0,0,.14) 6px 7px)}
-.sl-rivet{position:absolute;width:13px;height:13px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#ffedb5,#a97c1e 60%,#54400b);
-  box-shadow:0 2px 3px rgba(0,0,0,.65)}
-.sl-plank-inner{position:relative;background:linear-gradient(180deg,#111b4a,#070d28);
-  border:3px solid #ffcf3d;border-radius:8px;padding:11px;
-  box-shadow:inset 0 3px 12px rgba(0,0,0,.7)}
-.sl-enter{font-size:19px;letter-spacing:2px;padding:16px 20px;border-radius:10px;animation:pulseGlow 2.2s infinite}
-@keyframes pulseGlow{0%,100%{box-shadow:0 8px 26px rgba(255,110,20,.45),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(120,40,0,.35)}
-  50%{box-shadow:0 8px 44px rgba(255,110,20,.8),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(120,40,0,.35)}}
-.sl-plank-cap{font-family:"Rye",serif;font-size:18px;letter-spacing:4px;
-  background:linear-gradient(180deg,#fff6d8,#ffcf3d 50%,#b97a08);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.85))}
-#startScreen .demo-badge{margin-top:2px;position:relative;z-index:3}
-.demo-badge{font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--amber);background:var(--amber-soft);
-  border:1px solid rgba(255,140,26,.35);padding:5px 10px;border-radius:999px}
-/* ---------- mobile landscape: compact the casino front ---------- */
-@media (orientation:landscape) and (max-height:500px){
-  #startScreen{justify-content:flex-start;padding-top:12px}
-  .sl-wrap{gap:5px;max-width:340px}
-  .jp-ladder{padding:10px 12px 8px}
-  .jp-mega .jp-name{font-size:16px}.jp-major .jp-name{font-size:13px}.jp-minor .jp-name,.jp-mini .jp-name{font-size:11px}
-  .jp-mega .jp-num{font-size:22px}.jp-major .jp-num{font-size:18px}.jp-minor .jp-num,.jp-mini .jp-num{font-size:15px}
-  .sl-logo-top{font-size:30px;letter-spacing:4px}.sl-logo-fire{font-size:38px;letter-spacing:7px}
-  .sl-ribbon{font-size:11px;padding:6px 20px}
-  .sl-machine{max-width:236px;padding:8px}
-  .reel,.reel-sym{width:58px;height:58px}.reel-sym{font-size:32px}
-  .sl-winbox{font-size:16px;margin-top:6px}
-  .sl-plank{max-width:280px;padding:10px}
-  .sl-enter{padding:12px 16px;font-size:16px}
-  .sl-plank-cap{font-size:14px}
-  #startScreen .demo-badge{margin-top:2px}
-}
-
-/* ---------- header: chat + wallet only ---------- */
-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:flex-end;gap:10px;
-  padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
-.wallet-pill{display:flex;align-items:center;gap:7px;background:rgba(5,25,14,.88);
-  border:1.5px solid rgba(0,214,50,.55);color:#00d632;font-weight:800;font-size:15px;
-  border-radius:999px;padding:8px 14px;cursor:pointer;font-family:inherit;
-  box-shadow:0 0 16px rgba(0,214,50,.3)}
-.wallet-pill:active{transform:scale(.96)}
-.wp-plus{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
-  background:#00d632;color:#000;font-size:15px;font-weight:800;line-height:1;margin-left:3px}
-.icon-btn-h{width:42px;height:42px;border-radius:50%;border:1.5px solid rgba(79,156,249,.5);background:rgba(8,18,32,.88);
-  font-size:19px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 14px rgba(79,156,249,.28)}
-.icon-btn-h:active{transform:scale(.94)}
-
-main{flex:1;padding:18px 16px 32px}
-.view{display:none;animation:fade .22s ease}
-.view.active{display:block}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-h2{font-size:20px;margin:4px 2px 4px;letter-spacing:.3px}
-.sub{color:var(--muted);font-size:13.5px;margin:0 2px 14px}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;
-  font-weight:800;font-size:16px;padding:15px 22px;border-radius:14px;width:100%;font-family:inherit;
-  transition:transform .08s ease}
-.btn:active{transform:scale(.98)}
-.btn-gold{background:linear-gradient(180deg,#ffab2e 0%,#ff9e1b 48%,#d94f04 100%);color:#2a1200;
-  box-shadow:0 8px 24px rgba(255,110,20,.42),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(120,40,0,.35);
-  text-shadow:0 1px 0 rgba(255,255,255,.3)}
-.btn-green{background:linear-gradient(180deg,#00d632 0%,#22b573 48%,#0e8a4e 100%);color:#04220f;
-  box-shadow:0 8px 24px rgba(46,204,113,.42),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(4,60,28,.4);
-  text-shadow:0 1px 0 rgba(255,255,255,.3)}
-.btn-blue{background:linear-gradient(180deg,#5eb2ff 0%,#2f8ff0 48%,#0b5ed7 100%);color:#fff;
-  box-shadow:0 8px 24px rgba(47,143,240,.42),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(6,50,110,.45)}
-.btn-ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
-.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-.btn-row{display:flex;gap:10px;margin-top:12px}
-.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:14px}
-.card h3{margin:0 0 6px;font-size:15px}
-.card p{margin:0;color:var(--muted);font-size:13.5px}
-
-/* ---------- games: casino floor (Fire-Link) ---------- */
-#view-games{position:relative}
-#view-games::before{content:"";position:fixed;inset:-10%;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(42% 32% at 15% 8%,rgba(128,0,64,.38),transparent 70%),
-    radial-gradient(40% 32% at 88% 12%,rgba(90,20,160,.42),transparent 70%),
-    radial-gradient(44% 36% at 82% 86%,rgba(150,40,120,.30),transparent 70%),
-    radial-gradient(40% 32% at 10% 90%,rgba(120,30,90,.30),transparent 70%),
-    radial-gradient(34% 24% at 50% 0%,rgba(255,170,40,.20),transparent 70%),
-    radial-gradient(36% 26% at 50% 100%,rgba(255,60,120,.16),transparent 70%);
-  animation:aurora 14s ease-in-out infinite alternate}
-@keyframes aurora{0%{transform:translate3d(-4%,-2%,0) scale(1)}50%{transform:translate3d(3%,2%,0) scale(1.08)}100%{transform:translate3d(-2%,3%,0) scale(1.04)}}
-#view-games .game-grid{position:relative;z-index:1}
-#view-games .demo-foot{position:relative;z-index:1;text-align:center;color:#8a6f4d;font-size:11.5px;letter-spacing:.4px;margin:16px 4px 8px}
-.sparkle{position:absolute;z-index:0;pointer-events:none;color:#ffd98a;opacity:0;animation:twinkle 3.6s ease-in-out infinite}
-@keyframes twinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0deg)}50%{opacity:.9;transform:scale(1) rotate(35deg)}}
-/* marquee sign */
-.gz-sign{position:relative;z-index:1;margin:2px 0 14px;border-radius:14px;border:2px solid transparent;
-  background:linear-gradient(#150a10,#150a10) padding-box,linear-gradient(160deg,#ffe9b0,#8a5a10 30%,#ffe9b0 50%,#8a5a10 70%,#ffe9b0) border-box;
-  box-shadow:0 0 26px rgba(255,170,40,.28),inset 0 0 30px rgba(0,0,0,.75);padding:10px 14px 12px}
-.gz-bulbs{display:flex;justify-content:space-between}
-.gz-bulbs i{width:7px;height:7px;border-radius:50%;background:#3a2508;box-shadow:inset 0 0 2px #000}
-.gz-bulbs i.on{background:radial-gradient(circle at 35% 35%,#fff8dc,#ffd76a 55%,#ff9e1b);
-  box-shadow:0 0 8px 2px rgba(255,200,80,.85);animation:bulbChase 1.1s infinite}
-.gz-bulbs i.on:nth-child(even){animation-delay:.55s}
-.gz-title{margin:8px 0 2px;text-align:center;font-family:"Rye",serif;font-size:30px;letter-spacing:4px;
-  background:linear-gradient(180deg,#fff7dd 8%,#ffe9a8 30%,#c98f1b 52%,#ffedb8 60%,#8a5a10 82%,#ffe9a8);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 2px 0 #3a2004) drop-shadow(0 0 16px rgba(255,190,60,.45))}
-.gz-sub{margin:0;text-align:center;font-family:"DotGothic16",monospace;font-size:12px;letter-spacing:5px;color:#ff5b4d;
-  text-shadow:0 0 8px rgba(255,60,40,.9)}
-/* game cabinets */
-.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.game-card{position:relative;border:2px solid transparent;border-radius:16px;cursor:pointer;font-family:inherit;
-  background:linear-gradient(#1c0d14,#1c0d14) padding-box,linear-gradient(165deg,#ffe9b0,#8a5a10 35%,#ffe9b0 55%,#8a5a10 80%,#ffe9b0) border-box;
-  box-shadow:0 6px 22px rgba(0,0,0,.6),0 0 18px rgba(255,170,40,.22);
-  padding:16px 10px 14px;text-align:center;color:#fff6ec;transition:transform .18s ease,box-shadow .18s ease}
-.game-card:active{transform:scale(.96)}
-.game-card .g-art{font-size:44px;line-height:1;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(255,190,80,.55))}
-.game-card .g-name{display:block;font-family:"Rye",serif;font-size:15px;letter-spacing:1px;color:#ffe9a8;margin-bottom:4px}
-.game-card .g-min{display:block;font-family:"DotGothic16",monospace;font-size:12px;letter-spacing:2px;color:#ff6a5e;
-  text-shadow:0 0 8px rgba(255,60,40,.8);margin-bottom:10px}
-.game-card .play{display:inline-block;font-weight:800;font-size:12px;letter-spacing:2px;color:#2a1200;
-  padding:8px 22px;border-radius:999px;background:linear-gradient(180deg,#ffcf5e,#ff9e1b 55%,#d94f04);
-  box-shadow:0 4px 14px rgba(255,140,26,.5),inset 0 1px 0 rgba(255,255,255,.6)}
-.game-card::after{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
-  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.14) 50%,transparent 60%);
-  background-size:250% 100%;background-position:120% 0;animation:cabShine 5s ease-in-out infinite}
-@keyframes cabShine{0%,60%{background-position:120% 0}90%,100%{background-position:-20% 0}}
-.game-slot{position:relative;border-radius:16px;text-align:center;overflow:hidden;border:2px dashed rgba(255,190,80,.45);
-  background:linear-gradient(170deg,rgba(60,20,40,.85),rgba(20,8,16,.9));
-  box-shadow:inset 0 0 30px rgba(0,0,0,.7);padding:22px 10px 18px;color:#c9a35a}
-.game-slot .gs-reel{width:58px;height:58px;margin:0 auto 10px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:30px;background:#050505;border:2px solid #8a5a10;color:#ffe9a8;
-  box-shadow:inset 0 0 14px rgba(0,0,0,.9),0 0 12px rgba(255,170,40,.25)}
-.game-slot b{display:block;font-size:12px;letter-spacing:2.5px;color:#ffe9a8}
-.soon{display:inline-block;margin-top:10px;font-size:10px;font-weight:800;letter-spacing:2px;color:#2a1200;
-  background:linear-gradient(180deg,#ffcf5e,#ff9e1b 60%,#d94f04);padding:6px 14px;border-radius:999px;
-  box-shadow:0 0 14px rgba(255,140,26,.55);animation:soonPulse 2.2s infinite}
-@keyframes soonPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-
-/* ---------- wallet ---------- */
-.balance-card{position:relative;overflow:hidden;background:#0c0502;
-  border:2px solid rgba(255,158,27,.65);border-radius:20px;padding:26px 20px;text-align:center;
-  box-shadow:0 0 30px rgba(255,110,20,.35),inset 0 0 36px rgba(0,0,0,.8)}
-.balance-card::after{content:"777";position:absolute;right:10px;top:-14px;font-size:96px;font-weight:900;
-  color:rgba(255,158,27,.06);letter-spacing:2px}
-.balance-label{font-size:12px;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;font-weight:700}
-.balance-amount{font-size:48px;font-weight:900;margin:8px 0 4px;letter-spacing:1px;color:#ffab2e;
-  text-shadow:0 0 24px rgba(255,158,27,.85),0 2px 0 rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
-.balance-amount small{font-size:24px;color:var(--gold);font-weight:700}
-.balance-note{color:var(--muted);font-size:13px;margin-bottom:16px}
-.steps{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
-.steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px;color:var(--muted)}
-.steps li b{color:var(--ink)}
-.step-n{flex:0 0 26px;height:26px;border-radius:50%;background:var(--gold-soft);color:var(--gold);
-  font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,158,27,.4)}
-.low-banner{background:var(--amber-soft);border:1px solid rgba(255,140,26,.35);color:#ffd88a;font-size:13.5px;
-  font-weight:600;border-radius:14px;padding:12px 14px;margin-top:14px}
-.last-pay{display:flex;align-items:center;gap:12px;background:var(--green-soft);border:1px solid rgba(47,191,113,.3);
-  border-radius:14px;padding:12px 14px;margin-top:14px;font-size:13.5px}
-.last-pay .tick{flex:0 0 34px;height:34px;border-radius:50%;background:var(--green);color:#062a17;
-  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}
-.last-pay small{display:block;color:var(--muted);font-size:12px}
-.wizard-steps{display:flex;gap:6px;margin:2px 2px 16px}
-.wizard-steps div{flex:1;height:5px;border-radius:99px;background:var(--line)}
-.wizard-steps div.on{background:var(--gold)}
-.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-.chip-amt{background:var(--panel);border:1.5px solid var(--line);color:var(--ink);border-radius:14px;padding:14px 6px;
-  font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s}
-.chip-amt.sel{border-color:var(--gold);background:var(--gold-soft);color:var(--gold)}
-.field label{display:block;font-size:12.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);
-  margin:0 2px 8px;font-weight:700}
-.field input,.field select{width:100%;background:var(--panel);border:1.5px solid var(--line);color:var(--ink);
-  border-radius:14px;padding:15px 14px;font-size:17px;font-weight:700;outline:none;font-family:inherit}
-.field input:focus,.field select:focus{border-color:var(--gold)}
-.field{margin-bottom:14px}
-.hint{font-size:12.5px;color:var(--faint);margin:6px 2px 0}
-.err{font-size:13px;color:var(--red);margin:6px 2px 0;display:none}
-.amt-input-wrap{position:relative}
-.amt-input-wrap span{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:19px;font-weight:800;color:var(--gold)}
-.amt-input-wrap input{padding-left:38px}
-.methods{display:grid;gap:10px}
-.method{display:flex;align-items:center;gap:14px;background:var(--panel);border:1.5px solid var(--line);
-  border-radius:14px;padding:14px;cursor:pointer;width:100%;text-align:left;color:var(--ink);font-family:inherit;font-size:15px}
-.method.sel{border-color:var(--gold);background:var(--gold-soft)}
-.method .m-ico{flex:0 0 44px;height:44px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;font-size:22px}
-.method b{display:block;font-size:15.5px}
-.method small{color:var(--muted);font-size:12.5px}
-.method .radio{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--faint);flex:0 0 22px}
-.method.sel .radio{border-color:var(--gold);background:radial-gradient(circle,var(--gold) 0 6px,transparent 7px)}
-.summary{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0;
-  display:grid;gap:8px;font-size:14.5px}
-.summary .row{display:flex;justify-content:space-between}
-.summary .row span:first-child{color:var(--muted)}
-.summary .row.total{border-top:1px solid var(--line);padding-top:10px;font-weight:800;font-size:16.5px}
-.summary .row.total span:last-child{color:var(--gold)}
-.proc{text-align:center;padding:34px 10px 10px}
-.spinner{width:74px;height:74px;margin:0 auto 20px;border-radius:50%;border:5px solid var(--line);
-  border-top-color:var(--gold);animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.proc-line{color:var(--muted);font-size:14px;min-height:22px;margin-top:6px}
-.success-check{width:92px;height:92px;margin:6px auto 18px;border-radius:50%;background:var(--green-soft);
-  border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--green);
-  font-weight:900;animation:pop .35s ease}
-@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-.success-amt{font-size:38px;font-weight:800;color:var(--gold);margin:4px 0}
-.txn-id{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--panel);
-  border:1px dashed var(--line);color:var(--muted);border-radius:10px;padding:8px 14px;font-size:13px;margin:10px 0 18px}
-.txn{display:flex;align-items:center;gap:13px;width:100%;background:var(--paper);border:1px solid var(--line);
-  border-radius:14px;padding:13px 14px;margin-bottom:10px;cursor:pointer;color:var(--ink);font-family:inherit;
-  text-align:left;font-size:15px}
-.txn .t-ico{flex:0 0 44px;height:44px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;font-size:21px}
-.txn .t-main{flex:1;min-width:0}
-.txn .t-main b{display:block;font-size:14.5px}
-.txn .t-main small{color:var(--muted);font-size:12px}
-.txn .t-amt{font-weight:800;font-size:16px;color:var(--gold);white-space:nowrap}
-.pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
-  padding:3px 9px;border-radius:999px;margin-top:4px}
-.pill.received{background:var(--green-soft);color:var(--green);border:1px solid rgba(47,191,113,.4)}
-.pill.pending{background:var(--amber-soft);color:var(--amber);border:1px solid rgba(255,140,26,.4)}
-.pill.failed{background:var(--red-soft);color:var(--red);border:1px solid rgba(255,77,28,.4)}
-.empty{text-align:center;padding:56px 20px;color:var(--muted);border:1.5px dashed var(--line);
-  border-radius:var(--radius);margin-top:6px;font-size:14px}
-.empty .big{font-size:44px;margin-bottom:10px}
-
-/* ---------- wallet: Cash App style ---------- */
-#view-wallet{background:#000}
-#view-wallet .overlay-bar{background:#000;border-bottom:1px solid #1c1c1c}
-#view-wallet .overlay-body{background:#000}
-#view-wallet .balance-card{background:#000;border:1px solid #1e1e1e;border-radius:26px;box-shadow:none;padding:34px 20px 30px}
-#view-wallet .balance-card::after{display:none}
-#view-wallet .balance-label{color:#8e8e8e;font-size:13px}
-#view-wallet .balance-amount{font-size:68px;font-weight:800;letter-spacing:-1px}
-#view-wallet .balance-note{color:#8e8e8e}
-#view-wallet .card{background:#0a0a0a;border:1px solid #1e1e1e}
-#view-wallet .low-banner{background:#141414;border-color:#2a2a2a;color:#ffd88a}
-#view-wallet .chip-amt{background:#0a0a0a;border-color:#2a2a2a;border-radius:999px}
-#view-wallet .field input,#view-wallet .field select{background:#0a0a0a;border-color:#2a2a2a;border-radius:16px}
-#view-wallet .method{background:#0a0a0a;border-color:#2a2a2a;border-radius:18px}
-#view-wallet .method .m-ico{background:#141414;border-color:#2a2a2a}
-#view-wallet .summary{background:#0a0a0a;border-color:#2a2a2a;border-radius:18px}
-#view-wallet .txn{background:#0a0a0a;border-color:#1e1e1e;border-radius:18px}
-#view-wallet .txn .t-ico{background:#141414;border-color:#2a2a2a}
-#view-wallet .txn-id{background:#0a0a0a;border-color:#2a2a2a}
-#view-wallet .empty{border-color:#2a2a2a}
-#view-wallet .btn-ghost{background:#141414;border-color:#2a2a2a;border-radius:999px}
-/* ---------- wallet: Cash App pay flow ---------- */
-#chat-attach{background:#1c1c1c;border:1px solid #2a2a2a;color:#fff;border-radius:50%;width:42px;height:42px;font-size:18px;flex:0 0 42px}
-#signal-btn{background:none;border:none;padding:4px 2px;margin-left:8px;cursor:pointer;display:flex;align-items:center}
-#signal-btn svg{display:block;width:30px;height:30px}
-#agent-btn{background:none;border:none;padding:4px 2px;cursor:pointer;font-size:22px;line-height:1}
-.msg .shot{max-width:100%;border-radius:12px;margin-top:6px;display:block}
-.paylist{display:flex;flex-direction:column;gap:10px;margin:14px 0 16px}
-.payopt{display:flex;align-items:center;gap:14px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:18px;padding:14px;color:#fff;text-align:left;width:100%;font-size:15px}
-.payopt:active{background:#141414}
-.payopt .m-ico{flex:0 0 46px;height:46px;border-radius:14px;background:#141414;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800}
-.payopt .chev{margin-left:auto;color:#8e8e8e;font-size:24px}
-.payopt small{color:var(--muted)}
-.pa-cash{background:rgba(0,214,50,.14)!important;border-color:rgba(0,214,50,.45)!important;color:#00d632}
-.pa-chime{background:rgba(56,189,248,.12)!important;border-color:rgba(56,189,248,.4)!important;color:#38bdf8}
-.pa-paypal{background:rgba(0,112,186,.16)!important;border-color:rgba(0,112,186,.5)!important;color:#4da3e0}
-.pa-venmo{background:rgba(61,149,206,.14)!important;border-color:rgba(61,149,206,.45)!important;color:#5aa9e6}
-.pa-zelle{background:rgba(168,85,247,.12)!important;border-color:rgba(168,85,247,.4)!important;color:#a855f7}
-.pa-btc{background:rgba(247,147,26,.12)!important;border-color:rgba(247,147,26,.45)!important;color:#f7931a}
-.pay-expand{background:#0a0a0a;border:1px solid #2a2a2a;border-radius:18px;padding:16px;margin:-2px 0 6px}
-.pay-handle{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#141414;border:1px dashed #3a3a3a;border-radius:12px;padding:12px 14px;font-weight:700;margin-bottom:10px;word-break:break-all}
-.copy-btn{flex:0 0 auto;background:#1c1c1c;border:1px solid #333;color:#00d632;border-radius:999px;padding:8px 16px;font-size:13px}
-.mini-bal{font-size:12px;color:var(--muted);margin:2px 0 14px}
-.mini-bal b{color:#00d632;font-weight:700}
-.linklike{background:none;border:none;color:#00d632;font-size:12px;padding:0;cursor:pointer}
-.cash-amt{display:flex;justify-content:center;align-items:flex-start;margin:26px 0 12px;color:#00d632}
-.cash-amt .cur{font-size:32px;font-weight:800;margin:12px 6px 0 0}
-#key-amt{font-size:84px;font-weight:800;letter-spacing:-2px;line-height:1}
-.fund-pill{display:inline-flex;gap:8px;align-items:center;background:#141414;border:1px solid #2a2a2a;color:#fff;border-radius:999px;padding:10px 20px;font-size:14px;margin-bottom:4px}
-.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:12px 0 16px}
-.keypad button{background:none;border:none;color:#fff;font-size:28px;font-weight:600;padding:13px 0;border-radius:16px}
-.keypad button:active{background:#1c1c1c}
-.keypad .k-del{font-size:24px;color:#8e8e8e}
-.review-title{font-size:24px;margin:4px 0 10px;letter-spacing:-.3px}
-.review-rows{margin-bottom:6px}
-.rr{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid #1e1e1e;font-size:15px}
-.rr span{color:#8e8e8e}
-.rr b{font-weight:600}
-/* ---------- wallet: money-green psychology ---------- */
-#view-wallet .overlay-bar b{color:#00d632}
-#view-wallet .balance-card{border-color:rgba(61,220,132,.6);box-shadow:0 0 30px rgba(46,204,113,.3),inset 0 0 36px rgba(0,0,0,.8)}
-#view-wallet .balance-card::after{color:rgba(61,220,132,.07)}
-#view-wallet .balance-label{color:#00d632}
-#view-wallet .balance-amount{color:#00d632;text-shadow:0 0 24px rgba(61,220,132,.8),0 2px 0 rgba(0,0,0,.5)}
-#view-wallet .balance-amount small{color:var(--green)}
-#view-wallet .step-n{background:var(--green-soft);color:#00d632;border-color:rgba(61,220,132,.4)}
-#view-wallet .wizard-steps div.on{background:var(--green)}
-#view-wallet .chip-amt.sel{border-color:var(--green);background:var(--green-soft);color:#00d632}
-#view-wallet .field input:focus,#view-wallet .field select:focus{border-color:var(--green)}
-#view-wallet .amt-input-wrap span{color:var(--green)}
-#view-wallet .method.sel{border-color:var(--green);background:var(--green-soft)}
-#view-wallet .method.sel .radio{border-color:var(--green);background:radial-gradient(circle,var(--green) 0 6px,transparent 7px)}
-#view-wallet .summary .row.total span:last-child{color:#00d632}
-#view-wallet .spinner{border-top-color:var(--green)}
-#view-wallet .success-amt{color:#00d632}
-#view-wallet .txn .t-amt{color:#00d632}
-/* ---------- chat: trust-blue psychology ---------- */
-#view-chat .overlay-bar b{color:#7db8ff}
-
-/* ---------- chat ---------- */
-.chat-wrap{display:flex;flex-direction:column;height:100%;min-height:420px}
-.chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px 12px}
-.msg{max-width:82%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.4;animation:fade .2s ease}
-.msg.me{align-self:flex-end;background:linear-gradient(135deg,#3d9bff,#0b5ed7);color:#fff;
-  border-bottom-right-radius:6px;font-weight:600}
-.msg.them{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:6px}
-.msg .who{display:block;font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;
-  color:var(--faint);margin-bottom:3px}
-.msg.me .who{color:rgba(255,255,255,.65)}
-.typing{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:16px;
-  border-bottom-left-radius:6px;padding:12px 16px;color:var(--muted);font-size:14px}
-.chat-input{display:flex;gap:10px;padding-top:10px}
-.chat-input input{flex:1;background:var(--panel);border:1.5px solid var(--line);color:var(--ink);border-radius:14px;
-  padding:14px;font-size:15px;outline:none;font-family:inherit}
-.chat-input input:focus{border-color:var(--blue)}
-.chat-input button{flex:0 0 52px;border:none;border-radius:14px;cursor:pointer;font-size:20px;
-  background:linear-gradient(135deg,#3d9bff,#0b5ed7);color:#fff;
-  box-shadow:0 4px 14px rgba(47,143,240,.45)}
-
-/* ---------- overlays: pay & chat slide in ---------- */
-.overlay{position:fixed;inset:0;z-index:50;background:var(--bg);transform:translateX(calc(100vw + 48px));
-  transition:transform .28s ease;display:flex;flex-direction:column;max-width:480px;margin:0 auto}
-.overlay.open{transform:none}
-.overlay-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;
-  padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:rgba(11,13,18,.97);
-  border-bottom:1px solid var(--line)}
-.overlay-bar b{flex:1;text-align:center;font-size:17px;letter-spacing:.5px}
-.overlay-bar .spacer{flex:0 0 42px}
-.back-btn{flex:0 0 42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);
-  color:var(--ink);font-size:22px;cursor:pointer;font-family:inherit;line-height:1}
-.overlay-body{flex:1;overflow-y:auto;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}
-
-/* ---------- sheets ---------- */
-.sheet-back{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .2s}
-.sheet-back.open{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:480px;margin:0 auto;background:var(--paper);
-  border:1px solid var(--line);border-bottom:none;border-radius:22px 22px 0 0;
-  padding:14px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .25s ease;
-  max-height:82dvh;overflow-y:auto}
-.sheet.open{transform:none}
-.grab{width:44px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 14px}
-.sheet h3{margin:0 0 4px;font-size:17px}
-.sheet .r-status{margin-bottom:12px}
-.r-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
-.r-row:last-of-type{border-bottom:none}
-.r-row span:first-child{color:var(--muted)}
-.r-row span:last-child{font-weight:700;text-align:right}
-.r-row .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
-.demo-foot{text-align:center;color:var(--faint);font-size:11.5px;margin-top:22px;padding:0 24px}
-</style>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={corePlugins:{preflight:false}}</script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#160a19" />
+  <meta name="description" content="Gamish777 — enter the Ember Crown Arcade." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gamish777" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Gamish777 — Ember Crown Arcade</title>
 </head>
 <body>
-
-<!-- START SCREEN : casino machine -->
-<div id="startScreen">
-  <canvas id="fx-embers"></canvas>
-  <svg class="sl-mountains" viewBox="0 0 480 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <polygon points="0,220 0,150 70,80 140,150 210,60 300,160 370,100 480,170 480,220" fill="#0d1440" opacity=".92"/>
-    <polygon points="70,80 96,106 70,126 46,106" fill="#dfe9ff" opacity=".8"/>
-    <polygon points="210,60 242,96 210,120 180,96" fill="#dfe9ff" opacity=".8"/>
-    <polygon points="370,100 393,123 370,141 349,123" fill="#dfe9ff" opacity=".75"/>
-    <polygon points="0,220 0,182 120,142 240,182 360,152 480,186 480,220" fill="#141c55" opacity=".95"/>
-  </svg>
-  <div class="sl-wrap">
-    <div class="jp-ladder" id="jp-ladder">
-      <div class="jp jp-mega"><div class="jp-name">MEGA</div><div class="jp-frame"><div class="jp-panel"><span class="jp-num" id="jp-mega">$12,847.53</span></div></div></div>
-      <div class="jp jp-major"><div class="jp-name">MAJOR</div><div class="jp-frame"><div class="jp-panel"><span class="jp-num" id="jp-major">$1,274.20</span></div></div></div>
-      <div class="jp-duo">
-        <div class="jp jp-minor"><div class="jp-name">MINOR</div><div class="jp-frame"><div class="jp-panel"><span class="jp-num" id="jp-minor">$156.40</span></div></div></div>
-        <div class="jp jp-mini"><div class="jp-name">MINI</div><div class="jp-frame"><div class="jp-panel"><span class="jp-num" id="jp-mini">$24.10</span></div></div></div>
+  <main id="app" aria-label="Gamish777">
+    <section id="arcade-view" class="app-view arcade-view active" aria-label="Arcade">
+      <div id="game-shell"></div>
+      <div id="loading-fallback" role="status" aria-live="polite">
+        <span class="loading-mark">◆</span>
+        <strong>Lighting the Ember Crown…</strong>
       </div>
-    </div>
-    <div class="sl-logo">
-      <div class="sl-logo-top">GAMISH</div>
-      <div class="sl-logo-fire">777</div>
-      <div><span class="sl-ribbon">WHERE SKILL PAYS</span></div>
-    </div>
-    <div class="sl-machine">
-      <div class="sl-reels" id="sl-reels">
-        <div class="reel"><div class="reel-strip"></div></div>
-        <div class="reel"><div class="reel-strip"></div></div>
-        <div class="reel"><div class="reel-strip"></div></div>
-      </div>
-      <div class="sl-winbox" id="sl-winbox">WIN&nbsp;&nbsp;<span id="sl-win">$0</span></div>
-    </div>
-    <div class="sl-plank" id="sl-plank">
-      <div class="sl-plank-inner">
-        <button class="btn btn-gold sl-enter" id="btn-start">TAP TO ENTER</button>
-      </div>
-    </div>
-    <div class="sl-plank-cap">SELECT YOUR GAME</div>
-    <div class="demo-badge">DEMO</div>
-  </div>
-</div>
-
-<div id="app">
-  <header>
-    <button class="icon-btn-h" id="chat-btn" aria-label="Support chat">💬</button>
-    <button class="wallet-pill" id="wallet-pill">💰 $<span id="pill-bal">0</span><span class="wp-plus" id="wp-plus">+</span></button>
-  </header>
-
-  <main>
-    <!-- GAMES -->
-    <section class="view active" id="view-games">
-      <span class="sparkle" style="left:6%;top:8%;font-size:14px;animation-delay:.4s">✦</span>
-      <span class="sparkle" style="left:88%;top:14%;font-size:11px;animation-delay:1.8s">✦</span>
-      <span class="sparkle" style="left:12%;top:38%;font-size:10px;animation-delay:2.6s">✦</span>
-      <span class="sparkle" style="left:92%;top:44%;font-size:15px;animation-delay:.9s">✦</span>
-      <span class="sparkle" style="left:5%;top:66%;font-size:12px;animation-delay:3.1s">✦</span>
-      <span class="sparkle" style="left:85%;top:72%;font-size:10px;animation-delay:2.2s">✦</span>
-      <span class="sparkle" style="left:48%;top:4%;font-size:11px;animation-delay:1.2s">✦</span>
-      <span class="sparkle" style="left:55%;top:94%;font-size:13px;animation-delay:2.9s">✦</span>
-      <span class="sparkle" style="left:30%;top:24%;font-size:9px;animation-delay:.2s;color:#ffd9ec">✦</span>
-      <span class="sparkle" style="left:70%;top:58%;font-size:9px;animation-delay:1.5s;color:#bfe9ff">✦</span>
-      <div class="gz-sign shadow-2xl"><div class="gz-bulbs"><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i></div><h2 class="gz-title">GAME ZONE</h2><p class="gz-sub">SELECT YOUR GAME</p><div class="gz-bulbs"><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i><i class="on"></i><i></i></div></div>
-      <div class="game-grid grid grid-cols-2 gap-3" id="game-grid"></div>
-      <p class="demo-foot">Demo build — payments are simulated and no real money moves.</p>
+      <p id="scene-status" class="sr-only" aria-live="polite">Loading Gamish777.</p>
     </section>
+
+    <section id="payments-view" class="app-view page-view" aria-labelledby="payments-title" aria-hidden="true">
+      <div class="page-shell">
+        <header class="section-header">
+          <div>
+            <p class="eyebrow">EMBER CROWN WALLET</p>
+            <h1 id="payments-title">Payments</h1>
+            <p class="section-copy">A clean, guided reload experience. Choose an amount and your preferred method.</p>
+          </div>
+          <span class="secure-chip"><span></span> Demo mode</span>
+        </header>
+
+        <article class="balance-card">
+          <div class="balance-orbit orbit-one"></div>
+          <div class="balance-orbit orbit-two"></div>
+          <div class="balance-topline"><span>Available balance</span><span class="balance-gem">◆</span></div>
+          <strong class="balance-value">$0.00</strong>
+          <div class="balance-meta"><span>PLAYER ID</span><b>GM-777-EMBER</b></div>
+        </article>
+
+        <section class="surface payment-builder" aria-labelledby="reload-heading">
+          <div class="surface-heading">
+            <div><span class="step-number">1</span><h2 id="reload-heading">Choose amount</h2></div>
+            <span id="amount-label" class="selection-label">$25 selected</span>
+          </div>
+          <div class="amount-grid" role="group" aria-label="Reload amount">
+            <button class="amount-chip selected" type="button" data-amount="25">$25</button>
+            <button class="amount-chip" type="button" data-amount="50">$50</button>
+            <button class="amount-chip" type="button" data-amount="100">$100</button>
+            <label class="custom-amount"><span>$</span><input id="custom-amount" inputmode="decimal" aria-label="Custom amount" placeholder="Custom" /></label>
+          </div>
+        </section>
+
+        <section class="surface methods-panel" aria-labelledby="method-heading">
+          <div class="surface-heading">
+            <div><span class="step-number">2</span><h2 id="method-heading">Payment method</h2></div>
+            <span class="selection-label">Choose one</span>
+          </div>
+          <div class="method-grid">
+            <button class="method-card selected" type="button" data-method="Cash App" data-handle="$Gamish777" data-tone="cash">
+              <span class="method-logo cash">$</span><span><b>Cash App</b><small>Fast and familiar</small></span><i>✓</i>
+            </button>
+            <button class="method-card" type="button" data-method="Chime" data-handle="$Gamish777" data-tone="chime">
+              <span class="method-logo chime">C</span><span><b>Chime</b><small>Pay anyone</small></span><i>✓</i>
+            </button>
+            <button class="method-card" type="button" data-method="PayPal" data-handle="paypal.me/Gamish777" data-tone="paypal">
+              <span class="method-logo paypal">P</span><span><b>PayPal</b><small>Secure transfer</small></span><i>✓</i>
+            </button>
+            <button class="method-card" type="button" data-method="Venmo" data-handle="@Gamish777" data-tone="venmo">
+              <span class="method-logo venmo">V</span><span><b>Venmo</b><small>Easy mobile pay</small></span><i>✓</i>
+            </button>
+          </div>
+
+          <div id="method-detail" class="method-detail" data-tone="cash">
+            <div><span class="detail-kicker">SEND WITH CASH APP</span><strong id="method-handle">$Gamish777</strong></div>
+            <button id="copy-handle" class="copy-button" type="button">Copy</button>
+          </div>
+          <p class="demo-note"><span>i</span>This is a design preview. No real payment is submitted from this screen.</p>
+          <button id="review-reload" class="primary-action" type="button"><span>Review $25 reload</span><b>→</b></button>
+        </section>
+
+        <section class="surface activity-panel" aria-labelledby="activity-heading">
+          <div class="surface-heading"><div><span class="step-number quiet">3</span><h2 id="activity-heading">Recent activity</h2></div></div>
+          <div class="empty-state"><span>◇</span><div><b>No payments yet</b><p>Your reload receipts will appear here.</p></div></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="messages-view" class="app-view page-view" aria-labelledby="messages-title" aria-hidden="true">
+      <div class="page-shell messages-shell">
+        <header class="section-header messages-heading">
+          <div>
+            <p class="eyebrow">PRIVATE SUPPORT LOUNGE</p>
+            <h1 id="messages-title">Messages</h1>
+            <p class="section-copy">A simple place to talk with the Gamish777 support team.</p>
+          </div>
+          <span class="secure-chip online"><span></span> Online</span>
+        </header>
+
+        <section class="support-card" aria-label="Assigned support agent">
+          <div class="agent-avatar">M<span></span></div>
+          <div class="agent-copy"><b>Maya</b><span>Player support specialist</span></div>
+          <div class="response-time"><small>Usually replies</small><b>in a few minutes</b></div>
+        </section>
+
+        <section class="conversation surface" aria-label="Conversation">
+          <div id="message-list" class="message-list" aria-live="polite">
+            <div class="day-divider"><span>Today</span></div>
+            <div class="message-row agent-message">
+              <div class="mini-avatar">M</div>
+              <div><div class="message-bubble">Welcome to Gamish777! I’m Maya. How can I help with your games, wallet, or reload?</div><time>Just now</time></div>
+            </div>
+          </div>
+
+          <div class="quick-replies" aria-label="Quick replies">
+            <button type="button" data-reply="How do I reload my wallet?">Reload help</button>
+            <button type="button" data-reply="When will the new games be ready?">Game updates</button>
+            <button type="button" data-reply="I need help with a payment.">Payment help</button>
+          </div>
+
+          <form id="message-form" class="message-composer">
+            <button class="attach-button" type="button" aria-label="Attach a screenshot">＋</button>
+            <label class="message-input"><span class="sr-only">Message</span><input id="message-input" autocomplete="off" placeholder="Write a message…" maxlength="500" /></label>
+            <button class="send-button" type="submit" aria-label="Send message">↑</button>
+          </form>
+          <p class="privacy-note">Private conversation • Demo support experience</p>
+        </section>
+      </div>
+    </section>
+
+    <nav class="app-dock" aria-label="Primary navigation">
+      <button class="dock-item active" type="button" data-view="arcade" aria-current="page"><span class="dock-icon">♜</span><b>Arcade</b></button>
+      <button class="dock-item" type="button" data-view="payments"><span class="dock-icon">◇</span><b>Payments</b></button>
+      <button class="dock-item" type="button" data-view="messages"><span class="dock-icon">✦</span><b>Messages</b><i class="unread-dot" aria-label="New message"></i></button>
+    </nav>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
-
-  <!-- WALLET overlay (slides in from the wallet icon) -->
-  <section class="overlay" id="view-wallet">
-    <div class="overlay-bar"><button class="back-btn" data-back>‹</button><b>Wallet</b><span class="spacer"></span></div>
-    <div class="overlay-body">
-      <div class="mini-bal">Available balance <b id="mini-bal-val">$0</b> &middot; <button class="linklike" id="btn-reload-link">Reload</button></div>
-      <div class="mini-bal" style="margin-top:-10px">Player ID <b id="pid-val" style="color:#7db8ff">•••</b> <button class="linklike" id="btn-copy-pid" style="color:#7db8ff">Copy</button></div>
-      <div id="low-banner"></div>
-
-      <div id="rz-home">
-        <div class="card">
-          <h3>How reload works</h3>
-          <ul class="steps">
-            <li><span class="step-n">1</span><span><b>Pick how you pay</b> — Cash App, Chime, PayPal, Bitcoin and more.</span></li>
-            <li><span class="step-n">2</span><span><b>Send your reload</b> — any amount, straight to our handle.</span></li>
-            <li><span class="step-n">3</span><span><b>Get credited</b> — message support in chat and we add it to your wallet.</span></li>
-          </ul>
-        </div>
-        <button class="btn btn-green" id="btn-load" style="margin-top:16px">💵 Load</button>
-      </div>
-
-      <div id="rz-flow" style="display:none">
-        <h2 class="review-title">Reload wallet</h2>
-        <p class="sub" style="margin-top:0">We don&apos;t process payments in-app — send your reload with any of these, then message support in chat and we&apos;ll credit your wallet.</p>
-        <div class="paylist" id="paylist"></div>
-        <div class="btn-row"><button class="btn btn-ghost" id="btn-cancel-rz">Back</button></div>
-      </div>
-
-      </section>
-
-  <!-- CHAT overlay (slides in from the chat icon) -->
-  <section class="overlay" id="view-chat">
-    <div class="overlay-bar"><button class="back-btn" data-back>‹</button><b>Support chat</b><span class="spacer"></span><button id="agent-btn" aria-label="Change agent">🔄</button><button id="signal-btn" aria-label="Chat on Signal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5.5" fill="#3A76F0"/><path d="M6.2 3.8h11.6c1.3 0 2.4 1.1 2.4 2.4v8.3c0 1.3-1.1 2.4-2.4 2.4h-6.9l-3.8 3.3v-3.3H6.2c-1.3 0-2.4-1.1-2.4-2.4V6.2c0-1.3 1.1-2.4 2.4-2.4z" fill="#fff"/><path d="M9.2 8.6a3.4 3.4 0 0 1 0 4.8M11.4 7a6.2 6.2 0 0 1 0 8M13.6 5.4a9 9 0 0 1 0 11.2" stroke="#3A76F0" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg></button></div>
-    <div class="overlay-body">
-      <div class="chat-wrap">
-        <div class="chat-msgs" id="chat-msgs"></div>
-        <div class="chat-input">
-          <button id="chat-attach" aria-label="Attach screenshot">📎</button><input type="file" id="chat-file" accept="image/*" style="display:none" />
-          <input id="chat-text" placeholder="Type a message…" autocomplete="off" />
-          <button id="chat-send" aria-label="Send">➤</button>
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<div class="sheet-back" id="sheet-back"></div>
-<div class="sheet" id="sheet">
-  <div class="grab"></div>
-  <div id="sheet-body"></div>
-  <button class="btn btn-ghost" id="sheet-close" style="margin-top:14px">Close</button>
-</div>
-
-<script>
-(function(){
-"use strict";
-var KEY="g777_state_v2";
-var state={balance:0,txns:[],chat:[],games:[]};
-try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p==="object")state=Object.assign(state,p);}}catch(e){}
-if(!state.pid){var abc="ABCDEFGHJKMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<6;i++)s+=abc[Math.floor(Math.random()*abc.length)];state.pid="G777-"+s;save();}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-
-var METHOD_META={debit:{name:"Debit Card",icon:"💳"},bank:{name:"Bank Account",icon:"🏦"}};
-function fmt(n){return "$"+Number(n||0).toLocaleString("en-US");}
-function fmtDate(ts){var d=new Date(ts);return d.toLocaleDateString("en-US",{day:"numeric",month:"short",year:"numeric"})+", "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});}
-function ago(ts){var s=Math.floor((Date.now()-ts)/1000);if(s<60)return"just now";var m=Math.floor(s/60);if(m<60)return m+"m ago";var h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
-function maskDetail(m,detail){
-  if((m==="debit"||m==="bank")&&detail){var d=detail.replace(/\D/g,"");return "•••• "+d.slice(-4);}
-  return detail||"";
-}
-function txnId(){return "G777"+Date.now().toString(36).toUpperCase()+Math.floor(Math.random()*1296).toString(36).toUpperCase().padStart(2,"0");}
-function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
-
-/* ---------- shell: one main screen, pay & chat slide in ---------- */
-function updatePill(){document.getElementById("pill-bal").textContent=Number(state.balance).toLocaleString("en-US");}
-function openOverlay(name){
-  document.getElementById("view-wallet").classList.toggle("open",name==="wallet");
-  document.getElementById("view-chat").classList.toggle("open",name==="chat");
-  if(name==="wallet")renderWallet();
-  if(name==="chat")renderChat();
-  snapOverlays();
-}
-function closeOverlays(){
-  document.getElementById("view-wallet").classList.remove("open");
-  document.getElementById("view-chat").classList.remove("open");
-  snapOverlays();
-}
-/* snap guard: on iOS a transform transition can freeze mid-flight, leaving an
-   overlay/sheet half-peeking. Re-assert the final state shortly after every toggle. */
-var __ovSnap=0;
-function snapOverlays(){
-  clearTimeout(__ovSnap);
-  __ovSnap=setTimeout(function(){
-    [["view-wallet","translateX(calc(100vw + 48px))"],["view-chat","translateX(calc(100vw + 48px))"],["sheet","translateY(105%)"]].forEach(function(p){
-      var el=document.getElementById(p[0]);
-      var open=el.classList.contains("open");
-      el.style.transition="none";
-      void el.offsetWidth;
-      el.style.transform=open?"translateX(0)":p[1];
-      void el.offsetWidth;
-      el.style.transition="";
-      el.style.transform="";
-    });
-  },400);
-}
-document.querySelectorAll("[data-back]").forEach(function(b){b.addEventListener("click",closeOverlays);});
-document.getElementById("wallet-pill").addEventListener("click",function(){openOverlay("wallet");});
-document.getElementById("wp-plus").addEventListener("click",function(e){e.stopPropagation();openOverlay("wallet");startReload();});
-document.getElementById("chat-btn").addEventListener("click",function(){openOverlay("chat");});
-document.getElementById("btn-start").addEventListener("click",function(){
-  document.getElementById("startScreen").classList.add("hide");
-});
-
-/* ---------- start screen: casino machine (GSAP + canvas FX) ---------- */
-(function(){
-  var screen=document.getElementById("startScreen");
-  if(!screen)return;
-  var G=window.gsap||null;
-
-  /* --- fire ember particles --- */
-  var cv=document.getElementById("fx-embers"),ctx=cv.getContext("2d"),P=[],W=0,H=0;
-  function sizeFx(){var r=screen.getBoundingClientRect();var d=Math.min(2,window.devicePixelRatio||1);
-    W=Math.max(1,r.width);H=Math.max(1,r.height);cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
-  sizeFx();window.addEventListener("resize",sizeFx);
-  function spawn(init){return{x:Math.random()*W,y:init?Math.random()*H:H+12,
-    vy:.35+Math.random()*1.05,vx:(Math.random()-.5)*.4,r:1+Math.random()*2.6,
-    life:0,max:240+Math.random()*220,hue:10+Math.random()*34,a:.45+Math.random()*.5};}
-  for(var i=0;i<70;i++)P.push(spawn(true));
-  (function tick(){
-    requestAnimationFrame(tick);
-    if(screen.classList.contains("hide"))return;
-    ctx.clearRect(0,0,W,H);ctx.globalCompositeOperation="lighter";
-    for(var k=0;k<P.length;k++){var p=P[k];p.life++;p.y-=p.vy;
-      p.x+=p.vx+Math.sin((p.life+p.r*40)/28)*.35;
-      if(p.y<-14||p.life>p.max){P[k]=spawn(false);continue;}
-      var a=p.a*Math.max(0,Math.min(1,p.y/(H*.38)));
-      var g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
-      g.addColorStop(0,"hsla("+p.hue+",100%,62%,"+a.toFixed(3)+")");
-      g.addColorStop(1,"hsla("+p.hue+",100%,45%,0)");
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r*3,0,7);ctx.fill();}
-    ctx.globalCompositeOperation="source-over";
-  })();
-
-  /* --- marquee bulbs around the jackpot ladder --- */
-  var ladder=document.getElementById("jp-ladder");
-  function buildBulbs(){
-    var old=screen.querySelectorAll(".sl-bulb");
-    for(var i=0;i<old.length;i++)old[i].remove();
-    var lr=ladder.getBoundingClientRect(),sr=screen.getBoundingClientRect();
-    var x0=lr.left-sr.left,y0=lr.top-sr.top,w=lr.width,h=lr.height,per=9,pts=[],a,b;
-    for(a=0;a<=per;a++){pts.push([x0+w*a/per,y0]);pts.push([x0+w*a/per,y0+h]);}
-    for(b=1;b<per;b++){pts.push([x0,y0+h*b/per]);pts.push([x0+w,y0+h*b/per]);}
-    pts.forEach(function(pt,n){
-      var el=document.createElement("div");el.className="sl-bulb on";
-      el.style.left=(pt[0]-4.5)+"px";el.style.top=(pt[1]-4.5)+"px";
-      el.style.animationDelay=(n*.09)+"s";screen.appendChild(el);});
-  }
-  buildBulbs();window.addEventListener("resize",buildBulbs);window.addEventListener("load",buildBulbs);
-
-  /* --- live progressive jackpot tickers --- */
-  var pots={mega:12847.53,major:1274.20,minor:156.40,mini:24.10};
-  function fmt$(n){return "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});}
-  function paint(){document.getElementById("jp-mega").textContent=fmt$(pots.mega);
-    document.getElementById("jp-major").textContent=fmt$(pots.major);
-    document.getElementById("jp-minor").textContent=fmt$(pots.minor);
-    document.getElementById("jp-mini").textContent=fmt$(pots.mini);}
-  paint();
-  (function tickPot(){
-    setTimeout(tickPot,2200+Math.random()*2200);
-    if(screen.classList.contains("hide"))return;
-    var k=["mega","major","minor","mini"][Math.floor(Math.random()*4)];
-    var inc=k==="mega"?Math.random()*3.5:(k==="major"?Math.random()*1.2:Math.random()*.4);
-    if(G){var o={v:pots[k]};G.to(o,{v:pots[k]+inc,duration:1.6,ease:"power1.out",
-      onUpdate:function(){pots[k]=o.v;paint();}});}
-    else{pots[k]+=inc;paint();}
-  })();
-
-  /* --- plank rivets --- */
-  var plank=document.getElementById("sl-plank");
-  ["left:11px;top:11px","right:11px;top:11px","left:11px;bottom:11px","right:11px;bottom:11px"]
-    .forEach(function(pos){var rv=document.createElement("span");rv.className="sl-rivet";
-      rv.style.cssText=pos;plank.appendChild(rv);});
-
-  /* --- mini slot machine: auto-spinning reels --- */
-  var SYM=["7\uFE0F\u20E3","\uD83D\uDC8E","\uD83D\uDD14","\uD83C\uDF52","\u2B50","\uD83D\uDCB0","\uD83C\uDF40"];
-  var reels=Array.prototype.slice.call(document.querySelectorAll("#sl-reels .reel"));
-  function symH(){var f=reels[0].querySelector(".reel-sym");return f?f.offsetHeight:78;}
-  function buildStrip(strip,target){
-    strip.innerHTML="";var n=22;
-    for(var i=0;i<n;i++){var d=document.createElement("div");d.className="reel-sym";
-      d.textContent=SYM[Math.floor(Math.random()*SYM.length)];strip.appendChild(d);}
-    var f=document.createElement("div");f.className="reel-sym";f.textContent=target;strip.appendChild(f);
-  }
-  function settle(targets){
-    var winBox=document.getElementById("sl-winbox"),winEl=document.getElementById("sl-win");
-    if(targets[0]===targets[1]&&targets[1]===targets[2]){
-      winEl.textContent="$"+(25+Math.floor(Math.random()*475));
-      winBox.classList.remove("win");void winBox.offsetWidth;winBox.classList.add("win");
-      if(G)G.fromTo(".sl-logo-fire",{scale:1},{scale:1.07,duration:.16,yoyo:true,repeat:3,transformOrigin:"center"});
-    }else{winEl.textContent="$0";winBox.classList.remove("win");}
-  }
-  function spin(){
-    if(screen.classList.contains("hide"))return;
-    var targets=[SYM[Math.floor(Math.random()*SYM.length)],SYM[Math.floor(Math.random()*SYM.length)],SYM[Math.floor(Math.random()*SYM.length)]];
-    if(Math.random()<.32)targets=[targets[0],targets[0],targets[0]];
-    var sh=symH();
-    reels.forEach(function(reel,i){
-      var strip=reel.querySelector(".reel-strip");
-      buildStrip(strip,targets[i]);
-      strip.style.transform="translateY(0px)";
-      var dist=(strip.children.length-1)*sh;
-      reel.classList.add("spinning");
-      if(G){G.to(strip,{y:-dist,duration:1.1+i*.45,ease:"power4.out",
-        onComplete:function(){reel.classList.remove("spinning");if(i===2)settle(targets);}});}
-      else{strip.style.transform="translateY("+(-dist)+"px)";
-        reel.classList.remove("spinning");if(i===2)settle(targets);}
-    });
-  }
-  reels.forEach(function(reel){var strip=reel.querySelector(".reel-strip");
-    for(var i=0;i<3;i++){var d=document.createElement("div");d.className="reel-sym";
-      d.textContent=SYM[Math.floor(Math.random()*SYM.length)];strip.appendChild(d);}});
-  setTimeout(spin,900);setInterval(spin,6000);
-
-  /* --- GSAP entrance --- */
-  if(G){
-    G.set(".jp-ladder",{y:-34,opacity:0});
-    G.set(".sl-logo",{scale:.72,opacity:0});
-    G.set(".sl-machine",{y:34,opacity:0});
-    G.set(".sl-plank,.sl-plank-cap,#startScreen .demo-badge",{y:44,opacity:0});
-    var tl=G.timeline({defaults:{ease:"power3.out"}});
-    tl.to(".jp-ladder",{y:0,opacity:1,duration:.7})
-      .to(".sl-logo",{scale:1,opacity:1,duration:.85,ease:"back.out(1.5)"},"-=.35")
-      .to(".sl-machine",{y:0,opacity:1,duration:.6},"-=.45")
-      .to(".sl-plank,.sl-plank-cap,#startScreen .demo-badge",{y:0,opacity:1,duration:.6,stagger:.08},"-=.4");
-  }
-})();
-
-/* ---------- games ---------- */
-function renderGames(){
-  var g=document.getElementById("game-grid");g.innerHTML="";
-  state.games.forEach(function(game){
-    var b=document.createElement("button");b.className="game-card";
-    b.innerHTML='<div class="g-art">'+esc(game.emoji)+'</div><b class="g-name">'+esc(game.name)+'</b><span class="g-min">MIN '+fmt(game.min)+'</span><span class="play">PLAY</span>';
-    b.addEventListener("click",function(){
-      if(Number(state.balance)<Number(game.min)){
-        openSheet('<h3>'+esc(game.emoji)+' '+esc(game.name)+'</h3><p class="sub" style="margin:6px 0 12px">Not enough credits — you need at least '+fmt(game.min)+' to enter.</p><button class="btn btn-green" id="sheet-reload">Reload wallet</button>');
-        document.getElementById("sheet-reload").addEventListener("click",function(){closeSheet();openOverlay("wallet");startReload();});
-      }else{
-        openSheet('<h3>'+esc(game.emoji)+' '+esc(game.name)+'</h3><p class="sub" style="margin:6px 0 12px">This game is still being built. Your '+fmt(state.balance)+' stays safe in your wallet.</p>');
-      }
-    });
-    g.appendChild(b);
-  });
-  var slots=Math.max(0,6-state.games.length);
-  for(var i=0;i<slots;i++){
-    var s=document.createElement("div");s.className="game-slot";
-    s.innerHTML='<div class="gs-reel">?</div><b>MYSTERY GAME</b><span class="soon">COMING SOON</span>';
-    g.appendChild(s);
-  }
-  if(window.gsap){gsap.fromTo("#game-grid > *",{y:26,opacity:0},{y:0,opacity:1,duration:.55,stagger:.07,ease:"power2.out",overwrite:true});}
-}
-/* ---------- wallet ---------- */
-function renderWallet(){
-  updatePill();
-  document.getElementById("mini-bal-val").textContent=fmt(state.balance);
-  document.getElementById("pid-val").textContent=state.pid;
-  var low=document.getElementById("low-banner");
-  low.innerHTML=state.balance<100?'<div class="low-banner">🎮 Out of credit? Reload now to keep playing on Gamish777.</div>':"";
-}
-function renderTxns(){
-  var list=document.getElementById("txn-list");
-  if(!state.txns.length){list.innerHTML='<div class="empty"><div class="big">🧾</div><b>No payments yet</b><br/>Reload your wallet and your payment receipts will appear here.</div>';return;}
-  list.innerHTML="";
-  state.txns.forEach(function(t){
-    var m=METHOD_META[t.method]||{name:t.method,icon:"💰"};
-    var b=document.createElement("button");b.className="txn";
-    var pillTxt=t.status==="received"?"Payment received":t.status;
-    b.innerHTML='<span class="t-ico">'+m.icon+'</span><span class="t-main"><b>Wallet reload</b><small>'+m.name+" • "+fmtDate(t.ts)+'</small><br/><span class="pill '+t.status+'">'+pillTxt+'</span></span><span class="t-amt">+'+fmt(t.amount)+"</span>";
-    b.addEventListener("click",function(){openReceipt(t);});
-    list.appendChild(b);
-  });
-}
-function startReload(){
-  document.getElementById("rz-home").style.display="none";
-  document.getElementById("rz-flow").style.display="";
-  resetWizard();
-}
-function endReload(){
-  document.getElementById("rz-home").style.display="";
-  document.getElementById("rz-flow").style.display="none";
-  renderWallet();
-}
-document.getElementById("btn-reload-link").addEventListener("click",startReload);
-document.getElementById("btn-load").addEventListener("click",startReload);
-document.getElementById("btn-copy-pid").addEventListener("click",function(){copyHandle(state.pid,this);});
-document.getElementById("btn-cancel-rz").addEventListener("click",endReload);
-
-var PAY_METHODS=[
-  {name:"Cash App",icon:"$",cls:"pa-cash",handle:"$Gamish777",label:"Cashtag"},
-  {name:"Chime",icon:"C",cls:"pa-chime",handle:"$Gamish777",label:"Chime Pay handle"},
-  {name:"PayPal",icon:"P",cls:"pa-paypal",handle:"paypal.me/Gamish777",label:"PayPal link"},
-  {name:"Venmo",icon:"V",cls:"pa-venmo",handle:"@Gamish777",label:"Venmo username"},
-  {name:"Zelle",icon:"Z",cls:"pa-zelle",handle:"reload@gamish777.app",label:"Zelle email"},
-  {name:"Bitcoin",icon:"₿",cls:"pa-btc",handle:"bc1qgamish777demowallet000000000000",label:"BTC address"},
-  {name:"Bank Transfer",icon:"🏦",cls:"",handle:"Routing ••••1234 / Acct •••5678",label:"ACH details"}
-];
-function renderPayList(){
-  var list=document.getElementById("paylist");list.innerHTML="";
-  PAY_METHODS.forEach(function(p){
-    var b=document.createElement("button");b.className="payopt";
-    b.innerHTML='<span class="m-ico '+p.cls+'">'+p.icon+'</span><span><b>'+p.name+'</b><br/><small>'+p.label+'</small></span><span class="chev">›</span>';
-    b.addEventListener("click",function(){togglePay(p,b);});
-    list.appendChild(b);
-  });
-}
-function togglePay(p,btn){
-  var list=document.getElementById("paylist");
-  var ex=btn.nextElementSibling;
-  if(ex&&ex.classList&&ex.classList.contains("pay-expand")){ex.remove();return;}
-  var old=list.querySelector(".pay-expand");if(old)old.remove();
-  var d=document.createElement("div");d.className="pay-expand";
-  d.innerHTML='<div class="pay-handle"><span>'+esc(p.handle)+'</span><button class="copy-btn">Copy</button></div>'+
-    '<p class="hint">Send your reload amount to this '+p.label.toLowerCase()+' (demo — no real money moves), take a screenshot, then share it in chat — we’ll credit your wallet.</p>'+
-    '<button class="btn btn-green" id="btn-msg-support">Share screenshot in chat</button>';
-  btn.after(d);
-  d.querySelector(".copy-btn").addEventListener("click",function(ev){ev.stopPropagation();copyHandle(p.handle,this);});
-  d.querySelector("#btn-msg-support").addEventListener("click",function(){endReload();openOverlay("chat");});
-}
-function copyHandle(text,btn){
-  function done(){btn.textContent="Copied ✓";setTimeout(function(){btn.textContent="Copy";},1500);}
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,done);}
-  else{var t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(t);done();}
-}
-function resetWizard(){var old=document.querySelector("#paylist .pay-expand");if(old)old.remove();}
-renderPayList();
-
-/* ---------- chat ---------- */
-var SIGNAL_LINK="https://signal"+".me/#p/"+"Bola777.19"; /* your Signal chat link — set to enable the Signal button */
-var AGENTS=["Agent Maya","Agent Leo","Agent Zoe","Agent Max","Agent Ruby","Agent Finn","Agent Ivy","Agent Kai","Agent Luna","Agent Rex","Agent Nova","Agent Milo"];
-function pickAgent(except){var n;do{n=AGENTS[Math.floor(Math.random()*AGENTS.length)];}while(n===except&&AGENTS.length>1);return n;}
-function ensureAgent(){if(!state.agentName){state.agentName=pickAgent();save();}return state.agentName;}
-function renderChat(){
-  ensureAgent();
-  var box=document.getElementById("chat-msgs");box.innerHTML="";
-  if(!state.chat.length){
-    state.chat.push({from:"them",text:"Hey! 👋 Welcome to Gamish777. Ask me anything about reloads, games or your wallet."});
-    save();
-  }
-  state.chat.forEach(function(m){
-    var d=document.createElement("div");d.className="msg "+(m.from==="me"?"me":"them");
-    var who=m.from==="me"?"":'<span class="who">'+esc(state.agentName)+"</span>";
-    d.innerHTML=who+esc(m.text||"")+(m.img?'<img class="shot" src="'+m.img+'" alt="shared screenshot" />':"");
-    box.appendChild(d);
-  });
-  box.scrollTop=box.scrollHeight;
-}
-function adminReply(q){
-  q=q.toLowerCase();
-  if(/reload|payment|money|credit|add/.test(q))return "To reload: open the Wallet tab, pick a payment method, send it, then share your screenshot here in chat — we’ll credit your wallet once it’s confirmed. 💰";
-  if(/game|play/.test(q))return "Pick any game on the Games tab and hit Play. Make sure you have enough credits — reload from the wallet if you're short. 🎮";
-  if(/withdraw|cash|winning/.test(q))return "Winnings withdrawals are coming soon — right now this demo build only handles reloads. Your balance is safe in your wallet. 🏆";
-  if(/hi|hello|hey/.test(q))return "Hey! How can I help you today?";
-  return "Got it — our team will get back to you shortly. Anything urgent? Try reloading from the Wallet tab meanwhile. 👍";
-}
-function sendChat(){
-  var inp=document.getElementById("chat-text"),v=inp.value.trim();
-  if(!v)return;inp.value="";
-  state.chat.push({from:"me",text:v});save();renderChat();
-  var box=document.getElementById("chat-msgs");
-  var tp=document.createElement("div");tp.className="typing";tp.textContent=ensureAgent()+" is typing…";
-  box.appendChild(tp);box.scrollTop=box.scrollHeight;
-  setTimeout(function(){
-    state.chat.push({from:"them",text:adminReply(v)});
-    save();renderChat();
-  },1400);
-}
-document.getElementById("chat-send").addEventListener("click",sendChat);
-document.getElementById("chat-attach").addEventListener("click",function(){document.getElementById("chat-file").click();});
-document.getElementById("chat-file").addEventListener("change",function(){
-  var f=this.files&&this.files[0];if(!f)return;this.value="";
-  var img=new Image();
-  img.onload=function(){
-    var mx=1024,s=Math.min(1,mx/Math.max(img.width,img.height));
-    var c=document.createElement("canvas");c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
-    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-    sendChatImage(c.toDataURL("image/jpeg",0.72));
-    URL.revokeObjectURL(img.src);
-  };
-  img.src=URL.createObjectURL(f);
-});
-function sendChatImage(url){
-  state.chat.push({from:"me",text:"Payment screenshot — Player ID "+state.pid,img:url});save();renderChat();
-  var box=document.getElementById("chat-msgs");
-  var tp=document.createElement("div");tp.className="typing";tp.textContent=ensureAgent()+" is typing…";
-  box.appendChild(tp);box.scrollTop=box.scrollHeight;
-  setTimeout(function(){
-    state.chat.push({from:"them",text:"Screenshot received ✅ ("+state.pid+") — we’re verifying your payment now. Your wallet will be credited once it’s confirmed. 💰"});
-    save();renderChat();
-  },1600);
-}
-document.getElementById("chat-text").addEventListener("keydown",function(e){if(e.key==="Enter")sendChat();});
-document.getElementById("signal-btn").addEventListener("click",function(){if(SIGNAL_LINK)window.open(SIGNAL_LINK,"_blank");});
-document.getElementById("agent-btn").addEventListener("click",function(){
-  state.agentName=pickAgent(state.agentName);save();
-  state.chat.push({from:"them",text:"You're now chatting with "+state.agentName+" 👋 How can I help?"});
-  save();renderChat();
-});
-
-/* ---------- sheet ---------- */
-var back=document.getElementById("sheet-back"),sheet=document.getElementById("sheet");
-function openSheet(html){document.getElementById("sheet-body").innerHTML=html;back.classList.add("open");sheet.classList.add("open");snapOverlays();}
-function closeSheet(){back.classList.remove("open");sheet.classList.remove("open");snapOverlays();}
-document.getElementById("sheet-close").addEventListener("click",closeSheet);
-back.addEventListener("click",closeSheet);
-function row(k,v){return '<div class="r-row"><span>'+k+"</span><span>"+v+"</span></div>";}
-function openReceipt(t){
-  var m=METHOD_META[t.method]||{name:t.method};
-  var pillTxt=t.status==="received"?"Payment received":t.status;
-  openSheet('<h3>Payment receipt</h3><div class="r-status"><span class="pill '+t.status+'">'+pillTxt+"</span></div>"+
-    row("Transaction ID",'<span class="mono">'+t.id+"</span>")+
-    row("Date & time",fmtDate(t.ts))+
-    row("Amount",fmt(t.amount))+
-    row("Payment method",m.name+(t.detail?" • "+esc(maskDetail(t.method,t.detail)):""))+
-    row("Credited to","Gamish777 wallet"));
-}
-
-/* ---------- service worker ---------- */
-if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("assets/sw.js").catch(function(){});});}
-
-updatePill();
-renderGames();
-})();
-</script>
+  <noscript>This experience requires JavaScript to run.</noscript>
+  <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+  <script defer src="game.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>
