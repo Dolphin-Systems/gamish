@@ -6,7 +6,8 @@
     ["payments", document.getElementById("payments-view")],
     ["messages", document.getElementById("messages-view")],
   ]);
-  const dockItems = [...document.querySelectorAll(".dock-item")];
+  const viewTriggers = [...document.querySelectorAll(".view-trigger")];
+  const utilityButtons = [...document.querySelectorAll(".utility-button")];
   const toast = document.getElementById("toast");
   let toastTimer;
 
@@ -26,7 +27,7 @@
       view.setAttribute("aria-hidden", String(!isActive));
       if (isActive && view.classList.contains("page-view")) view.scrollTop = 0;
     });
-    dockItems.forEach((item) => {
+    utilityButtons.forEach((item) => {
       const isActive = item.dataset.view === name;
       item.classList.toggle("active", isActive);
       if (isActive) item.setAttribute("aria-current", "page");
@@ -35,7 +36,7 @@
     if (name === "messages") document.querySelector(".unread-dot")?.remove();
   };
 
-  dockItems.forEach((item) => item.addEventListener("click", () => showView(item.dataset.view)));
+  viewTriggers.forEach((item) => item.addEventListener("click", () => showView(item.dataset.view)));
   window.addEventListener("gamish:navigate", (event) => showView(event.detail));
 
   const amountButtons = [...document.querySelectorAll(".amount-chip")];

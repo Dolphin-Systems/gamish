@@ -161,22 +161,7 @@
       stroke: "#5d250d",
       strokeThickness: 4,
     }).setOrigin(0, 0.5);
-
-    const wallet = scene.add.container(650, 52);
-    const walletPlate = scene.add.rectangle(0, 0, 142, 48, 0x061a16, 0.94).setStrokeStyle(2, 0x56d99c, 0.65);
-    const walletText = scene.add.text(0, 0, options.walletLabel ?? "◆  $ 0", {
-      fontFamily: BODY_FONT,
-      fontSize: "19px",
-      fontStyle: "700",
-      color: "#71f3ad",
-    }).setOrigin(0.5);
-    wallet.add([walletPlate, walletText]);
-    wallet.setSize(142, 52).setInteractive({ useHandCursor: true });
-    wallet.on("pointerup", options.walletClick ?? (() => window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: "payments" }))));
-    wallet.on("pointerover", () => scene.tweens.add({ targets: wallet, scale: 1.04, duration: 120 }));
-    wallet.on("pointerout", () => scene.tweens.add({ targets: wallet, scale: 1, duration: 120 }));
-    wallet.setData("label", walletText);
-    return wallet;
+    return bar;
   };
 
   class BootScene extends Phaser.Scene {
@@ -533,11 +518,9 @@
       fitBackground(this, "phoenix");
       addVignette(this, 0.62);
       addAtmosphere(this, 24, [0xff6b22, 0xffc868, 0xd83445]);
-      this.wallet = addTopBar(this, {
+      addTopBar(this, {
         title: "PHOENIX RUBY",
         back: () => this.returnToHall(),
-        walletLabel: "◆  1,000 CR",
-        walletClick: () => this.highlightRules(),
       });
 
       this.add.text(WIDTH / 2, 130, "EMBER CIRCUIT", {
@@ -804,7 +787,6 @@
       this.creditText.setText(this.credits.toLocaleString("en-US"));
       this.betText.setText(this.bet.toLocaleString("en-US"));
       this.winText.setText(this.lastWin.toLocaleString("en-US"));
-      this.wallet.getData("label").setText(`◆  ${this.credits.toLocaleString("en-US")} CR`);
       this.spinButton.getAt(3).setText(`SPIN  •  ${this.bet} CREDITS`);
       const sessionReturn = this.totalWagered ? (this.totalReturned / this.totalWagered) * 100 : 0;
       this.sessionText.setText(`SESSION\n${this.spinCount} SPIN${this.spinCount === 1 ? "" : "S"}\n${sessionReturn.toFixed(1)}% RETURN`);
