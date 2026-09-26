@@ -26,11 +26,21 @@
 
   const PHOENIX_BETS = [10, 20, 40];
   const PHOENIX_SYMBOLS = [
-    { mark: "7", color: "#ffcd69" },
-    { mark: "◆", color: "#ff5365" },
-    { mark: "♛", color: "#ffe2a3" },
-    { mark: "✦", color: "#ff8b36" },
-    { mark: "R", color: "#e9a3ff" },
+    { mark: "7", frame: "symbol-0", name: "Golden Seven" },
+    { mark: "◆", frame: "symbol-1", name: "Ruby Diamond" },
+    { mark: "♛", frame: "symbol-2", name: "Ember Crown" },
+    { mark: "✦", frame: "symbol-3", name: "Ember Star" },
+    { mark: "R", frame: "symbol-8", name: "Phoenix" },
+  ];
+
+  const HOW_TO_PLAY = [
+    ["CHOOSE YOUR BET", "Select 10, 20, or 40 virtual credits."],
+    ["TAP SPIN", "Watch the three reels reveal your fortune."],
+    ["MATCH THE CENTER", "Three matching symbols across the center line win."],
+    ["RUBY MATCH", "Three Ruby Diamonds return 1.5× your bet."],
+    ["GOLDEN SEVEN", "Three Golden Sevens return 3× your bet."],
+    ["FIND THE PHOENIX", "Rare Phoenix symbols build your Ember Collection."],
+    ["BUILD YOUR COLLECTION", "Earn gems and unlock new Phoenix themes."],
   ];
 
   const secureRandom = () => {
@@ -274,9 +284,19 @@
       this.load.image("dragon", "assets/dragon-vault.webp");
       this.load.image("lion", "assets/lion-fortune.webp");
       this.load.image("fox", "assets/moon-fox.webp");
+      this.load.image("phoenix-realm-v2", "assets/phoenix-realm-bg-v2.webp");
+      this.load.image("phoenix-symbols-v2", "assets/phoenix-symbols-v2.webp");
     }
 
     create() {
+      const symbolTexture = this.textures.get("phoenix-symbols-v2");
+      const cell = 418;
+      for (let index = 0; index < 9; index += 1) {
+        const frameName = `symbol-${index}`;
+        if (!symbolTexture.has(frameName)) {
+          symbolTexture.add(frameName, 0, (index % 3) * cell, Math.floor(index / 3) * cell, cell, cell);
+        }
+      }
       document.getElementById("loading-fallback")?.classList.add("ready");
       this.scene.start("Landing");
     }
@@ -285,125 +305,96 @@
   class LandingScene extends Phaser.Scene {
     constructor() {
       super("Landing");
-      this.jackpot = 12849.02;
     }
 
     create() {
-      setStatus("Gamish777 landing screen. Activate Enter the Arcade to open the Game Zone.");
-      fitBackground(this, "landing-bg");
-      addVignette(this, 0.27);
-      addAtmosphere(this, 42);
-      addTopBar(this);
+      setStatus("Phoenix Ruby welcome. Review how to play, then enter the Phoenix Realm.");
+      fitBackground(this, "phoenix-realm-v2");
+      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x08040b, 0.5);
+      addVignette(this, 0.2);
+      addAtmosphere(this, 38, [0xff6a18, 0xffca68, 0xe23435]);
 
-      const crownGlow = this.add.circle(WIDTH / 2, 226, 128, COLORS.ember, 0.08);
-      this.tweens.add({ targets: crownGlow, scale: 1.24, alpha: 0.2, duration: 1800, yoyo: true, repeat: -1 });
+      const crestGlow = this.add.circle(WIDTH / 2, 215, 160, COLORS.ember, 0.09).setBlendMode(Phaser.BlendModes.ADD);
+      const crestRing = this.add.circle(WIDTH / 2, 215, 122, 0x130914, 0.7).setStrokeStyle(3, COLORS.gold, 0.82);
+      const crest = this.add.image(WIDTH / 2, 215, "phoenix-symbols-v2", "symbol-8").setDisplaySize(225, 225);
+      this.tweens.add({ targets: crestGlow, scale: 1.28, alpha: 0.24, duration: 1650, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: crest, y: 207, duration: 1900, ease: "Sine.InOut", yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: crestRing, angle: 360, duration: 22000, repeat: -1 });
 
-      this.add.text(WIDTH / 2, 154, "THE", {
-        fontFamily: BODY_FONT,
-        fontSize: "18px",
-        fontStyle: "700",
-        color: "#efc77e",
-        letterSpacing: 10,
-      }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 206, "EMBER CROWN", {
+      this.add.text(WIDTH / 2, 328, "PHOENIX RUBY", {
         fontFamily: DISPLAY_FONT,
-        fontSize: "45px",
-        color: "#fff3c1",
-        stroke: "#6d2408",
+        fontSize: "50px",
+        color: "#fff2bf",
+        stroke: "#7a1a08",
         strokeThickness: 8,
-        shadow: { offsetY: 8, color: "#000000", blur: 12, fill: true },
+        shadow: { offsetY: 7, color: "#000000", blur: 14, fill: true },
       }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 259, "ARCADE", {
-        fontFamily: DISPLAY_FONT,
-        fontSize: "31px",
-        color: "#ff9b32",
-        stroke: "#48150b",
-        strokeThickness: 6,
-        letterSpacing: 12,
-      }).setOrigin(0.5);
-      addRule(this, 308, 500);
-
-      const jackpotPanel = addOrnatePanel(this, WIDTH / 2, 480, 590, 168, {
-        fill: 0x09070c, fillAlpha: 0.78, stroke: COLORS.gold, strokeAlpha: 0.74, bend: 34,
-      });
-      this.add.text(WIDTH / 2, 419, "GRAND JACKPOT", {
-        fontFamily: BODY_FONT,
-        fontSize: "18px",
-        fontStyle: "700",
-        color: "#dfb871",
-        letterSpacing: 7,
-      }).setOrigin(0.5);
-      const jackpotText = this.add.text(WIDTH / 2, 477, "$12,849.02", {
-        fontFamily: DISPLAY_FONT,
-        fontSize: "46px",
-        color: "#ff7b32",
-        stroke: "#54120a",
-        strokeThickness: 6,
-      }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 532, "MINI  $24.47     •     MAJOR  $1,274.20", {
+      this.add.text(WIDTH / 2, 384, "SPIN  ✦  COLLECT  ✦  RISE", {
         fontFamily: BODY_FONT,
         fontSize: "16px",
         fontStyle: "700",
-        color: "#ffe4a7",
-        letterSpacing: 2,
+        color: "#ffd38a",
+        letterSpacing: 6,
       }).setOrigin(0.5);
-      this.tweens.add({ targets: jackpotPanel, alpha: { from: 0.72, to: 0.92 }, duration: 1300, yoyo: true, repeat: -1 });
+      addRule(this, 428, 540);
 
-      this.time.addEvent({
-        delay: 1150,
-        loop: true,
-        callback: () => {
-          this.jackpot += Phaser.Math.FloatBetween(0.11, 1.84);
-          jackpotText.setText(`$${this.jackpot.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
-          this.tweens.add({ targets: jackpotText, scale: 1.035, duration: 100, yoyo: true });
-        },
+      addOrnatePanel(this, WIDTH / 2, 825, 674, 720, {
+        fill: 0x0d0711, fillAlpha: 0.91, stroke: COLORS.gold, strokeAlpha: 0.74, lineWidth: 3, bend: 48,
       });
-
-      const seal = this.add.container(WIDTH / 2, 720);
-      const outer = this.add.circle(0, 0, 102, 0x170b18, 0.9).setStrokeStyle(5, COLORS.gold, 0.9);
-      const inner = this.add.circle(0, 0, 78, 0x6e1d12, 0.78).setStrokeStyle(2, COLORS.ember, 0.9);
-      const gem = this.add.text(0, -5, "◆", { fontFamily: BODY_FONT, fontSize: "72px", color: "#ffbd58" }).setOrigin(0.5);
-      const seven = this.add.text(0, 14, "777", {
+      this.add.text(WIDTH / 2, 500, "HOW TO PLAY", {
         fontFamily: DISPLAY_FONT,
         fontSize: "27px",
-        color: "#fff3ca",
-        stroke: "#671e0a",
+        color: "#fff0bd",
+        stroke: "#52150c",
         strokeThickness: 5,
-      }).setOrigin(0.5);
-      seal.add([outer, inner, gem, seven]);
-      this.tweens.add({ targets: gem, angle: 360, duration: 12000, repeat: -1 });
-      this.tweens.add({ targets: seal, y: 708, duration: 1800, yoyo: true, ease: "Sine.inOut", repeat: -1 });
-
-      this.add.text(WIDTH / 2, 870, "FORTUNE FAVORS THE BOLD", {
-        fontFamily: BODY_FONT,
-        fontSize: "17px",
-        fontStyle: "700",
-        color: "#e9c585",
-        letterSpacing: 5,
-      }).setOrigin(0.5);
-
-      makeButton(this, WIDTH / 2, 965, 488, 82, "ENTER THE ARCADE", () => {
-        setStatus("Opening the Game Zone.");
-        this.cameras.main.flash(260, 255, 137, 46, false);
-        this.cameras.main.fadeOut(430, 20, 8, 18);
-        this.time.delayedCall(430, () => this.scene.start("GameZone"));
-      }, { fill: 0x7d2013, stroke: 0xffd17b, fontSize: "24px" });
-
-      this.add.text(WIDTH / 2, 1048, "ORIGINAL WORLDS  •  NEW FORTUNES", {
-        fontFamily: BODY_FONT,
-        fontSize: "13px",
-        fontStyle: "700",
-        color: "#b9a7ad",
         letterSpacing: 3,
       }).setOrigin(0.5);
-
-      this.add.text(WIDTH / 2, 1450, "A PHASER-POWERED EXPERIENCE", {
+      this.add.text(WIDTH / 2, 535, "Seven steps to awaken the Phoenix", {
         fontFamily: BODY_FONT,
-        fontSize: "12px",
-        color: "#a58b7e",
-        letterSpacing: 4,
+        fontSize: "14px",
+        color: "#cdb5ad",
+        letterSpacing: 1,
       }).setOrigin(0.5);
 
+      HOW_TO_PLAY.forEach(([title, copy], index) => {
+        const y = 592 + index * 82;
+        const badge = this.add.circle(102, y, 24, index < 5 ? 0x7c2016 : 0x3b1633, 0.96)
+          .setStrokeStyle(2, index < 5 ? COLORS.gold : COLORS.ruby, 0.86);
+        this.add.text(102, y + 1, String(index + 1), {
+          fontFamily: DISPLAY_FONT,
+          fontSize: "16px",
+          color: "#fff0c2",
+        }).setOrigin(0.5);
+        this.add.text(145, y - 15, title, {
+          fontFamily: BODY_FONT,
+          fontSize: "15px",
+          fontStyle: "700",
+          color: index === 3 ? "#ff6778" : index === 4 ? "#ffd46d" : "#ffe8bd",
+          letterSpacing: 2,
+        });
+        this.add.text(145, y + 10, copy, {
+          fontFamily: BODY_FONT,
+          fontSize: "14px",
+          color: "#c7b5bb",
+        });
+        this.tweens.add({ targets: badge, alpha: { from: 0.72, to: 1 }, duration: 900 + index * 100, yoyo: true, repeat: -1 });
+      });
+
+      makeButton(this, WIDTH / 2, 1264, 520, 88, "ENTER THE PHOENIX REALM", () => {
+        window.GamishAudio?.play("flame-burst");
+        setStatus("Opening the Phoenix Realm.");
+        this.cameras.main.flash(240, 255, 118, 32, false);
+        this.cameras.main.fadeOut(420, 20, 7, 13);
+        this.time.delayedCall(420, () => this.scene.start("GameZone"));
+      }, { fill: 0x8d1f12, stroke: 0xffd87e, accent: 0xff5b12, fontSize: "21px" });
+
+      this.add.text(WIDTH / 2, 1345, "VIRTUAL CREDITS  •  NO CASH VALUE", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        fontStyle: "700",
+        color: "#c4a486",
+        letterSpacing: 3,
+      }).setOrigin(0.5);
       this.cameras.main.fadeIn(650, 7, 4, 11);
     }
   }
@@ -596,9 +587,9 @@
     }
   }
 
-  class PhoenixGameScene extends Phaser.Scene {
+  class LegacyPhoenixGameScene extends Phaser.Scene {
     constructor() {
-      super("PhoenixGame");
+      super("LegacyPhoenixGame");
       this.credits = 0;
       this.bet = 10;
       this.lastWin = 0;
@@ -1045,6 +1036,598 @@
         setStatus(`Wallet refreshed. ${this.credits} virtual credits available.`);
       } catch (error) {
         this.resultText.setText("WALLET REFRESH FAILED").setColor("#ff7f72");
+        setStatus(error.message);
+      }
+    }
+
+    returnToHall() {
+      if (this.isSpinning) return;
+      this.cameras.main.fadeOut(320, 9, 4, 12);
+      this.time.delayedCall(320, () => this.scene.start("GameZone"));
+    }
+  }
+
+  class PhoenixGameScene extends Phaser.Scene {
+    constructor() {
+      super("PhoenixGame");
+      this.credits = 0;
+      this.bet = 10;
+      this.lastWin = 0;
+      this.totalReturned = 0;
+      this.spinCount = 0;
+      this.isSpinning = false;
+      this.reelSymbols = [];
+      this.reelBands = [];
+      this.reelGlows = [];
+      this.betButtons = new Map();
+    }
+
+    create() {
+      this.reelSymbols = [];
+      this.reelBands = [];
+      this.reelGlows = [];
+      this.betButtons = new Map();
+      this.isSpinning = false;
+      this.credits = Number(window.GamishAccount?.player?.totalCredits || 0);
+      this.collection = this.loadCollection();
+      setStatus("Phoenix Ruby. Choose 10, 20, or 40 credits and match the curved center line.");
+
+      fitBackground(this, "phoenix-realm-v2");
+      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x07030a, 0.58);
+      addVignette(this, 0.18);
+      addAtmosphere(this, 34, [0xff5b16, 0xffc457, 0xe0323d]);
+      addTopBar(this, { title: "PHOENIX RUBY", back: () => this.returnToHall() });
+
+      this.add.text(WIDTH / 2, 126, "EMBER CIRCLE", {
+        fontFamily: DISPLAY_FONT,
+        fontSize: "36px",
+        color: "#fff0b9",
+        stroke: "#741a08",
+        strokeThickness: 7,
+        letterSpacing: 4,
+      }).setOrigin(0.5);
+      this.add.text(WIDTH / 2, 166, "SPIN  ✦  COLLECT  ✦  RISE", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        fontStyle: "700",
+        color: "#eac184",
+        letterSpacing: 5,
+      }).setOrigin(0.5);
+
+      this.creditText = this.addStatCard(142, 232, "CREDITS", "0");
+      this.betText = this.addStatCard(384, 232, "BET", "10");
+      this.winText = this.addStatCard(626, 232, "WIN", "0");
+
+      const machineGlow = addOrnatePanel(this, WIDTH / 2, 566, 696, 562, {
+        fill: COLORS.ember, fillAlpha: 0.08, stroke: COLORS.ember, strokeAlpha: 0.24, bend: 58,
+      });
+      this.machinePanel = addOrnatePanel(this, WIDTH / 2, 566, 668, 536, {
+        fill: 0x0c0710, fillAlpha: 0.97, stroke: COLORS.gold, strokeAlpha: 0.88, lineWidth: 3, bend: 54,
+      });
+      this.tweens.add({ targets: machineGlow, alpha: { from: 0.28, to: 0.92 }, duration: 1200, yoyo: true, repeat: -1 });
+
+      addOrnatePanel(this, WIDTH / 2, 322, 620, 46, {
+        fill: 0x4a120f, fillAlpha: 0.96, stroke: COLORS.ember, strokeAlpha: 0.86, bend: 16,
+      });
+      this.cycleText = this.add.text(WIDTH / 2, 322, "EMBER SPIN  •  BET 10", {
+        fontFamily: BODY_FONT,
+        fontSize: "13px",
+        fontStyle: "700",
+        color: "#ffd38a",
+        letterSpacing: 3,
+      }).setOrigin(0.5);
+
+      const reelXs = [190, 384, 578];
+      const reelYs = [420, 552, 684];
+      const reelSurface = this.add.graphics();
+      reelSurface.fillGradientStyle(0x30142b, 0x30142b, 0x08050c, 0x08050c, 0.82, 0.82, 0.98, 0.98);
+      reelSurface.fillRoundedRect(82, 350, 604, 404, 38);
+      reelSurface.lineStyle(2, 0x9a593d, 0.46);
+      reelSurface.strokeRoundedRect(82, 350, 604, 404, 38);
+
+      reelXs.forEach((x, column) => {
+        const band = this.add.rectangle(x, 552, 188, 392, column === 1 ? 0x7a1b2e : 0x361127, column === 1 ? 0.16 : 0.11);
+        band.setBlendMode(Phaser.BlendModes.ADD);
+        this.reelBands.push(band);
+        const glow = this.add.ellipse(x, 552, 168, 128, column === 1 ? COLORS.ember : COLORS.ruby, 0.06)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        this.reelGlows.push(glow);
+      });
+
+      const dividers = this.add.graphics();
+      dividers.lineStyle(2, 0xf0a44e, 0.22);
+      [287, 481].forEach((x, index) => {
+        dividers.beginPath();
+        dividers.moveTo(x, 366);
+        traceCubic(dividers,
+          { x, y: 366 },
+          { x: x + (index ? 8 : -8), y: 470 },
+          { x: x + (index ? -8 : 8), y: 640 },
+          { x, y: 738 },
+          22);
+        dividers.strokePath();
+      });
+
+      reelYs.forEach((y, row) => {
+        reelXs.forEach((x, column) => {
+          const symbol = PHOENIX_SYMBOLS[(row * 2 + column) % PHOENIX_SYMBOLS.length];
+          const halo = this.add.circle(x, y, 63, row === 1 ? COLORS.ember : COLORS.gold, row === 1 ? 0.055 : 0.025)
+            .setBlendMode(Phaser.BlendModes.ADD);
+          const image = this.add.image(x, y, "phoenix-symbols-v2", symbol.frame)
+            .setDisplaySize(132, 132)
+            .setData("baseY", y)
+            .setData("row", row)
+            .setData("column", column)
+            .setData("halo", halo);
+          this.reelSymbols.push(image);
+        });
+      });
+
+      this.centerBand = this.add.rectangle(WIDTH / 2, 552, 592, 126, 0x9b1625, 0.09)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      this.winLine = this.add.graphics();
+      this.drawWinLine(0.56);
+      this.winLine.setBlendMode(Phaser.BlendModes.ADD);
+
+      addOrnatePanel(this, WIDTH / 2, 796, 610, 58, {
+        fill: 0x170a14, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.4, bend: 18,
+      });
+      this.resultText = this.add.text(WIDTH / 2, 796, "PRESS SPIN TO BEGIN", {
+        fontFamily: BODY_FONT,
+        fontSize: "15px",
+        fontStyle: "700",
+        color: "#d9c2ac",
+        letterSpacing: 3,
+      }).setOrigin(0.5);
+
+      this.spinButton = makeButton(this, WIDTH / 2, 892, 544, 92, "SPIN  •  10 CREDITS", () => this.spin(), {
+        fill: 0x9b2014,
+        stroke: 0xffdc7b,
+        accent: 0xff5c14,
+        fontSize: "25px",
+      });
+
+      this.add.text(78, 966, "CHOOSE YOUR BET", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        fontStyle: "700",
+        color: "#d4ae75",
+        letterSpacing: 3,
+      });
+      PHOENIX_BETS.forEach((amount, index) => {
+        const button = makeButton(this, 200 + index * 184, 1012, 154, 58, `${amount} CR`, () => this.selectBet(amount), {
+          fill: amount === this.bet ? 0x7e1915 : 0x1b0c18,
+          stroke: amount === this.bet ? COLORS.gold : 0x784446,
+          accent: amount === this.bet ? COLORS.ember : 0x5b3142,
+          fontSize: "16px",
+        });
+        if (amount !== this.bet) button.setAlpha(0.72);
+        this.betButtons.set(amount, button);
+      });
+
+      this.collectionPanel = addOrnatePanel(this, WIDTH / 2, 1151, 650, 188, {
+        fill: 0x0f0812, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.5, bend: 36,
+      });
+      this.add.image(118, 1132, "phoenix-symbols-v2", "symbol-8").setDisplaySize(94, 94);
+      this.add.text(176, 1088, "EMBER COLLECTION", {
+        fontFamily: BODY_FONT,
+        fontSize: "13px",
+        fontStyle: "700",
+        color: "#f0c475",
+        letterSpacing: 3,
+      });
+      this.themeText = this.add.text(176, 1120, "PHOENIX THEME  •  EMBER", {
+        fontFamily: DISPLAY_FONT,
+        fontSize: "19px",
+        color: "#fff0bd",
+      });
+      this.collectionTrack = this.add.rectangle(176, 1172, 460, 18, 0x3b2830, 0.94).setOrigin(0, 0.5);
+      this.collectionFill = this.add.rectangle(176, 1172, 0, 12, COLORS.ember, 1).setOrigin(0, 0.5);
+      this.collectionFill.setBlendMode(Phaser.BlendModes.ADD);
+      this.collectionText = this.add.text(636, 1202, "0 / 10 GEMS", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        fontStyle: "700",
+        color: "#e8c792",
+        letterSpacing: 2,
+      }).setOrigin(1, 0.5);
+      this.add.text(176, 1202, "Find Phoenix crests to unlock the next theme", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        color: "#bbaab1",
+      }).setOrigin(0, 0.5);
+
+      makeButton(this, 262, 1310, 310, 56, "REFRESH WALLET", () => this.refreshAccountWallet(), {
+        fill: 0x1a0d19, stroke: 0x8a574c, accent: 0x673742, fontSize: "13px",
+      });
+      makeButton(this, 534, 1310, 190, 56, "HOW TO PLAY", () => this.highlightRules(), {
+        fill: 0x321125, stroke: 0x9e624e, accent: COLORS.ruby, fontSize: "12px",
+      });
+      this.sessionText = this.add.text(WIDTH / 2, 1384, "0 SPINS  •  0 CREDITS WON", {
+        fontFamily: BODY_FONT,
+        fontSize: "12px",
+        fontStyle: "700",
+        color: "#caa47e",
+        letterSpacing: 3,
+      }).setOrigin(0.5);
+      this.add.text(WIDTH / 2, 1430, "RUBY 1.5×   •   GOLDEN SEVEN 3×   •   CENTER LINE WINS", {
+        fontFamily: BODY_FONT,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#aa929a",
+        letterSpacing: 2,
+      }).setOrigin(0.5);
+
+      this.refreshCollection(false);
+      this.refreshHud();
+      this.input.keyboard?.on("keydown-SPACE", () => this.spin());
+      this.input.keyboard?.on("keydown-ESC", () => this.returnToHall());
+      this.walletListener = (event) => {
+        this.credits = Number(event.detail?.totalCredits || 0);
+        this.refreshHud();
+      };
+      window.addEventListener("gamish:wallet", this.walletListener);
+      this.events.once("shutdown", () => window.removeEventListener("gamish:wallet", this.walletListener));
+      this.cameras.main.fadeIn(500, 8, 4, 10);
+    }
+
+    addStatCard(x, y, label, value) {
+      addOrnatePanel(this, x, y, 198, 86, {
+        fill: 0x0f0812, fillAlpha: 0.95, stroke: 0xa46646, strokeAlpha: 0.72, bend: 22,
+      });
+      this.add.text(x, y - 20, label, {
+        fontFamily: BODY_FONT,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#bca092",
+        letterSpacing: 3,
+      }).setOrigin(0.5);
+      return this.add.text(x, y + 14, value, {
+        fontFamily: DISPLAY_FONT,
+        fontSize: "24px",
+        color: "#ffe9ae",
+      }).setOrigin(0.5);
+    }
+
+    drawWinLine(alpha = 0.56) {
+      this.winLine.clear();
+      this.winLine.lineStyle(10, 0x9f2b20, alpha * 0.35);
+      this.winLine.beginPath();
+      this.winLine.moveTo(86, 555);
+      traceCubic(this.winLine, { x: 86, y: 555 }, { x: 230, y: 533 }, { x: 538, y: 570 }, { x: 682, y: 549 }, 30);
+      this.winLine.strokePath();
+      this.winLine.lineStyle(4, COLORS.gold, alpha);
+      this.winLine.beginPath();
+      this.winLine.moveTo(86, 555);
+      traceCubic(this.winLine, { x: 86, y: 555 }, { x: 230, y: 533 }, { x: 538, y: 570 }, { x: 682, y: 549 }, 30);
+      this.winLine.strokePath();
+    }
+
+    randomSymbol(excludedMark) {
+      const choices = excludedMark ? PHOENIX_SYMBOLS.filter((symbol) => symbol.mark !== excludedMark) : PHOENIX_SYMBOLS;
+      return choices[Math.floor(secureRandom() * choices.length)];
+    }
+
+    symbolForMark(mark) {
+      return PHOENIX_SYMBOLS.find((symbol) => symbol.mark === mark) || PHOENIX_SYMBOLS[1];
+    }
+
+    setSymbol(image, symbol) {
+      image.setFrame(symbol.frame).setDisplaySize(132, 132);
+    }
+
+    async spin() {
+      if (this.isSpinning) return;
+      if (this.credits < this.bet) {
+        this.resultText.setText("NOT ENOUGH CREDITS  •  OPEN WALLET").setColor("#ff8277");
+        setStatus("Not enough virtual credits. Open Payments or ask an admin to add credits.");
+        this.cameras.main.shake(170, 0.005);
+        window.GamishAudio?.play("lose");
+        return;
+      }
+
+      this.isSpinning = true;
+      this.spinButton.disableInteractive().setAlpha(0.66);
+      this.resultText.setText("CHECKING WALLET…").setColor("#ffd48b");
+      let round;
+      try {
+        const response = await window.GamishAccount.request("/api/game/spin", {
+          method: "POST",
+          body: JSON.stringify({ bet: this.bet }),
+        });
+        round = response.round;
+      } catch (error) {
+        this.isSpinning = false;
+        this.spinButton.setInteractive({ useHandCursor: true }).setAlpha(1);
+        this.resultText.setText(error.message.toUpperCase()).setColor("#ff8277");
+        setStatus(`Phoenix Ruby could not start the spin: ${error.message}`);
+        return;
+      }
+
+      window.GamishAudio?.play("reel-start");
+      this.credits = Math.max(0, this.credits - this.bet);
+      this.spinCount += 1;
+      this.lastWin = 0;
+      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
+      this.resultText.setText("REELS IN MOTION…").setColor("#ffd48b");
+      this.refreshHud();
+      this.animateRound(round);
+    }
+
+    animateRound(round) {
+      const grid = round.marks.map((mark) => this.symbolForMark(mark));
+      const stopTicks = [18, 24, 31];
+      const settled = [false, false, false];
+      let ticks = 0;
+
+      this.drawWinLine(0.24);
+      this.tweens.add({ targets: this.centerBand, alpha: { from: 0.3, to: 1 }, duration: 180, yoyo: true, repeat: 8 });
+      this.reelBands.forEach((band, column) => {
+        this.tweens.add({
+          targets: band,
+          alpha: { from: 0.35, to: 1 },
+          duration: 108 + column * 18,
+          yoyo: true,
+          repeat: 12,
+        });
+      });
+
+      this.time.addEvent({
+        delay: 58,
+        repeat: stopTicks[2] - 1,
+        callback: () => {
+          ticks += 1;
+          this.reelSymbols.forEach((image) => {
+            const column = image.getData("column");
+            const row = image.getData("row");
+            if (ticks >= stopTicks[column]) return;
+            this.setSymbol(image, this.randomSymbol());
+            const phase = (ticks + row) % 4;
+            const offset = [-66, -18, 32, 72][phase];
+            const baseScale = 132 / 418;
+            image
+              .setY(image.getData("baseY") + offset)
+              .setAlpha(0.38 + phase * 0.12)
+              .setScale(baseScale * 0.88, baseScale * 1.28)
+              .setAngle(phase === 2 ? 0 : (phase - 1.5) * 2.5);
+          });
+
+          stopTicks.forEach((stopTick, column) => {
+            if (ticks !== stopTick || settled[column]) return;
+            settled[column] = true;
+            [column, column + 3, column + 6].forEach((index, row) => {
+              const image = this.reelSymbols[index];
+              this.setSymbol(image, grid[index]);
+              const baseScale = 132 / 418;
+              image.setY(image.getData("baseY") - 82).setAlpha(0.34).setScale(baseScale * 0.86, baseScale * 1.34).setAngle(0);
+              this.tweens.add({
+                targets: image,
+                y: image.getData("baseY"),
+                alpha: 1,
+                scaleX: baseScale,
+                scaleY: baseScale,
+                duration: 310,
+                delay: row * 38,
+                ease: "Back.Out",
+              });
+            });
+            this.tweens.add({
+              targets: [this.reelBands[column], this.reelGlows[column]],
+              alpha: { from: 0.26, to: 1 },
+              scaleX: { from: 0.96, to: 1.08 },
+              duration: 170,
+              yoyo: true,
+            });
+            window.GamishAudio?.play("reel-stop");
+            this.cameras.main.shake(72, 0.0016 + column * 0.00035);
+          });
+
+          if (ticks % 3 === 0 && ticks < stopTicks[2]) window.GamishAudio?.play("reel-roll");
+          if (ticks === stopTicks[2]) this.time.delayedCall(470, () => this.finishSpin(round));
+        },
+      });
+    }
+
+    finishSpin(round) {
+      const payout = Number(round.payout);
+      const multiplier = Number(round.multiplier);
+      const phoenixFound = round.marks.filter((mark) => mark === "R").length;
+      this.lastWin = payout;
+      this.credits = Number(round.wallet.totalCredits);
+      this.totalReturned += payout;
+      if (window.GamishAccount?.player) {
+        Object.assign(window.GamishAccount.player, round.wallet);
+        window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: window.GamishAccount.player }));
+      }
+      if (phoenixFound > 0) this.collectPhoenix(phoenixFound);
+
+      if (payout > 0) {
+        const title = multiplier === 3 ? "GOLDEN SEVEN" : "RUBY WIN";
+        this.resultText.setText(`${title}  •  +${payout.toLocaleString("en-US")} CREDITS`).setColor("#ffe080");
+        this.drawWinLine(1);
+        this.tweens.add({ targets: this.reelSymbols.slice(3, 6), scale: (132 / 418) * 1.17, duration: 180, yoyo: true, repeat: 3 });
+        this.tweens.add({ targets: this.reelGlows, alpha: { from: 0.18, to: 1 }, scaleX: 1.2, scaleY: 1.2, duration: 190, yoyo: true, repeat: 4 });
+        this.cameras.main.flash(240, 255, 116, 24, false);
+        window.GamishAudio?.play(multiplier === 3 ? "win-big" : "win-small");
+        this.time.delayedCall(110, () => window.GamishAudio?.play("coin-shower"));
+        this.time.delayedCall(220, () => window.GamishAudio?.play("flame-burst"));
+        this.showWinCelebration(title, payout, multiplier);
+        setStatus(`${title}. ${payout} virtual credits returned at ${multiplier} times the bet.`);
+      } else {
+        window.GamishAudio?.play(phoenixFound > 0 ? "collection" : "lose");
+        if (phoenixFound > 0) {
+          this.resultText.setText(`PHOENIX FOUND  •  +${phoenixFound} COLLECTION GEM${phoenixFound === 1 ? "" : "S"}`).setColor("#ffba61");
+          setStatus(`Phoenix found. ${phoenixFound} collection gem${phoenixFound === 1 ? "" : "s"} added.`);
+        } else {
+          this.resultText.setText("NO CENTER MATCH  •  THE PHOENIX RISES AGAIN").setColor("#c5abb4");
+          setStatus("Phoenix Ruby spin complete. No center-line win on this virtual-credit spin.");
+        }
+        this.time.delayedCall(300, () => this.unlockSpin());
+      }
+      this.refreshHud();
+    }
+
+    showWinCelebration(title, payout, multiplier) {
+      const overlay = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(120).setAlpha(0);
+      const shade = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x050207, 0.82).setInteractive();
+      const glow = this.add.circle(0, -80, 250, multiplier === 3 ? 0xff8c18 : 0xd62f44, 0.18).setBlendMode(Phaser.BlendModes.ADD);
+      const leftFlame = this.add.image(-218, -110, "phoenix-symbols-v2", "symbol-8").setDisplaySize(260, 260).setAlpha(0.82);
+      const rightFlame = this.add.image(218, -110, "phoenix-symbols-v2", "symbol-8").setDisplaySize(260, 260).setFlipX(true).setAlpha(0.82);
+      const panel = addOrnatePanel(this, 0, 120, 610, 430, {
+        fill: 0x160911, fillAlpha: 0.98, stroke: COLORS.gold, strokeAlpha: 0.95, lineWidth: 4, bend: 52,
+      });
+      const icon = this.add.image(0, -42, "phoenix-symbols-v2", multiplier === 3 ? "symbol-0" : "symbol-1").setDisplaySize(230, 230);
+      const heading = this.add.text(0, 104, title, {
+        fontFamily: DISPLAY_FONT,
+        fontSize: multiplier === 3 ? "45px" : "48px",
+        color: "#fff0a8",
+        stroke: "#8b1c08",
+        strokeThickness: 8,
+        shadow: { offsetY: 8, color: "#000000", blur: 18, fill: true },
+      }).setOrigin(0.5);
+      const amount = this.add.text(0, 177, `+${payout.toLocaleString("en-US")}`, {
+        fontFamily: DISPLAY_FONT,
+        fontSize: "55px",
+        color: "#ffd461",
+        stroke: "#6c1608",
+        strokeThickness: 7,
+      }).setOrigin(0.5);
+      const caption = this.add.text(0, 231, "VIRTUAL CREDITS WON", {
+        fontFamily: BODY_FONT,
+        fontSize: "14px",
+        fontStyle: "700",
+        color: "#f2c989",
+        letterSpacing: 5,
+      }).setOrigin(0.5);
+      overlay.add([shade, glow, leftFlame, rightFlame, panel, icon, heading, amount, caption]);
+
+      for (let index = 0; index < 24; index += 1) {
+        const coin = this.add.image(Phaser.Math.Between(-340, 340), Phaser.Math.Between(-850, -460), "phoenix-symbols-v2", "symbol-7")
+          .setDisplaySize(Phaser.Math.Between(38, 66), Phaser.Math.Between(38, 66))
+          .setAngle(Phaser.Math.Between(-70, 70));
+        overlay.add(coin);
+        this.tweens.add({
+          targets: coin,
+          y: Phaser.Math.Between(430, 820),
+          x: coin.x + Phaser.Math.Between(-90, 90),
+          angle: coin.angle + Phaser.Math.Between(240, 720),
+          alpha: { from: 1, to: 0.15 },
+          duration: Phaser.Math.Between(1450, 2200),
+          delay: Phaser.Math.Between(0, 440),
+          ease: "Cubic.In",
+        });
+      }
+
+      this.tweens.add({ targets: overlay, alpha: 1, scale: { from: 0.88, to: 1 }, duration: 320, ease: "Back.Out" });
+      this.tweens.add({ targets: glow, scale: { from: 0.82, to: 1.25 }, alpha: { from: 0.12, to: 0.34 }, duration: 700, yoyo: true, repeat: 2 });
+      this.tweens.add({ targets: [leftFlame, rightFlame], y: { from: -78, to: -125 }, alpha: { from: 0.5, to: 0.95 }, duration: 640, yoyo: true, repeat: 2 });
+      this.tweens.add({ targets: icon, scale: { from: icon.scaleX * 0.72, to: icon.scaleX }, angle: { from: -5, to: 0 }, duration: 520, ease: "Back.Out" });
+      this.time.delayedCall(2450, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 0,
+          scale: 1.04,
+          duration: 260,
+          onComplete: () => {
+            overlay.destroy(true);
+            this.unlockSpin();
+          },
+        });
+      });
+    }
+
+    unlockSpin() {
+      this.isSpinning = false;
+      this.spinButton.setInteractive({ useHandCursor: true }).setAlpha(1);
+    }
+
+    selectBet(amount) {
+      if (this.isSpinning || this.bet === amount) return;
+      this.bet = amount;
+      this.betButtons.forEach((button, value) => {
+        button.setAlpha(value === amount ? 1 : 0.7);
+        this.tweens.add({ targets: button, scale: value === amount ? 1.06 : 1, duration: 150, ease: "Back.Out" });
+      });
+      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${amount}`);
+      this.refreshHud();
+      window.GamishAudio?.play("chip");
+      setStatus(`Phoenix Ruby bet set to ${amount} virtual credits.`);
+    }
+
+    refreshHud() {
+      this.creditText?.setText(this.credits.toLocaleString("en-US"));
+      this.betText?.setText(this.bet.toLocaleString("en-US"));
+      this.winText?.setText(this.lastWin.toLocaleString("en-US"));
+      this.spinButton?.getAt(3)?.setText(`SPIN  •  ${this.bet} CREDITS`);
+      this.sessionText?.setText(`${this.spinCount} SPIN${this.spinCount === 1 ? "" : "S"}  •  ${this.totalReturned.toLocaleString("en-US")} CREDITS WON`);
+    }
+
+    collectionStorageKey() {
+      const playerId = window.GamishAccount?.player?.loginId || window.GamishAccount?.player?.id || "player";
+      return `gamish777-phoenix-collection-${playerId}`;
+    }
+
+    loadCollection() {
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(this.collectionStorageKey()) || "null");
+        return {
+          gems: Phaser.Math.Clamp(Number(stored?.gems) || 0, 0, 9),
+          theme: Math.max(0, Number(stored?.theme) || 0),
+        };
+      } catch {
+        return { gems: 0, theme: 0 };
+      }
+    }
+
+    collectPhoenix(amount) {
+      const total = this.collection.gems + amount;
+      const levels = Math.floor(total / 10);
+      this.collection.gems = total % 10;
+      this.collection.theme += levels;
+      try {
+        window.localStorage.setItem(this.collectionStorageKey(), JSON.stringify(this.collection));
+      } catch {
+        // Collection still works for this session when storage is unavailable.
+      }
+      this.refreshCollection(true);
+      if (levels > 0) {
+        window.GamishAudio?.play("theme-unlock");
+        this.resultText.setText("NEW PHOENIX THEME UNLOCKED").setColor("#ffdd73");
+      }
+    }
+
+    refreshCollection(animate = true) {
+      const themes = ["EMBER", "CRIMSON", "SOLAR", "ROYAL", "ASCENDANT"];
+      const theme = themes[Math.min(this.collection.theme, themes.length - 1)];
+      this.themeText?.setText(`PHOENIX THEME  •  ${theme}`);
+      this.collectionText?.setText(`${this.collection.gems} / 10 GEMS`);
+      if (!this.collectionFill) return;
+      const targetWidth = 460 * (this.collection.gems / 10);
+      if (animate) {
+        this.tweens.add({ targets: this.collectionFill, displayWidth: targetWidth, duration: 520, ease: "Cubic.Out" });
+        this.tweens.add({ targets: this.collectionPanel, alpha: { from: 0.45, to: 1 }, duration: 220, yoyo: true, repeat: 1 });
+      } else {
+        this.collectionFill.displayWidth = targetWidth;
+      }
+    }
+
+    highlightRules() {
+      this.tweens.add({ targets: this.collectionPanel, alpha: { from: 0.42, to: 1 }, duration: 200, yoyo: true, repeat: 2 });
+      this.resultText.setText("MATCH 3 ON CENTER  •  RUBY 1.5×  •  SEVEN 3×").setColor("#ffdc82");
+      setStatus("Choose 10, 20, or 40 credits. Match three Ruby Diamonds or Golden Sevens across the center line. Phoenix crests build your collection.");
+    }
+
+    async refreshAccountWallet() {
+      if (this.isSpinning) return;
+      window.GamishAudio?.play("reset");
+      try {
+        const player = await window.GamishAccount.refreshWallet();
+        this.credits = Number(player.totalCredits || 0);
+        this.resultText.setText("WALLET REFRESHED").setColor("#79efaf");
+        this.refreshHud();
+        setStatus(`Wallet refreshed. ${this.credits} virtual credits available.`);
+      } catch (error) {
+        this.resultText.setText("WALLET REFRESH FAILED").setColor("#ff8176");
         setStatus(error.message);
       }
     }

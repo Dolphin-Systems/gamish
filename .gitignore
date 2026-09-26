@@ -6,3 +6,5 @@ node_modules/
 skills-lock.json
 tmp/
 output/
+.vercel
+.DS_Store
