@@ -111,11 +111,24 @@
           </div>
         </section>
 
+        <section class="content-section archive-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">ARCHIVE</p><h2>Deleted player accounts</h2></div>
+            <p class="archive-note">IDs and PINs stay preserved for testing history.</p>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table archived-player-table">
+              <thead><tr><th>Player</th><th>Archived</th><th>Last login</th><th>Account</th></tr></thead>
+              <tbody id="archived-players-table"></tbody>
+            </table>
+          </div>
+        </section>
+
         <section class="content-section hard-reset-zone">
           <div>
             <p class="eyebrow">TESTING ONLY</p>
             <h2>Hard reset all activity</h2>
-            <p>Deletes every payment, ledger entry, game round, and chat message. The three current player IDs and PINs stay, with $0 balances.</p>
+            <p>Deletes every payment, ledger entry, game round, and chat message, then resets balances to $0. Every current and archived player ID and PIN stays preserved.</p>
           </div>
           <button id="hard-reset-all" class="button danger-button" type="button">Hard test reset</button>
         </section>

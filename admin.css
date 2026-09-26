@@ -110,6 +110,9 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .status-pill.suspended::before { background: #f0af17; }
 .status-pill.deleted { background: #f3f3f3; color: #888; }
 .status-pill.deleted::before { background: #a5a5a5; }
+.avatar.archived { background: #f1f2f1; color: #777; }
+.archive-section { background: #fafbfa; }
+.archive-note { margin: 0; color: var(--muted); font-size: 11px; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .mini-button { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; }
 .mini-button:hover { border-color: var(--green); background: var(--green-soft); }

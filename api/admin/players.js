@@ -35,6 +35,7 @@ export default async function handler(req, res) {
           ...publicPlayer(row),
           createdAt: row.created_at,
           lastLoginAt: row.last_login_at,
+          deletedAt: row.deleted_at,
           lifetimeCashInCents: Number(row.lifetime_cash_in_cents),
           lifetimeCashOutCents: Number(row.lifetime_cash_out_cents),
         })),
@@ -154,19 +155,14 @@ export default async function handler(req, res) {
       if (body.confirmation !== "DELETE ALL TRANSACTIONS") {
         throw new HttpError(400, "Type the exact confirmation phrase", "confirmation_required");
       }
-      const currentPlayers = await sql`
-        SELECT id, login_id
+      const allPlayers = await sql`
+        SELECT id, login_id, deleted_at
         FROM players
-        WHERE role = 'player' AND deleted_at IS NULL
+        WHERE role = 'player'
         ORDER BY login_id ASC
       `;
-      const preserveIds = Array.isArray(body.preservePlayerIds) ? [...new Set(body.preservePlayerIds)] : [];
-      const currentIds = currentPlayers.map((player) => player.id).sort();
-      if (currentIds.length !== 3 || preserveIds.length !== 3 || preserveIds.sort().some((id, index) => id !== currentIds[index])) {
-        throw new HttpError(409, "Hard reset requires exactly the three current player accounts", "player_set_changed");
-      }
 
-      const [paymentEvents, messages, rounds, ledger, resetPlayers, removedPlayers] = await sql.transaction([
+      const [paymentEvents, messages, rounds, ledger, resetPlayers] = await sql.transaction([
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
         sql`DELETE FROM game_rounds RETURNING id`,
@@ -174,24 +170,21 @@ export default async function handler(req, res) {
         sql`
           UPDATE players
           SET regular_credits = 0, bonus_credits = 0, updated_at = NOW()
-          WHERE role = 'player' AND id IN (${currentIds[0]}, ${currentIds[1]}, ${currentIds[2]})
-          RETURNING id
-        `,
-        sql`
-          DELETE FROM players
-          WHERE role = 'player' AND id NOT IN (${currentIds[0]}, ${currentIds[1]}, ${currentIds[2]})
+          WHERE role = 'player'
           RETURNING id
         `,
       ]);
       return json(res, 200, {
         ok: true,
-        preservedAccounts: currentPlayers.map((player) => player.login_id),
+        preservedAccounts: allPlayers.map((player) => ({
+          loginId: player.login_id,
+          archived: Boolean(player.deleted_at),
+        })),
         deleted: {
           paymentEvents: paymentEvents.length,
           messages: messages.length,
           gameRounds: rounds.length,
           ledgerEntries: ledger.length,
-          oldAccounts: removedPlayers.length,
         },
         resetAccounts: resetPlayers.length,
       });

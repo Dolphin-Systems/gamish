@@ -80,7 +80,9 @@ const playerActions = (player) => {
 
 const renderPlayers = () => {
   const query = document.getElementById("player-search").value.trim().toLowerCase();
-  const rows = players.filter((player) => player.role === "player" && player.loginId.toLowerCase().includes(query));
+  const matchingPlayers = players.filter((player) => player.role === "player" && player.loginId.toLowerCase().includes(query));
+  const rows = matchingPlayers.filter((player) => player.status !== "deleted");
+  const archived = matchingPlayers.filter((player) => player.status === "deleted");
   document.getElementById("players-table").innerHTML = rows.map((player) => `
     <tr>
       <td data-label="Player"><div class="player-name"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>
@@ -91,6 +93,15 @@ const renderPlayers = () => {
       <td data-label="Manage">${playerActions(player)}</td>
     </tr>
   `).join("") || "<tr><td colspan='6'>No matching players.</td></tr>";
+
+  document.getElementById("archived-players-table").innerHTML = archived.map((player) => `
+    <tr>
+      <td data-label="Player"><div class="player-name"><span class="avatar archived">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>
+      <td data-label="Archived">${date(player.deletedAt)}</td>
+      <td data-label="Last login">${date(player.lastLoginAt)}</td>
+      <td data-label="Account"><span class="status-pill deleted">Archived</span></td>
+    </tr>
+  `).join("") || "<tr><td colspan='4'>No archived accounts.</td></tr>";
 
   const activePlayers = players.filter((player) => player.role === "player" && player.status !== "deleted");
   for (const select of [document.getElementById("credit-player-id"), document.getElementById("cashout-player-id")]) {
@@ -344,13 +355,8 @@ document.getElementById("players-table").addEventListener("click", async (event)
 
 document.getElementById("player-search").addEventListener("input", renderPlayers);
 document.getElementById("hard-reset-all").addEventListener("click", async (event) => {
-  const preserved = players.filter((player) => player.role === "player" && player.status !== "deleted");
-  if (preserved.length !== 3) {
-    setNotice("Hard reset requires exactly three current player accounts.", true);
-    return;
-  }
-  const names = preserved.map((player) => player.loginId).join(", ");
-  if (!window.confirm(`TESTING ONLY\n\nDelete every transaction, payment, game round, and chat message?\n\nThese three logins and their PINs will remain: ${names}`)) return;
+  const preserved = players.filter((player) => player.role === "player");
+  if (!window.confirm(`TESTING ONLY\n\nDelete every payment, ledger entry, game round, and chat message, and reset all balances to $0.00?\n\nAll ${preserved.length} current and archived account IDs and PINs will remain.`)) return;
   const phrase = window.prompt('Type DELETE ALL TRANSACTIONS to permanently continue:');
   if (phrase !== "DELETE ALL TRANSACTIONS") {
     setNotice("Hard reset cancelled. Confirmation phrase did not match.", true);
@@ -364,11 +370,10 @@ document.getElementById("hard-reset-all").addEventListener("click", async (event
       body: JSON.stringify({
         action: "hard_reset_all",
         confirmation: phrase,
-        preservePlayerIds: preserved.map((player) => player.id),
       }),
     });
     const deleted = Object.values(result.deleted).reduce((sum, count) => sum + count, 0);
-    setNotice(`Hard reset complete. ${deleted} records deleted; 3 player logins preserved.`);
+    setNotice(`Hard reset complete. ${deleted} activity records deleted; ${result.preservedAccounts.length} accounts preserved.`);
     await refresh();
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }
