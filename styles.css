@@ -43,6 +43,97 @@ body {
   isolation: isolate;
 }
 
+#app.account-locked {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.auth-gate {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(32px, env(safe-area-inset-top)) 22px max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 28%, rgba(162, 55, 37, 0.3), transparent 34%),
+    radial-gradient(circle at 50% 75%, rgba(97, 36, 96, 0.28), transparent 38%),
+    #09050d;
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.auth-gate.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.login-card {
+  width: min(100%, 390px);
+  padding: 34px 28px 28px;
+  border: 1px solid rgba(255, 200, 112, 0.35);
+  border-radius: 42px 16px 42px 42px;
+  background: linear-gradient(145deg, rgba(55, 20, 43, 0.98), rgba(13, 8, 18, 0.98));
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.58), inset 0 1px rgba(255,255,255,0.07);
+}
+
+.login-mark {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 20px;
+  border: 1px solid rgba(255, 201, 107, 0.72);
+  border-radius: 50%;
+  color: #ffb14a;
+  font-size: 23px;
+  box-shadow: 0 0 32px rgba(255, 113, 29, 0.2);
+}
+
+.login-card h1 {
+  margin: 0 0 26px;
+  color: #fff0c2;
+  font: 900 24px/1.25 "Cinzel Decorative", Georgia, serif;
+  text-align: center;
+}
+
+.login-card label {
+  display: grid;
+  gap: 8px;
+  margin-top: 15px;
+  color: #d4bcc5;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-card input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 205, 128, 0.2);
+  border-radius: 18px 7px 18px 18px;
+  outline: none;
+  background: rgba(5, 3, 9, 0.58);
+  color: #fff4df;
+  font-size: 16px;
+}
+
+.login-card input:focus { border-color: rgba(255, 173, 73, 0.7); box-shadow: 0 0 0 3px rgba(255, 142, 43, 0.08); }
+.login-card button {
+  width: 100%;
+  min-height: 56px;
+  margin-top: 24px;
+  border: 1px solid #ffd079;
+  border-radius: 22px 8px 22px 22px;
+  background: linear-gradient(135deg, #9d2d19, #5a1721);
+  color: #fff0c8;
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.login-card button:disabled { cursor: wait; opacity: 0.65; }
+#login-error { min-height: 20px; margin: 12px 0 0; color: #ff9b8e; font-size: 13px; text-align: center; }
+
 #game-shell {
   position: relative;
   display: grid;
@@ -878,6 +969,12 @@ button {
   box-shadow: 0 0 9px rgba(255, 125, 52, 0.8);
 }
 .utility-button.active .unread-dot { display: none; }
+.account-button {
+  color: #ffd58f;
+  font-family: "Cinzel Decorative", Georgia, serif;
+  font-size: 15px;
+  font-weight: 900;
+}
 
 .toast {
   position: fixed;

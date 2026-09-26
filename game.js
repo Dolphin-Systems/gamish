@@ -40,15 +40,6 @@
     return values[0] / 4294967296;
   };
 
-  const makePhoenixOutcomeBag = () => {
-    const bag = [...Array(18).fill(0), ...Array(8).fill(1.5), ...Array(4).fill(3)];
-    for (let i = bag.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(secureRandom() * (i + 1));
-      [bag[i], bag[j]] = [bag[j], bag[i]];
-    }
-    return bag;
-  };
-
   const statusNode = document.getElementById("scene-status");
   const setStatus = (message) => {
     if (statusNode) statusNode.textContent = message;
@@ -608,14 +599,13 @@
   class PhoenixGameScene extends Phaser.Scene {
     constructor() {
       super("PhoenixGame");
-      this.credits = 1000;
+      this.credits = 0;
       this.bet = 10;
       this.lastWin = 0;
       this.totalWagered = 0;
       this.totalReturned = 0;
       this.spinCount = 0;
       this.isSpinning = false;
-      this.outcomeBags = new Map();
       this.reelTexts = [];
       this.reelBands = [];
       this.reelGlows = [];
@@ -628,6 +618,7 @@
       this.reelGlows = [];
       this.betButtons = new Map();
       this.isSpinning = false;
+      this.credits = Number(window.GamishAccount?.player?.totalCredits || 0);
       setStatus("Phoenix Ruby. A curved, animated virtual-credit reel game with no cash value.");
       fitBackground(this, "phoenix");
       addVignette(this, 0.62);
@@ -808,7 +799,7 @@
         fontSize: "22px",
         color: "#fff0c0",
       });
-      this.add.text(86, 1306, "Every spin reshuffles the virtual-credit ember deck", {
+      this.add.text(86, 1306, "Every spin settles through the secure player ledger", {
         fontFamily: BODY_FONT,
         fontSize: "15px",
         color: "#cdb7bd",
@@ -822,7 +813,7 @@
         lineSpacing: 8,
       }).setOrigin(1, 0);
 
-      makeButton(this, WIDTH / 2, 1368, 310, 54, "RESET DEMO CREDITS", () => this.resetDemo(), {
+      makeButton(this, WIDTH / 2, 1368, 310, 54, "REFRESH WALLET", () => this.refreshAccountWallet(), {
         fill: 0x1b101b,
         stroke: 0x8a5b50,
         accent: 0x68424c,
@@ -831,6 +822,12 @@
 
       this.input.keyboard?.on("keydown-SPACE", () => this.spin());
       this.input.keyboard?.on("keydown-ESC", () => this.returnToHall());
+      this.walletListener = (event) => {
+        this.credits = Number(event.detail?.totalCredits || 0);
+        this.refreshHud();
+      };
+      window.addEventListener("gamish:wallet", this.walletListener);
+      this.events.once("shutdown", () => window.removeEventListener("gamish:wallet", this.walletListener));
       this.cameras.main.fadeIn(500, 8, 4, 10);
     }
 
@@ -852,16 +849,6 @@
       }).setOrigin(0.5);
     }
 
-    getOutcome() {
-      let bag = this.outcomeBags.get(this.bet);
-      if (!bag?.length) {
-        bag = makePhoenixOutcomeBag();
-        this.outcomeBags.set(this.bet, bag);
-      }
-      const multiplier = bag.pop();
-      return { multiplier, position: 30 - bag.length };
-    }
-
     randomSymbol(excludedMark) {
       const choices = excludedMark ? PHOENIX_SYMBOLS.filter((symbol) => symbol.mark !== excludedMark) : PHOENIX_SYMBOLS;
       return choices[Math.floor(secureRandom() * choices.length)];
@@ -871,43 +858,51 @@
       text.setText(symbol.mark).setColor(symbol.color).setFontSize(symbol.mark === "7" ? 74 : 63);
     }
 
-    buildResultGrid(multiplier) {
-      const symbols = Array.from({ length: 9 }, () => this.randomSymbol());
-      if (multiplier === 3) {
-        symbols[3] = PHOENIX_SYMBOLS[0];
-        symbols[4] = PHOENIX_SYMBOLS[0];
-        symbols[5] = PHOENIX_SYMBOLS[0];
-      } else if (multiplier === 1.5) {
-        symbols[3] = PHOENIX_SYMBOLS[1];
-        symbols[4] = PHOENIX_SYMBOLS[1];
-        symbols[5] = PHOENIX_SYMBOLS[1];
-      } else if (symbols[3].mark === symbols[4].mark && symbols[4].mark === symbols[5].mark) {
-        symbols[5] = this.randomSymbol(symbols[4].mark);
-      }
-      return symbols;
+    symbolForMark(mark) {
+      return PHOENIX_SYMBOLS.find((symbol) => symbol.mark === mark) || PHOENIX_SYMBOLS[1];
     }
 
-    spin() {
+    async spin() {
       if (this.isSpinning) return;
       if (this.credits < this.bet) {
-        this.resultText.setText("NOT ENOUGH CREDITS — RESET THE DEMO").setColor("#ff7f72");
-        setStatus("Not enough virtual credits. Activate Reset Demo Credits to continue.");
+        this.resultText.setText("NOT ENOUGH CREDITS — OPEN WALLET").setColor("#ff7f72");
+        setStatus("Not enough virtual credits. Open Payments or ask an admin to add credits.");
         this.cameras.main.shake(160, 0.005);
         return;
       }
 
       this.isSpinning = true;
+      this.spinButton.disableInteractive().setAlpha(0.72);
+      this.resultText.setText("CHECKING WALLET…").setColor("#ffd58c");
+
+      let round;
+      try {
+        const response = await window.GamishAccount.request("/api/game/spin", {
+          method: "POST",
+          body: JSON.stringify({ bet: this.bet }),
+        });
+        round = response.round;
+      } catch (error) {
+        this.isSpinning = false;
+        this.spinButton.setInteractive({ useHandCursor: true }).setAlpha(1);
+        this.resultText.setText(error.message.toUpperCase()).setColor("#ff7f72");
+        setStatus(`Phoenix Ruby could not start the spin: ${error.message}`);
+        return;
+      }
+
       window.GamishAudio?.play("spin");
-      this.credits -= this.bet;
+      this.credits = Math.max(0, this.credits - this.bet);
       this.totalWagered += this.bet;
       this.spinCount += 1;
       this.lastWin = 0;
-      const outcome = this.getOutcome();
-      const grid = this.buildResultGrid(outcome.multiplier);
       this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
       this.resultText.setText("REELS IN MOTION…").setColor("#ffd58c");
-      this.spinButton.disableInteractive().setAlpha(0.72);
       this.refreshHud();
+      this.animateRound(round);
+    }
+
+    animateRound(round) {
+      const grid = round.marks.map((mark) => this.symbolForMark(mark));
 
       let ticks = 0;
       const stopTicks = [10, 14, 18];
@@ -978,25 +973,30 @@
             this.cameras.main.shake(42, 0.0009);
           }
 
-          if (ticks === stopTicks[2]) this.time.delayedCall(380, () => this.finishSpin(outcome));
+          if (ticks === stopTicks[2]) this.time.delayedCall(380, () => this.finishSpin(round));
         },
       });
     }
 
-    finishSpin(outcome) {
-      const payout = this.bet * outcome.multiplier;
+    finishSpin(round) {
+      const payout = Number(round.payout);
+      const multiplier = Number(round.multiplier);
       this.lastWin = payout;
-      this.credits += payout;
+      this.credits = Number(round.wallet.totalCredits);
       this.totalReturned += payout;
+      if (window.GamishAccount?.player) {
+        Object.assign(window.GamishAccount.player, round.wallet);
+        window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: window.GamishAccount.player }));
+      }
 
       if (payout > 0) {
-        window.GamishAudio?.play(outcome.multiplier === 3 ? "win-big" : "win-small");
-        this.resultText.setText(`WIN  +${payout.toLocaleString("en-US")} CREDITS  •  ${outcome.multiplier}×`).setColor("#ffdc83");
+        window.GamishAudio?.play(multiplier === 3 ? "win-big" : "win-small");
+        this.resultText.setText(`WIN  +${payout.toLocaleString("en-US")} CREDITS  •  ${multiplier}×`).setColor("#ffdc83");
         this.tweens.add({ targets: this.reelTexts.slice(3, 6), scale: 1.16, duration: 180, yoyo: true, repeat: 2 });
         this.tweens.add({ targets: this.reelGlows, alpha: { from: 0.2, to: 1 }, scaleX: 1.08, scaleY: 1.08, duration: 180, yoyo: true, repeat: 3 });
         this.tweens.add({ targets: this.winLine, alpha: 1, scaleX: 1.05, duration: 190, yoyo: true, repeat: 3 });
         this.cameras.main.flash(220, 255, 126, 34, false);
-        setStatus(`Phoenix Ruby win. ${payout} virtual credits returned at ${outcome.multiplier} times the bet.`);
+        setStatus(`Phoenix Ruby win. ${payout} virtual credits returned at ${multiplier} times the bet.`);
       } else {
         window.GamishAudio?.play("lose");
         this.resultText.setText("NO WIN  •  THE PHOENIX RISES AGAIN").setColor("#c4abb1");
@@ -1034,19 +1034,19 @@
       setStatus("Match three Ruby symbols or three Golden 7 symbols across the curved center line.");
     }
 
-    resetDemo() {
+    async refreshAccountWallet() {
       if (this.isSpinning) return;
       window.GamishAudio?.play("reset");
-      this.credits = 1000;
-      this.lastWin = 0;
-      this.totalWagered = 0;
-      this.totalReturned = 0;
-      this.spinCount = 0;
-      this.outcomeBags.clear();
-      this.cycleText.setText(`EMBER SPIN  •  BET ${this.bet}`);
-      this.resultText.setText("DEMO CREDITS RESTORED").setColor("#7af0b1");
-      this.refreshHud();
-      setStatus("Phoenix Ruby demo reset to 1,000 virtual credits. All shuffled outcome cycles were restarted.");
+      try {
+        const player = await window.GamishAccount.refreshWallet();
+        this.credits = Number(player.totalCredits || 0);
+        this.resultText.setText("WALLET REFRESHED").setColor("#7af0b1");
+        this.refreshHud();
+        setStatus(`Wallet refreshed. ${this.credits} virtual credits available.`);
+      } catch (error) {
+        this.resultText.setText("WALLET REFRESH FAILED").setColor("#ff7f72");
+        setStatus(error.message);
+      }
     }
 
     returnToHall() {

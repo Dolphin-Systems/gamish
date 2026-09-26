@@ -20,7 +20,18 @@
   <title>Gamish777 — Ember Crown Arcade</title>
 </head>
 <body>
-  <main id="app" aria-label="Gamish777">
+  <section id="login-view" class="auth-gate" aria-labelledby="login-title">
+    <form id="login-form" class="login-card">
+      <span class="login-mark" aria-hidden="true">◆</span>
+      <h1 id="login-title">Enter Gamish777</h1>
+      <label>Login ID<input id="login-id" name="loginId" autocomplete="username" placeholder="Ricky123" required /></label>
+      <label>PIN<input id="login-pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="8" placeholder="••••" required /></label>
+      <button type="submit">Enter the arcade</button>
+      <p id="login-error" role="alert"></p>
+    </form>
+  </section>
+
+  <main id="app" class="account-locked" aria-label="Gamish777" aria-hidden="true">
     <section id="arcade-view" class="app-view arcade-view active" aria-label="Arcade">
       <div id="game-shell"></div>
       <div id="loading-fallback" role="status" aria-live="polite">
@@ -38,8 +49,8 @@
         <h1 id="payments-title" class="sr-only">Payments</h1>
 
         <article class="wallet-summary">
-          <div><span>Available balance</span><strong>$0.00</strong></div>
-          <div class="player-id"><span>Player ID</span><strong>GM-777-EMBER</strong></div>
+          <div><span>Available balance</span><strong id="wallet-balance">0 CR</strong></div>
+          <div class="player-id"><span>Player ID</span><strong id="wallet-player-id">—</strong></div>
         </article>
 
         <section class="surface amount-entry-panel" aria-labelledby="reload-heading">
@@ -77,8 +88,8 @@
               <span class="method-logo venmo">V</span><small>@Gamish777</small><i>✓</i>
             </button>
           </div>
-          <p class="demo-note"><span>i</span>This is a design preview. No real payment is submitted from this screen.</p>
-          <button id="review-reload" class="primary-action" type="button"><span>Continue with $5</span><b>→</b></button>
+          <p class="demo-note"><span>i</span>Verified payment notifications refresh this wallet automatically.</p>
+          <button id="review-reload" class="primary-action" type="button"><span>Refresh payment status</span><b>↻</b></button>
         </section>
       </div>
     </section>
@@ -138,6 +149,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-9 8.47 9.7 9.7 0 0 1-3.45-.9L3 20.5l1.43-4.18A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg>
         <span class="sr-only">Messages</span>
         <i class="unread-dot" aria-label="New message"></i>
+      </button>
+      <button id="logout-button" class="utility-button account-button" type="button" aria-label="Sign out" title="Sign out">
+        <span id="account-initial" aria-hidden="true">P</span>
+        <span class="sr-only">Sign out</span>
       </button>
     </nav>
 

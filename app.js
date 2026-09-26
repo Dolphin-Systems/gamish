@@ -1,6 +1,105 @@
 (() => {
   "use strict";
 
+  const app = document.getElementById("app");
+  const loginView = document.getElementById("login-view");
+  const loginForm = document.getElementById("login-form");
+  const loginError = document.getElementById("login-error");
+  const logoutButton = document.getElementById("logout-button");
+  const walletBalance = document.getElementById("wallet-balance");
+  const walletPlayerId = document.getElementById("wallet-player-id");
+  const accountInitial = document.getElementById("account-initial");
+
+  const request = async (url, options = {}) => {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.body ? { "Content-Type": "application/json", "X-Gamish-Action": "1" } : {}),
+        ...options.headers,
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.message || "Request failed");
+    return payload;
+  };
+
+  const setWallet = (player) => {
+    if (!player) return;
+    walletBalance.textContent = `${Number(player.totalCredits || 0).toLocaleString("en-US")} CR`;
+    walletPlayerId.textContent = player.loginId;
+    accountInitial.textContent = player.loginId.charAt(0).toUpperCase();
+  };
+
+  const applyPlayer = (player) => {
+    window.GamishAccount.player = player;
+    setWallet(player);
+    loginView.classList.add("hidden");
+    app.classList.remove("account-locked");
+    app.setAttribute("aria-hidden", "false");
+    window.dispatchEvent(new CustomEvent("gamish:account", { detail: player }));
+  };
+
+  const lockApp = () => {
+    window.GamishAccount.player = null;
+    loginView.classList.remove("hidden");
+    app.classList.add("account-locked");
+    app.setAttribute("aria-hidden", "true");
+  };
+
+  const refreshWallet = async () => {
+    const data = await request("/api/player/wallet");
+    const player = { ...window.GamishAccount.player, ...data.wallet, loginId: data.loginId };
+    window.GamishAccount.player = player;
+    setWallet(player);
+    window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: player }));
+    return player;
+  };
+
+  window.GamishAccount = { player: null, request, refreshWallet };
+  window.addEventListener("gamish:wallet", (event) => setWallet(event.detail));
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    loginError.textContent = "";
+    const button = loginForm.querySelector("button");
+    button.disabled = true;
+    button.textContent = "Checking…";
+    try {
+      const data = await request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          loginId: document.getElementById("login-id").value,
+          pin: document.getElementById("login-pin").value,
+        }),
+      });
+      if (data.player.role === "admin") {
+        window.location.assign("/admin.html");
+        return;
+      }
+      applyPlayer(data.player);
+      loginForm.reset();
+    } catch (error) {
+      loginError.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Enter the arcade";
+    }
+  });
+
+  logoutButton.addEventListener("click", async () => {
+    try {
+      await request("/api/auth/logout", { method: "POST", body: "{}" });
+    } finally {
+      lockApp();
+    }
+  });
+
+  request("/api/auth/me").then(({ player }) => {
+    if (player.role === "admin") window.location.assign("/admin.html");
+    else applyPlayer(player);
+  }).catch(lockApp);
+
   const views = new Map([
     ["arcade", document.getElementById("arcade-view")],
     ["payments", document.getElementById("payments-view")],
@@ -36,6 +135,7 @@
       else item.removeAttribute("aria-current");
     });
     if (name === "messages") document.querySelector(".unread-dot")?.remove();
+    if (name === "payments" && window.GamishAccount.player) refreshWallet().catch(() => {});
   };
 
   viewTriggers.forEach((item) => item.addEventListener("click", () => {
@@ -74,10 +174,7 @@
     amountButtons.forEach((button) => button.classList.toggle("selected", button === source));
     const formattedAmount = selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 });
     amountLabel.textContent = selectedBonus ? `$${formattedAmount} + $${selectedBonus} bonus` : `$${formattedAmount} selected`;
-    const credited = selectedAmount + selectedBonus;
-    reviewButton.querySelector("span").textContent = selectedBonus
-      ? `Continue with $${formattedAmount} • get $${credited.toLocaleString("en-US")}`
-      : `Continue with $${formattedAmount}`;
+    reviewButton.querySelector("span").textContent = `Refresh $${formattedAmount} payment status`;
   };
 
   amountButtons.forEach((button) => button.addEventListener("click", () => {
@@ -103,10 +200,17 @@
     selectMethod(card);
   }));
 
-  reviewButton.addEventListener("click", () => {
+  reviewButton.addEventListener("click", async () => {
     audio?.play("payment");
-    const bonusCopy = selectedBonus ? ` + $${selectedBonus} bonus` : "";
-    showToast(`Demo ready: $${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })}${bonusCopy} via ${selectedMethod.dataset.method}`);
+    reviewButton.disabled = true;
+    try {
+      const player = await refreshWallet();
+      showToast(`Wallet refreshed • ${player.totalCredits.toLocaleString("en-US")} credits`);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      reviewButton.disabled = false;
+    }
   });
 
   const messageList = document.getElementById("message-list");

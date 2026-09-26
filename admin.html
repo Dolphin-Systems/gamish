@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Gamish777 Admin</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <main>
+    <section id="admin-login" class="panel narrow">
+      <h1>Gamish777 Admin</h1>
+      <form id="admin-login-form">
+        <label>Login ID<input id="admin-login-id" autocomplete="username" required /></label>
+        <label>PIN<input id="admin-login-pin" type="password" inputmode="numeric" autocomplete="current-password" required /></label>
+        <button type="submit">Sign in</button>
+        <p id="admin-login-error" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="admin-dashboard" hidden>
+      <header>
+        <div><h1>Gamish777 Admin</h1><p id="admin-identity"></p></div>
+        <div><a href="/">Game</a><button id="admin-logout" type="button">Sign out</button></div>
+      </header>
+
+      <section class="summary" aria-label="Today summary">
+        <article><span>Cash in today</span><strong id="today-cash-in">$0.00</strong></article>
+        <article><span>Cash out today</span><strong id="today-cash-out">$0.00</strong></article>
+        <article><span>Game net today</span><strong id="today-game-net">0</strong></article>
+        <article><span>Bonus pool</span><strong id="bonus-pool">0</strong></article>
+      </section>
+
+      <div id="admin-notice" role="status"></div>
+
+      <section class="columns">
+        <form id="create-player-form" class="panel">
+          <h2>Create player login</h2>
+          <label>Login ID<input id="new-login-id" placeholder="Ricky123" required /></label>
+          <label>PIN<input id="new-login-pin" type="password" inputmode="numeric" minlength="4" maxlength="8" placeholder="4–8 digits" required /></label>
+          <button type="submit">Create player</button>
+        </form>
+
+        <form id="credit-player-form" class="panel">
+          <h2>Send credits</h2>
+          <label>Player<select id="credit-player-id" required></select></label>
+          <label>Amount<input id="credit-amount" type="number" min="1" max="1000000" required /></label>
+          <label>Balance<select id="credit-balance"><option value="regular">Regular</option><option value="bonus">Bonus</option></select></label>
+          <label>Reason<input id="credit-reason" maxlength="120" value="Admin credit" /></label>
+          <button type="submit">Send credits</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="section-title"><h2>Players</h2><button id="refresh-admin" type="button">Refresh</button></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Login ID</th><th>Status</th><th>Regular</th><th>Bonus</th><th>Total</th><th>Actions</th></tr></thead>
+            <tbody id="players-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Daily report</h2>
+        <p id="game-model-note" class="muted"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Cash in</th><th>Cash out</th><th>Wagered</th><th>Won</th><th>Game net</th></tr></thead>
+            <tbody id="daily-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Player totals · last 7 days</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Player</th><th>Paid in</th><th>Wagered</th><th>Won</th><th>Bonus</th><th>Wallet</th></tr></thead>
+            <tbody id="player-report-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
