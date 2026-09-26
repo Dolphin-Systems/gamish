@@ -27,6 +27,7 @@
       <nav class="tab-nav" aria-label="Admin pages">
         <button class="tab-button active" type="button" data-tab="overview"><span>⌂</span>Overview</button>
         <button class="tab-button" type="button" data-tab="players"><span>◎</span>Players</button>
+        <button class="tab-button" type="button" data-tab="analytics"><span>⌁</span>Analytics</button>
         <button class="tab-button" type="button" data-tab="money"><span>$</span>Money</button>
         <button class="tab-button" type="button" data-tab="reports"><span>▤</span>Reports</button>
       </nav>
@@ -94,6 +95,32 @@
               <thead><tr><th>Player</th><th>Status</th><th>Available</th><th>Lifetime in</th><th>Lifetime out</th><th>Manage</th></tr></thead>
               <tbody id="players-table"></tbody>
             </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-panel="analytics" hidden>
+        <section class="analytics-hero">
+          <div><p class="eyebrow">PLAYER ANALYTICS</p><h2>See how players are playing</h2><p>Period activity, game behavior, and player-level performance.</p></div>
+          <label>Range<select id="analytics-range"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></label>
+        </section>
+
+        <div class="stat-grid analytics-stats">
+          <article class="stat-card hero-stat"><span>Active players</span><strong id="analytics-active-players">0</strong><small id="analytics-active-note">Last 30 days</small></article>
+          <article class="stat-card"><span>Rounds played</span><strong id="analytics-rounds">0</strong><small id="analytics-win-rounds">0 winning rounds</small></article>
+          <article class="stat-card"><span>Player win rate</span><strong id="analytics-win-rate">0%</strong><small>Winning rounds ÷ all rounds</small></article>
+          <article class="stat-card"><span>Player return</span><strong id="analytics-return">0%</strong><small id="analytics-return-money">$0.00 won</small></article>
+        </div>
+
+        <section class="content-section analytics-flow">
+          <div class="section-heading"><div><p class="eyebrow">PLAY TREND</p><h2>Daily wager and win activity</h2></div><div class="chart-legend"><span class="wager">Wagered</span><span class="win">Won</span></div></div>
+          <div id="player-activity-chart" class="activity-chart"></div>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading"><div><p class="eyebrow">PLAYER RANKING</p><h2 id="player-analytics-title">Last 30 days</h2></div></div>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Player</th><th>Status</th><th>Cash in</th><th>Cash out</th><th>Wagered</th><th>Won</th><th>Game net</th><th>Rounds</th><th>Win rate</th><th>Return</th></tr></thead><tbody id="player-analytics-table"></tbody></table>
           </div>
         </section>
       </section>

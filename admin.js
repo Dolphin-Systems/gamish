@@ -10,6 +10,7 @@ let noticeTimer;
 const pageCopy = {
   overview: ["Overview", "A quick look at today."],
   players: ["Players", "Create, freeze, reset, or delete player accounts."],
+  analytics: ["Player analytics", "Understand player activity and game performance."],
   money: ["Money", "Manage available cash and cash-out records."],
   reports: ["Reports", "Review activity and download a PDF."],
 };
@@ -31,6 +32,7 @@ const request = async (url, options = {}) => {
 const money = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents || 0) / 100);
 const dollarsToCents = (value) => Math.round(Number(value) * 100);
 const date = (value) => value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never";
+const percent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
 
 const setNotice = (message, error = false) => {
   clearTimeout(noticeTimer);
@@ -118,6 +120,32 @@ const renderReport = () => {
   document.getElementById("player-report-table").innerHTML = report.players.map((player) => `
     <tr><td><b>${player.loginId}</b></td><td>${statusPill(player.status)}</td><td class="money">${money(player.paidInCents)}</td><td class="money">${money(player.paidOutCents)}</td><td class="money">${money(player.wagered)}</td><td class="money">${money(player.won)}</td><td class="money">${money(player.totalCredits)}</td></tr>
   `).join("") || "<tr><td colspan='7'>No player activity yet.</td></tr>";
+
+  document.getElementById("analytics-active-players").textContent = report.analytics.activePlayers;
+  document.getElementById("analytics-active-note").textContent = `Last ${report.days} days`;
+  document.getElementById("analytics-rounds").textContent = report.analytics.totalRounds.toLocaleString("en-US");
+  document.getElementById("analytics-win-rounds").textContent = `${report.analytics.winningRounds.toLocaleString("en-US")} winning rounds`;
+  document.getElementById("analytics-win-rate").textContent = percent(report.analytics.winRate);
+  document.getElementById("analytics-return").textContent = percent(report.analytics.returnRate);
+  document.getElementById("analytics-return-money").textContent = `${money(report.analytics.won)} won from ${money(report.analytics.wagered)}`;
+  document.getElementById("player-analytics-title").textContent = `Last ${report.days} days`;
+
+  const activityRows = report.daily.filter((row) => row.rounds > 0).reverse();
+  const activityMax = Math.max(1, ...activityRows.flatMap((row) => [row.wagered, row.won]));
+  document.getElementById("player-activity-chart").innerHTML = activityRows.map((row) => `
+    <div class="activity-day" title="${money(row.wagered)} wagered · ${money(row.won)} won">
+      <div class="activity-bars"><i class="wager" style="height:${row.wagered ? Math.max(3, row.wagered / activityMax * 100) : 0}%"></i><i class="win" style="height:${row.won ? Math.max(3, row.won / activityMax * 100) : 0}%"></i></div>
+      <b>${new Date(row.date).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}</b>
+      <small>${row.activePlayers} active · ${row.rounds} rounds</small>
+    </div>
+  `).join("") || "<p class='chart-empty'>No player activity in this range yet.</p>";
+
+  const rankedPlayers = report.playerAnalytics.filter((player) =>
+    player.rounds || (player.status !== "deleted" && (player.cashInCents || player.cashOutCents))
+  );
+  document.getElementById("player-analytics-table").innerHTML = rankedPlayers.map((player, index) => `
+    <tr><td><div class="ranked-player"><span>${index + 1}</span><div><b>${player.loginId}</b><small>Last played ${date(player.lastPlayedAt)}</small></div></div></td><td>${statusPill(player.status)}</td><td class="money">${money(player.cashInCents)}</td><td class="money">${money(player.cashOutCents)}</td><td class="money">${money(player.wagered)}</td><td class="money">${money(player.won)}</td><td class="money">${money(player.gameNet)}</td><td>${player.rounds.toLocaleString("en-US")}</td><td>${percent(player.winRate)}</td><td>${percent(player.returnRate)}</td></tr>
+  `).join("") || "<tr><td colspan='10'>No player activity in this range.</td></tr>";
 };
 
 const refresh = async () => {
@@ -235,6 +263,13 @@ document.getElementById("players-table").addEventListener("click", async (event)
 document.getElementById("player-search").addEventListener("input", renderPlayers);
 document.getElementById("report-range").addEventListener("change", async (event) => {
   const days = Number(event.target.value);
+  document.getElementById("analytics-range").value = String(days);
+  document.getElementById("download-pdf").href = `/api/admin/report-pdf?days=${days}`;
+  try { await refresh(); } catch (error) { setNotice(error.message, true); }
+});
+document.getElementById("analytics-range").addEventListener("change", async (event) => {
+  const days = Number(event.target.value);
+  document.getElementById("report-range").value = String(days);
   document.getElementById("download-pdf").href = `/api/admin/report-pdf?days=${days}`;
   try { await refresh(); } catch (error) { setNotice(error.message, true); }
 });

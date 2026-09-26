@@ -8,7 +8,7 @@ Gamish777 uses Vercel Functions and Neon Postgres for authenticated virtual-cred
 - PINs are stored as salted scrypt hashes.
 - Sessions use opaque, HTTP-only, SameSite cookies and expire after seven days.
 - Five failed login attempts within 15 minutes temporarily block that login/IP pair.
-- The admin dashboard at `/admin.html` has Overview, Players, Money, and Reports pages.
+- The admin dashboard at `/admin.html` has Overview, Players, Player Analytics, Money, and Reports pages.
 - Admins can create players, reset PINs, freeze access, soft-delete accounts, add available or bonus cash, record cash out, and reset a test balance to zero.
 - Deleted accounts cannot sign in, while their lifetime ledger history remains available for audit reports.
 
@@ -17,6 +17,8 @@ Gamish777 uses Vercel Functions and Neon Postgres for authenticated virtual-cred
 Every balance change is recorded in an append-only ledger. Game wagers and wins are committed atomically with the wallet update. The admin display uses dollars throughout, with one internal cent equal to one game balance unit.
 
 Reports can be filtered to 7, 30, or 90 days and downloaded as a generated PDF. The PDF includes cash in, cash out, game net, account status, current balances, and lifetime player totals.
+
+Player Analytics uses the same 7, 30, or 90 day ranges to show active players, rounds, observed win rate and return, daily wager/win trends, and a per-player activity ranking. These observed values describe completed virtual-credit play in the selected range.
 
 The current Phoenix game has a fixed theoretical 40% hit rate and 80% virtual-credit RTP. These long-run theoretical values do not guarantee profit for any day or week.
 
