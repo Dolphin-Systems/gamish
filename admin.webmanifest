@@ -1,0 +1,24 @@
+{
+  "background_color": "#0b0c0b",
+  "description": "Gamish777 player and money administration.",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "icons": [
+    { "purpose": "any", "sizes": "192x192", "src": "/icon-192.png", "type": "image/png" },
+    { "purpose": "any", "sizes": "512x512", "src": "/icon-512.png", "type": "image/png" },
+    { "purpose": "maskable", "sizes": "192x192", "src": "/icon-maskable-192.png", "type": "image/png" },
+    { "purpose": "maskable", "sizes": "512x512", "src": "/icon-maskable-512.png", "type": "image/png" }
+  ],
+  "id": "/admin",
+  "name": "Gamish777 Admin",
+  "orientation": "any",
+  "scope": "/admin",
+  "short_name": "G777 Admin",
+  "shortcuts": [
+    { "name": "Player analytics", "short_name": "Analytics", "url": "/admin#analytics" },
+    { "name": "Manage players", "short_name": "Players", "url": "/admin#players" },
+    { "name": "Money", "short_name": "Money", "url": "/admin#money" }
+  ],
+  "start_url": "/admin",
+  "theme_color": "#00c853"
+}

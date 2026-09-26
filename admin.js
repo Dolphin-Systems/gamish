@@ -6,6 +6,7 @@ const pageDescription = document.getElementById("page-description");
 let players = [];
 let report = null;
 let noticeTimer;
+let installPrompt;
 
 const pageCopy = {
   overview: ["Overview", "A quick look at today."],
@@ -278,5 +279,29 @@ document.getElementById("admin-logout").addEventListener("click", async () => {
   await request("/api/auth/logout", { method: "POST", body: "{}" }).catch(() => {});
   window.location.reload();
 });
+
+const installButton = document.getElementById("install-admin");
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.hidden = false;
+});
+installButton.addEventListener("click", async () => {
+  if (!installPrompt) return;
+  await installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = undefined;
+  installButton.hidden = true;
+});
+window.addEventListener("appinstalled", () => {
+  installPrompt = undefined;
+  installButton.hidden = true;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/admin-sw.js", { scope: "/admin", updateViaCache: "none" }).catch(() => {});
+  });
+}
 
 request("/api/auth/me").then(({ player }) => showDashboard(player)).catch(() => {});

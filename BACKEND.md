@@ -9,6 +9,7 @@ Gamish777 uses Vercel Functions and Neon Postgres for authenticated virtual-cred
 - Sessions use opaque, HTTP-only, SameSite cookies and expire after seven days.
 - Five failed login attempts within 15 minutes temporarily block that login/IP pair.
 - The admin dashboard at `/admin.html` has Overview, Players, Player Analytics, Money, and Reports pages.
+- The same dashboard is available at `/admin` and can be installed as a separate **Gamish777 Admin** PWA on supported desktop and mobile browsers.
 - Admins can create players, reset PINs, freeze access, soft-delete accounts, add available or bonus cash, record cash out, and reset a test balance to zero.
 - Deleted accounts cannot sign in, while their lifetime ledger history remains available for audit reports.
 
