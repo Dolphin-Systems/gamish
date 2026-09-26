@@ -11,13 +11,49 @@ const normalizeMessage = (row) => ({
   senderRole: row.sender_role,
   body: row.body,
   attachment: row.attachment_type ? {
-    url: `/api/message-image?id=${encodeURIComponent(row.id)}`,
+    url: `/api/messages?imageId=${encodeURIComponent(row.id)}`,
     type: row.attachment_type,
     name: row.attachment_name || "Chat image",
   } : null,
   createdAt: row.created_at,
   readAt: row.read_at,
 });
+
+const safeFilename = (value) => String(value || "chat-image.jpg").replace(/[^a-z0-9._-]+/gi, "_").slice(0, 80) || "chat-image.jpg";
+
+async function serveMessageImage({ req, res, sql, account, id }) {
+  const rows = account.role === "admin"
+    ? await sql`
+        SELECT attachment_data, attachment_type, attachment_name
+        FROM support_messages
+        WHERE id = ${id} AND attachment_data IS NOT NULL
+        LIMIT 1
+      `
+    : await sql`
+        SELECT attachment_data, attachment_type, attachment_name
+        FROM support_messages
+        WHERE id = ${id} AND player_id = ${account.id} AND attachment_data IS NOT NULL
+        LIMIT 1
+      `;
+  if (!rows.length) throw new HttpError(404, "Image not found", "image_not_found");
+  const image = rows[0];
+  const etag = `"chat-image-${id}"`;
+  if (req.headers["if-none-match"] === etag) {
+    res.statusCode = 304;
+    res.setHeader("Cache-Control", "private, no-cache");
+    res.setHeader("ETag", etag);
+    return res.end();
+  }
+  const bytes = Buffer.from(image.attachment_data, "base64");
+  res.statusCode = 200;
+  res.setHeader("Content-Type", image.attachment_type);
+  res.setHeader("Content-Length", bytes.length);
+  res.setHeader("Content-Disposition", `inline; filename="${safeFilename(image.attachment_name)}"`);
+  res.setHeader("Cache-Control", "private, no-cache");
+  res.setHeader("ETag", etag);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  return res.end(bytes);
+}
 
 export default async function handler(req, res) {
   try {
@@ -26,6 +62,11 @@ export default async function handler(req, res) {
     await ensureSchema();
     const sql = getSql();
     const url = new URL(req.url, "http://localhost");
+
+    const imageId = url.searchParams.get("imageId");
+    if (req.method === "GET" && imageId) {
+      return await serveMessageImage({ req, res, sql, account, id: imageId });
+    }
 
     if (req.method === "GET" && account.role === "admin" && !url.searchParams.get("playerId")) {
       const rows = await sql`
