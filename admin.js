@@ -83,6 +83,7 @@ const renderPlayers = () => {
   const matchingPlayers = players.filter((player) => player.role === "player" && player.loginId.toLowerCase().includes(query));
   const rows = matchingPlayers.filter((player) => player.status !== "deleted");
   const archived = matchingPlayers.filter((player) => player.status === "deleted");
+  document.getElementById("archived-accounts").hidden = archived.length === 0;
   document.getElementById("players-table").innerHTML = rows.map((player) => `
     <tr>
       <td data-label="Player"><div class="player-name"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>

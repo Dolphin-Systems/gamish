@@ -1,4 +1,4 @@
-const CACHE_NAME = "gamish777-admin-v3";
+const CACHE_NAME = "gamish777-admin-v4";
 const ADMIN_SHELL = [
   "/admin",
   "/admin.css",
