@@ -63,37 +63,39 @@
   const customAmount = document.getElementById("custom-amount");
   const amountLabel = document.getElementById("amount-label");
   const reviewButton = document.getElementById("review-reload");
-  let selectedAmount = 25;
+  let selectedAmount = 5;
+  let selectedBonus = 0;
 
-  const updateAmount = (amount, source) => {
+  const updateAmount = (amount, source, bonus = 0) => {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
     selectedAmount = Math.min(parsed, 9999);
+    selectedBonus = Math.max(0, Number(bonus) || 0);
     amountButtons.forEach((button) => button.classList.toggle("selected", button === source));
-    amountLabel.textContent = `$${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })} selected`;
-    reviewButton.querySelector("span").textContent = `Review $${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })} reload`;
+    const formattedAmount = selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    amountLabel.textContent = selectedBonus ? `$${formattedAmount} + $${selectedBonus} bonus` : `$${formattedAmount} selected`;
+    const credited = selectedAmount + selectedBonus;
+    reviewButton.querySelector("span").textContent = selectedBonus
+      ? `Continue with $${formattedAmount} • get $${credited.toLocaleString("en-US")}`
+      : `Continue with $${formattedAmount}`;
   };
 
   amountButtons.forEach((button) => button.addEventListener("click", () => {
     audio?.play("tap");
-    customAmount.value = "";
-    updateAmount(button.dataset.amount, button);
+    customAmount.value = button.dataset.amount;
+    updateAmount(button.dataset.amount, button, button.dataset.bonus);
   }));
 
-  customAmount.addEventListener("input", () => updateAmount(customAmount.value, null));
+  customAmount.addEventListener("input", () => updateAmount(customAmount.value, null, 0));
 
   const methodCards = [...document.querySelectorAll(".method-card")];
-  const methodDetail = document.getElementById("method-detail");
-  const methodHandle = document.getElementById("method-handle");
-  const detailKicker = document.querySelector(".detail-kicker");
+  const methodLabel = document.querySelector(".methods-panel .selection-label");
   let selectedMethod = methodCards[0];
 
   const selectMethod = (card) => {
     selectedMethod = card;
     methodCards.forEach((item) => item.classList.toggle("selected", item === card));
-    methodDetail.dataset.tone = card.dataset.tone;
-    methodHandle.textContent = card.dataset.handle;
-    detailKicker.textContent = `SEND WITH ${card.dataset.method.toUpperCase()}`;
+    methodLabel.textContent = `${card.dataset.method} selected`;
   };
 
   methodCards.forEach((card) => card.addEventListener("click", () => {
@@ -101,21 +103,10 @@
     selectMethod(card);
   }));
 
-  document.getElementById("copy-handle").addEventListener("click", async (event) => {
-    audio?.play("payment");
-    try {
-      await navigator.clipboard.writeText(selectedMethod.dataset.handle);
-      event.currentTarget.textContent = "Copied ✓";
-      showToast(`${selectedMethod.dataset.method} handle copied`);
-    } catch {
-      showToast(`Copy this handle: ${selectedMethod.dataset.handle}`);
-    }
-    window.setTimeout(() => { event.currentTarget.textContent = "Copy"; }, 1500);
-  });
-
   reviewButton.addEventListener("click", () => {
     audio?.play("payment");
-    showToast(`Demo ready: $${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })} via ${selectedMethod.dataset.method}`);
+    const bonusCopy = selectedBonus ? ` + $${selectedBonus} bonus` : "";
+    showToast(`Demo ready: $${selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 })}${bonusCopy} via ${selectedMethod.dataset.method}`);
   });
 
   const messageList = document.getElementById("message-list");
@@ -174,8 +165,8 @@
 
   const replyFor = (text) => {
     const message = text.toLowerCase();
-    if (message.includes("reload") || message.includes("wallet")) return "Open Payments below, choose an amount and method, then review the reload. This preview won’t submit real money.";
-    if (message.includes("game")) return "Four original game worlds are in the Game Zone now. The playable portals are the next phase of development.";
+    if (message.includes("reload") || message.includes("wallet")) return "Open the wallet icon above, enter an amount, choose a method, then continue. This preview won’t submit real money.";
+    if (message.includes("game")) return "Phoenix Ruby is playable now, with three more worlds waiting in the Game Zone.";
     if (message.includes("payment")) return "I can help. The redesigned Payments page shows the selected method and handle clearly before any next step.";
     return "Thanks — I’ve got your message. This demo keeps the conversation here so the support flow feels clear and familiar.";
   };

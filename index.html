@@ -31,71 +31,54 @@
     </section>
 
     <section id="payments-view" class="app-view page-view" aria-labelledby="payments-title" aria-hidden="true">
-      <div class="page-shell">
+      <div class="page-shell payment-shell">
         <button class="back-to-arcade view-trigger" type="button" data-view="arcade" aria-label="Back to Arcade">
           <span aria-hidden="true">‹</span> Arcade
         </button>
-        <header class="section-header">
-          <div>
-            <p class="eyebrow">EMBER CROWN WALLET</p>
-            <h1 id="payments-title">Payments</h1>
-            <p class="section-copy">A clean, guided reload experience. Choose an amount and your preferred method.</p>
-          </div>
-          <span class="secure-chip"><span></span> Demo mode</span>
-        </header>
+        <h1 id="payments-title" class="sr-only">Payments</h1>
 
-        <article class="balance-card">
-          <div class="balance-orbit orbit-one"></div>
-          <div class="balance-orbit orbit-two"></div>
-          <div class="balance-topline"><span>Available balance</span><span class="balance-gem">◆</span></div>
-          <strong class="balance-value">$0.00</strong>
-          <div class="balance-meta"><span>PLAYER ID</span><b>GM-777-EMBER</b></div>
+        <article class="wallet-summary">
+          <div><span>Available balance</span><strong>$0.00</strong></div>
+          <div class="player-id"><span>Player ID</span><strong>GM-777-EMBER</strong></div>
         </article>
 
-        <section class="surface payment-builder" aria-labelledby="reload-heading">
-          <div class="surface-heading">
-            <div><span class="step-number">1</span><h2 id="reload-heading">Choose amount</h2></div>
-            <span id="amount-label" class="selection-label">$25 selected</span>
+        <section class="surface amount-entry-panel" aria-labelledby="reload-heading">
+          <div class="amount-entry-heading">
+            <h2 id="reload-heading">Enter amount</h2>
+            <span id="amount-label" class="selection-label">$5 selected</span>
           </div>
+          <label class="cash-amount-entry" for="custom-amount"><span>$</span><input id="custom-amount" inputmode="decimal" aria-label="Custom amount" value="5" /></label>
           <div class="amount-grid" role="group" aria-label="Reload amount">
-            <button class="amount-chip selected" type="button" data-amount="25">$25</button>
-            <button class="amount-chip" type="button" data-amount="50">$50</button>
-            <button class="amount-chip" type="button" data-amount="100">$100</button>
-            <label class="custom-amount"><span>$</span><input id="custom-amount" inputmode="decimal" aria-label="Custom amount" placeholder="Other" /></label>
+            <button class="amount-chip selected" type="button" data-amount="5" data-bonus="0"><strong>$5</strong></button>
+            <button class="amount-chip" type="button" data-amount="10" data-bonus="0"><strong>$10</strong></button>
+            <button class="amount-chip" type="button" data-amount="15" data-bonus="0"><strong>$15</strong></button>
+            <button class="amount-chip featured" type="button" data-amount="20" data-bonus="5"><strong>$20</strong><small>+$5 bonus</small></button>
+            <button class="amount-chip featured" type="button" data-amount="50" data-bonus="10"><strong>$50</strong><small>+$10 bonus</small></button>
+            <button class="amount-chip featured" type="button" data-amount="100" data-bonus="25"><strong>$100</strong><small>+$25 bonus</small></button>
           </div>
         </section>
 
         <section class="surface methods-panel" aria-labelledby="method-heading">
           <div class="surface-heading">
-            <div><span class="step-number">2</span><h2 id="method-heading">Payment method</h2></div>
-            <span class="selection-label">Choose one</span>
+            <h2 id="method-heading">Pay with</h2>
+            <span class="selection-label">Cash App selected</span>
           </div>
           <div class="method-grid">
-            <button class="method-card selected" type="button" data-method="Cash App" data-handle="$Gamish777" data-tone="cash">
-              <span class="method-logo cash">$</span><span><b>Cash App</b><small>Fast and familiar</small></span><i>✓</i>
+            <button class="method-card selected" type="button" data-method="Cash App" data-handle="$Gamish777" aria-label="Cash App, $Gamish777">
+              <span class="method-logo cash">$</span><small>$Gamish777</small><i>✓</i>
             </button>
-            <button class="method-card" type="button" data-method="Chime" data-handle="$Gamish777" data-tone="chime">
-              <span class="method-logo chime">C</span><span><b>Chime</b><small>Pay anyone</small></span><i>✓</i>
+            <button class="method-card" type="button" data-method="Chime" data-handle="$Gamish777" aria-label="Chime, $Gamish777">
+              <span class="method-logo chime">C</span><small>$Gamish777</small><i>✓</i>
             </button>
-            <button class="method-card" type="button" data-method="PayPal" data-handle="paypal.me/Gamish777" data-tone="paypal">
-              <span class="method-logo paypal">P</span><span><b>PayPal</b><small>Secure transfer</small></span><i>✓</i>
+            <button class="method-card" type="button" data-method="PayPal" data-handle="paypal.me/Gamish777" aria-label="PayPal, paypal.me/Gamish777">
+              <span class="method-logo paypal">P</span><small>paypal.me/Gamish777</small><i>✓</i>
             </button>
-            <button class="method-card" type="button" data-method="Venmo" data-handle="@Gamish777" data-tone="venmo">
-              <span class="method-logo venmo">V</span><span><b>Venmo</b><small>Easy mobile pay</small></span><i>✓</i>
+            <button class="method-card" type="button" data-method="Venmo" data-handle="@Gamish777" aria-label="Venmo, @Gamish777">
+              <span class="method-logo venmo">V</span><small>@Gamish777</small><i>✓</i>
             </button>
-          </div>
-
-          <div id="method-detail" class="method-detail" data-tone="cash">
-            <div><span class="detail-kicker">SEND WITH CASH APP</span><strong id="method-handle">$Gamish777</strong></div>
-            <button id="copy-handle" class="copy-button" type="button">Copy</button>
           </div>
           <p class="demo-note"><span>i</span>This is a design preview. No real payment is submitted from this screen.</p>
-          <button id="review-reload" class="primary-action" type="button"><span>Review $25 reload</span><b>→</b></button>
-        </section>
-
-        <section class="surface activity-panel" aria-labelledby="activity-heading">
-          <div class="surface-heading"><div><span class="step-number quiet">3</span><h2 id="activity-heading">Recent activity</h2></div></div>
-          <div class="empty-state"><span>◇</span><div><b>No payments yet</b><p>Your reload receipts will appear here.</p></div></div>
+          <button id="review-reload" class="primary-action" type="button"><span>Continue with $5</span><b>→</b></button>
         </section>
       </div>
     </section>
@@ -105,14 +88,7 @@
         <button class="back-to-arcade view-trigger" type="button" data-view="arcade" aria-label="Back to Arcade">
           <span aria-hidden="true">‹</span> Arcade
         </button>
-        <header class="section-header messages-heading">
-          <div>
-            <p class="eyebrow">PRIVATE SUPPORT LOUNGE</p>
-            <h1 id="messages-title">Messages</h1>
-            <p class="section-copy">A simple place to talk with the Gamish777 support team.</p>
-          </div>
-          <span class="secure-chip online"><span></span> Online</span>
-        </header>
+        <h1 id="messages-title" class="sr-only">Messages</h1>
 
         <section class="support-card" aria-label="Assigned support agent">
           <div class="agent-avatar">M<span></span></div>

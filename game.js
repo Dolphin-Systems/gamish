@@ -18,7 +18,7 @@
   };
 
   const GAME_CARDS = [
-    { key: "phoenix", title: "PHOENIX RUBY", kicker: "PLAYABLE • 40% HIT RATE", accent: 0xff7a1a },
+    { key: "phoenix", title: "PHOENIX RUBY", kicker: "PLAYABLE • VIRTUAL CREDITS", accent: 0xff7a1a },
     { key: "dragon", title: "DRAGON VAULT", kicker: "CRYSTAL FORTUNES", accent: 0x39d8e6 },
     { key: "lion", title: "SOLAR FORTUNE", kicker: "ROYAL REWARDS", accent: 0xffc14f },
     { key: "fox", title: "MOON FOX", kicker: "CELESTIAL WINS", accent: 0xb783ff },
@@ -41,8 +41,6 @@
   };
 
   const makePhoenixOutcomeBag = () => {
-    // Per 30 spins at each bet: 18 losses, 8 × 1.5, 4 × 3.
-    // Hit rate = 12 / 30 = 40%; RTP = (8 × 1.5 + 4 × 3) / 30 = 80%.
     const bag = [...Array(18).fill(0), ...Array(8).fill(1.5), ...Array(4).fill(3)];
     for (let i = bag.length - 1; i > 0; i -= 1) {
       const j = Math.floor(secureRandom() * (i + 1));
@@ -98,11 +96,94 @@
     scene.add.rectangle(WIDTH / 2, HEIGHT - 50, WIDTH, 240, 0x07040b, 0.52);
   };
 
+  const traceCubic = (graphics, start, controlA, controlB, end, steps = 12) => {
+    for (let i = 1; i <= steps; i += 1) {
+      const t = i / steps;
+      const inverse = 1 - t;
+      const x = (inverse ** 3) * start.x + 3 * (inverse ** 2) * t * controlA.x + 3 * inverse * (t ** 2) * controlB.x + (t ** 3) * end.x;
+      const y = (inverse ** 3) * start.y + 3 * (inverse ** 2) * t * controlA.y + 3 * inverse * (t ** 2) * controlB.y + (t ** 3) * end.y;
+      graphics.lineTo(x, y);
+    }
+  };
+
+  const traceQuadratic = (graphics, start, control, end, steps = 8) => {
+    for (let i = 1; i <= steps; i += 1) {
+      const t = i / steps;
+      const inverse = 1 - t;
+      const x = (inverse ** 2) * start.x + 2 * inverse * t * control.x + (t ** 2) * end.x;
+      const y = (inverse ** 2) * start.y + 2 * inverse * t * control.y + (t ** 2) * end.y;
+      graphics.lineTo(x, y);
+    }
+  };
+
+  const addOrnatePanel = (scene, x, y, width, height, options = {}) => {
+    const fill = options.fill ?? COLORS.panel;
+    const fillAlpha = options.fillAlpha ?? 0.94;
+    const stroke = options.stroke ?? COLORS.gold;
+    const strokeAlpha = options.strokeAlpha ?? 0.58;
+    const lineWidth = options.lineWidth ?? 2;
+    const bend = Math.min(options.bend ?? 28, height * 0.25, width * 0.12);
+    const left = x - width / 2;
+    const right = x + width / 2;
+    const top = y - height / 2;
+    const bottom = y + height / 2;
+    const panel = scene.add.graphics();
+
+    const drawPath = () => {
+      panel.beginPath();
+      panel.moveTo(left + bend, top);
+      traceCubic(panel,
+        { x: left + bend, y: top }, { x: x - width * 0.2, y: top - 5 }, { x: x + width * 0.2, y: top + 5 }, { x: right - bend, y: top });
+      traceQuadratic(panel, { x: right - bend, y: top }, { x: right + 9, y: top + 7 }, { x: right, y: top + bend });
+      traceCubic(panel,
+        { x: right, y: top + bend }, { x: right - 5, y: y - height * 0.16 }, { x: right + 5, y: y + height * 0.16 }, { x: right, y: bottom - bend });
+      traceQuadratic(panel, { x: right, y: bottom - bend }, { x: right + 7, y: bottom - 7 }, { x: right - bend, y: bottom });
+      traceCubic(panel,
+        { x: right - bend, y: bottom }, { x: x + width * 0.2, y: bottom + 5 }, { x: x - width * 0.2, y: bottom - 5 }, { x: left + bend, y: bottom });
+      traceQuadratic(panel, { x: left + bend, y: bottom }, { x: left - 9, y: bottom - 7 }, { x: left, y: bottom - bend });
+      traceCubic(panel,
+        { x: left, y: bottom - bend }, { x: left + 5, y: y + height * 0.16 }, { x: left - 5, y: y - height * 0.16 }, { x: left, y: top + bend });
+      traceQuadratic(panel, { x: left, y: top + bend }, { x: left - 7, y: top + 7 }, { x: left + bend, y: top });
+      panel.closePath();
+    };
+
+    panel.fillStyle(fill, fillAlpha);
+    drawPath();
+    panel.fillPath();
+    panel.lineStyle(lineWidth, stroke, strokeAlpha);
+    drawPath();
+    panel.strokePath();
+
+    if (options.anchors !== false) {
+      const anchorSize = Math.max(4, Math.min(9, height * 0.055));
+      panel.fillStyle(stroke, Math.min(1, strokeAlpha + 0.18));
+      [[x, top], [x, bottom], [left, y], [right, y]].forEach(([anchorX, anchorY]) => {
+        panel.fillPoints([
+          new Phaser.Geom.Point(anchorX, anchorY - anchorSize),
+          new Phaser.Geom.Point(anchorX + anchorSize, anchorY),
+          new Phaser.Geom.Point(anchorX, anchorY + anchorSize),
+          new Phaser.Geom.Point(anchorX - anchorSize, anchorY),
+        ]);
+      });
+    }
+    return panel;
+  };
+
   const addRule = (scene, y, width = 430) => {
     const rule = scene.add.graphics();
     rule.lineStyle(2, COLORS.gold, 0.52);
-    rule.lineBetween(WIDTH / 2 - width / 2, y, WIDTH / 2 - 24, y);
-    rule.lineBetween(WIDTH / 2 + 24, y, WIDTH / 2 + width / 2, y);
+    rule.beginPath();
+    rule.moveTo(WIDTH / 2 - width / 2, y + 5);
+    traceCubic(rule,
+      { x: WIDTH / 2 - width / 2, y: y + 5 }, { x: WIDTH / 2 - width * 0.36, y: y - 13 },
+      { x: WIDTH / 2 - width * 0.18, y: y + 13 }, { x: WIDTH / 2 - 24, y });
+    rule.strokePath();
+    rule.beginPath();
+    rule.moveTo(WIDTH / 2 + 24, y);
+    traceCubic(rule,
+      { x: WIDTH / 2 + 24, y }, { x: WIDTH / 2 + width * 0.18, y: y + 13 },
+      { x: WIDTH / 2 + width * 0.36, y: y - 13 }, { x: WIDTH / 2 + width / 2, y: y + 5 });
+    rule.strokePath();
     rule.fillStyle(COLORS.ember, 0.95);
     rule.fillPoints([
       new Phaser.Geom.Point(WIDTH / 2, y - 8),
@@ -116,10 +197,13 @@
   const makeButton = (scene, x, y, width, height, label, onClick, options = {}) => {
     const accent = options.accent ?? COLORS.ember;
     const container = scene.add.container(x, y);
-    const halo = scene.add.rectangle(0, 0, width + 14, height + 14, accent, 0.18).setStrokeStyle(2, accent, 0.22);
-    const plate = scene.add.rectangle(0, 0, width, height, options.fill ?? 0x2b1014, 0.96)
-      .setStrokeStyle(2, options.stroke ?? COLORS.gold, 0.9);
-    const shine = scene.add.rectangle(0, -height * 0.28, width - 8, 2, 0xffffff, 0.18);
+    const halo = addOrnatePanel(scene, 0, 0, width + 14, height + 14, {
+      fill: accent, fillAlpha: 0.12, stroke: accent, strokeAlpha: 0.2, bend: height * 0.35,
+    });
+    const plate = addOrnatePanel(scene, 0, 0, width, height, {
+      fill: options.fill ?? 0x2b1014, fillAlpha: 0.96, stroke: options.stroke ?? COLORS.gold, strokeAlpha: 0.9, bend: height * 0.34,
+    });
+    const shine = scene.add.ellipse(0, -height * 0.28, width * 0.52, 4, 0xffffff, 0.16);
     const text = scene.add.text(0, 1, label, {
       fontFamily: BODY_FONT,
       fontSize: options.fontSize ?? "23px",
@@ -143,9 +227,9 @@
   };
 
   const addTopBar = (scene, options = {}) => {
-    const bar = scene.add.rectangle(WIDTH / 2, 52, WIDTH - 42, 76, COLORS.panel, 0.84)
-      .setStrokeStyle(1, COLORS.gold, 0.34);
-    bar.setOrigin(0.5);
+    const bar = addOrnatePanel(scene, WIDTH / 2, 58, WIDTH - 42, 82, {
+      fill: COLORS.panel, fillAlpha: 0.84, stroke: COLORS.gold, strokeAlpha: 0.34, bend: 28,
+    });
 
     if (options.back) {
       const back = scene.add.container(62, 52);
@@ -176,15 +260,21 @@
     }
 
     preload() {
-      const track = this.add.rectangle(WIDTH / 2, HEIGHT / 2 + 40, 420, 8, 0x4b2a38, 0.65);
-      const bar = this.add.rectangle(WIDTH / 2 - 210, HEIGHT / 2 + 40, 0, 8, COLORS.ember, 1).setOrigin(0, 0.5);
+      const track = addOrnatePanel(this, WIDTH / 2, HEIGHT / 2 + 40, 420, 18, {
+        fill: 0x4b2a38, fillAlpha: 0.65, stroke: COLORS.gold, strokeAlpha: 0.2, lineWidth: 1, bend: 7, anchors: false,
+      });
+      const bar = this.add.graphics();
       this.add.text(WIDTH / 2, HEIGHT / 2 - 20, "OPENING THE EMBER CROWN", {
         fontFamily: DISPLAY_FONT,
         fontSize: "22px",
         color: "#f3d59a",
         letterSpacing: 3,
       }).setOrigin(0.5);
-      this.load.on("progress", (value) => { bar.width = 420 * value; });
+      this.load.on("progress", (value) => {
+        bar.clear();
+        bar.fillStyle(COLORS.ember, 1);
+        bar.fillRoundedRect(WIDTH / 2 - 210, HEIGHT / 2 + 34, 420 * value, 12, 6);
+      });
       this.load.on("complete", () => { track.setAlpha(0.2); });
 
       this.load.image("landing-bg", "assets/ember-citadel.webp");
@@ -242,8 +332,9 @@
       }).setOrigin(0.5);
       addRule(this, 308, 500);
 
-      const jackpotPanel = this.add.rectangle(WIDTH / 2, 480, 590, 168, 0x09070c, 0.78)
-        .setStrokeStyle(2, COLORS.gold, 0.74);
+      const jackpotPanel = addOrnatePanel(this, WIDTH / 2, 480, 590, 168, {
+        fill: 0x09070c, fillAlpha: 0.78, stroke: COLORS.gold, strokeAlpha: 0.74, bend: 34,
+      });
       this.add.text(WIDTH / 2, 419, "GRAND JACKPOT", {
         fontFamily: BODY_FONT,
         fontSize: "18px",
@@ -384,10 +475,16 @@
 
     addGameCard(game, position, index) {
       const card = this.add.container(position.x, position.y);
-      const glow = this.add.rectangle(0, 0, 316, 350, game.accent, 0.12);
-      const panel = this.add.rectangle(0, 0, 300, 334, COLORS.panel, 0.94).setStrokeStyle(2, game.accent, 0.82);
+      const glow = addOrnatePanel(this, 0, 0, 316, 350, {
+        fill: game.accent, fillAlpha: 0.09, stroke: game.accent, strokeAlpha: 0.2, bend: 34,
+      });
+      const panel = addOrnatePanel(this, 0, 0, 300, 334, {
+        fill: COLORS.panel, fillAlpha: 0.94, stroke: game.accent, strokeAlpha: 0.82, bend: 32,
+      });
       const image = this.add.image(0, -42, game.key).setDisplaySize(266, 266);
-      const shade = this.add.rectangle(0, 80, 270, 82, 0x09060b, 0.9);
+      const shade = addOrnatePanel(this, 0, 80, 270, 82, {
+        fill: 0x09060b, fillAlpha: 0.9, stroke: game.accent, strokeAlpha: 0.12, bend: 22, anchors: false,
+      });
       const title = this.add.text(0, 76, game.title, {
         fontFamily: DISPLAY_FONT,
         fontSize: "18px",
@@ -404,7 +501,9 @@
         color: kickerColor,
         letterSpacing: 2,
       }).setOrigin(0.5);
-      const badge = this.add.rectangle(0, 144, 154, 28, game.accent, 0.18).setStrokeStyle(1, game.accent, 0.72);
+      const badge = addOrnatePanel(this, 0, 144, 154, 28, {
+        fill: game.accent, fillAlpha: 0.18, stroke: game.accent, strokeAlpha: 0.72, lineWidth: 1, bend: 10,
+      });
       const badgeText = this.add.text(0, 144, index === 0 ? "FEATURED" : "PREVIEW", {
         fontFamily: BODY_FONT,
         fontSize: "11px",
@@ -451,7 +550,9 @@
       const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
       const blocker = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x060309, 0.84).setInteractive();
       const glow = this.add.circle(0, -122, 178, game.accent, 0.14);
-      const panel = this.add.rectangle(0, 0, 596, 704, 0x110a15, 0.98).setStrokeStyle(3, game.accent, 0.88);
+      const panel = addOrnatePanel(this, 0, 0, 596, 704, {
+        fill: 0x110a15, fillAlpha: 0.98, stroke: game.accent, strokeAlpha: 0.88, lineWidth: 3, bend: 44,
+      });
       const art = this.add.image(0, -132, game.key).setDisplaySize(420, 420);
       const title = this.add.text(0, 120, game.title, {
         fontFamily: DISPLAY_FONT,
@@ -523,7 +624,7 @@
       this.reelTexts = [];
       this.betButtons = new Map();
       this.isSpinning = false;
-      setStatus("Phoenix Ruby. A virtual-credit slot with a 40 percent hit rate and 80 percent long-run return to player.");
+      setStatus("Phoenix Ruby. A curved, animated virtual-credit reel game with no cash value.");
       fitBackground(this, "phoenix");
       addVignette(this, 0.62);
       addAtmosphere(this, 24, [0xff6b22, 0xffc868, 0xd83445]);
@@ -552,11 +653,16 @@
       this.betText = this.addStatCard(384, 252, "BET", "10");
       this.winText = this.addStatCard(622, 252, "LAST WIN", "0");
 
-      const machineGlow = this.add.rectangle(WIDTH / 2, 595, 670, 578, COLORS.ember, 0.12);
-      this.machinePanel = this.add.rectangle(WIDTH / 2, 595, 646, 554, 0x100914, 0.97)
-        .setStrokeStyle(3, COLORS.gold, 0.84);
-      this.add.rectangle(WIDTH / 2, 344, 610, 38, 0x43130f, 0.94).setStrokeStyle(1, COLORS.ember, 0.8);
-      this.cycleText = this.add.text(WIDTH / 2, 344, "BET 10 CYCLE 0 / 30", {
+      const machineGlow = addOrnatePanel(this, WIDTH / 2, 595, 670, 578, {
+        fill: COLORS.ember, fillAlpha: 0.08, stroke: COLORS.ember, strokeAlpha: 0.2, bend: 52,
+      });
+      this.machinePanel = addOrnatePanel(this, WIDTH / 2, 595, 646, 554, {
+        fill: 0x100914, fillAlpha: 0.97, stroke: COLORS.gold, strokeAlpha: 0.84, lineWidth: 3, bend: 48,
+      });
+      addOrnatePanel(this, WIDTH / 2, 344, 610, 42, {
+        fill: 0x43130f, fillAlpha: 0.94, stroke: COLORS.ember, strokeAlpha: 0.8, lineWidth: 1, bend: 14,
+      });
+      this.cycleText = this.add.text(WIDTH / 2, 344, "EMBER SPIN  •  BET 10", {
         fontFamily: BODY_FONT,
         fontSize: "14px",
         fontStyle: "700",
@@ -568,8 +674,13 @@
       const reelYs = [438, 595, 752];
       reelYs.forEach((y, row) => {
         reelXs.forEach((x, column) => {
-          const cell = this.add.rectangle(x, y, 174, 138, 0x1b101d, 0.98)
-            .setStrokeStyle(2, 0x7e4b37, 0.82);
+          const cell = addOrnatePanel(this, x, y, 174, 138, {
+            fill: row === 1 ? 0x26101c : 0x1b101d,
+            fillAlpha: 0.98,
+            stroke: 0x9d5b3f,
+            strokeAlpha: row === 1 ? 0.92 : 0.68,
+            bend: 24,
+          });
           const symbol = PHOENIX_SYMBOLS[(row * 2 + column) % PHOENIX_SYMBOLS.length];
           const text = this.add.text(x, y - 3, symbol.mark, {
             fontFamily: DISPLAY_FONT,
@@ -580,11 +691,15 @@
             shadow: { offsetY: 6, color: "#000000", blur: 12, fill: true },
           }).setOrigin(0.5);
           this.reelTexts.push(text);
-          if (row === 1) cell.setFillStyle(0x26101c, 1);
         });
       });
 
-      this.winLine = this.add.rectangle(WIDTH / 2, 595, 600, 4, COLORS.gold, 0.26);
+      this.winLine = this.add.graphics();
+      this.winLine.lineStyle(4, COLORS.gold, 0.3);
+      this.winLine.beginPath();
+      this.winLine.moveTo(86, 600);
+      traceCubic(this.winLine, { x: 86, y: 600 }, { x: 220, y: 566 }, { x: 548, y: 624 }, { x: 682, y: 590 }, 24);
+      this.winLine.strokePath();
       this.resultText = this.add.text(WIDTH / 2, 860, "PRESS SPIN TO BEGIN", {
         fontFamily: BODY_FONT,
         fontSize: "17px",
@@ -618,36 +733,37 @@
         this.betButtons.set(amount, button);
       });
 
-      this.rulesPanel = this.add.rectangle(WIDTH / 2, 1238, 646, 252, 0x100914, 0.96)
-        .setStrokeStyle(2, COLORS.gold, 0.54);
-      this.add.text(86, 1142, "VISIBLE GAME MATH", {
+      this.rulesPanel = addOrnatePanel(this, WIDTH / 2, 1238, 646, 252, {
+        fill: 0x100914, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.54, bend: 38,
+      });
+      this.add.text(86, 1142, "EMBER MOMENTUM", {
         fontFamily: BODY_FONT,
         fontSize: "14px",
         fontStyle: "700",
         color: "#f0c675",
         letterSpacing: 4,
       });
-      this.add.text(86, 1184, "40% HIT RATE", {
+      this.add.text(86, 1184, "MATCH THE CENTER ARC", {
         fontFamily: DISPLAY_FONT,
         fontSize: "22px",
         color: "#fff0c0",
       });
-      this.add.text(86, 1220, "12 wins in every shuffled 30-spin cycle", {
+      this.add.text(86, 1220, "Ruby line pays 1.5×  •  Golden 7 line pays 3×", {
         fontFamily: BODY_FONT,
         fontSize: "15px",
         color: "#cdb7bd",
       });
-      this.add.text(86, 1270, "80% RTP", {
+      this.add.text(86, 1270, "KEEP THE FLAME MOVING", {
         fontFamily: DISPLAY_FONT,
         fontSize: "22px",
         color: "#fff0c0",
       });
-      this.add.text(86, 1306, "8 wins pay 1.5×  •  4 wins pay 3×  •  18 pay 0×", {
+      this.add.text(86, 1306, "Every spin reshuffles the virtual-credit ember deck", {
         fontFamily: BODY_FONT,
         fontSize: "15px",
         color: "#cdb7bd",
       });
-      this.sessionText = this.add.text(682, 1160, "SESSION\n0 SPINS\n0% RETURN", {
+      this.sessionText = this.add.text(682, 1160, "SESSION\n0 SPINS\n0 CR WON", {
         fontFamily: BODY_FONT,
         fontSize: "15px",
         fontStyle: "700",
@@ -669,7 +785,9 @@
     }
 
     addStatCard(x, y, label, value) {
-      this.add.rectangle(x, y, 210, 96, 0x100914, 0.94).setStrokeStyle(2, 0x89523f, 0.75);
+      addOrnatePanel(this, x, y, 210, 96, {
+        fill: 0x100914, fillAlpha: 0.94, stroke: 0x9d5f43, strokeAlpha: 0.75, bend: 22,
+      });
       this.add.text(x, y - 23, label, {
         fontFamily: BODY_FONT,
         fontSize: "12px",
@@ -735,7 +853,7 @@
       this.spinCount += 1;
       this.lastWin = 0;
       const outcome = this.getOutcome();
-      this.cycleText.setText(`BET ${this.bet} CYCLE ${outcome.position} / 30`);
+      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
       this.resultText.setText("THE EMBERS ARE TURNING…").setColor("#ffd58c");
       this.spinButton.disableInteractive().setAlpha(0.72);
       this.refreshHud();
@@ -791,9 +909,7 @@
         button.setAlpha(value === amount ? 1 : 0.7);
         this.tweens.add({ targets: button, scale: value === amount ? 1.045 : 1, duration: 140 });
       });
-      const bag = this.outcomeBags.get(amount);
-      const position = bag ? 30 - bag.length : 0;
-      this.cycleText.setText(`BET ${amount} CYCLE ${position} / 30`);
+      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${amount}`);
       this.refreshHud();
       setStatus(`Phoenix Ruby bet set to ${amount} virtual credits.`);
     }
@@ -803,13 +919,12 @@
       this.betText.setText(this.bet.toLocaleString("en-US"));
       this.winText.setText(this.lastWin.toLocaleString("en-US"));
       this.spinButton.getAt(3).setText(`SPIN  •  ${this.bet} CREDITS`);
-      const sessionReturn = this.totalWagered ? (this.totalReturned / this.totalWagered) * 100 : 0;
-      this.sessionText.setText(`SESSION\n${this.spinCount} SPIN${this.spinCount === 1 ? "" : "S"}\n${sessionReturn.toFixed(1)}% RETURN`);
+      this.sessionText.setText(`SESSION\n${this.spinCount} SPIN${this.spinCount === 1 ? "" : "S"}\n${this.totalReturned.toLocaleString("en-US")} CR WON`);
     }
 
     highlightRules() {
       this.tweens.add({ targets: this.rulesPanel, alpha: 0.45, duration: 160, yoyo: true, repeat: 2 });
-      setStatus("Visible game math: 12 wins per 30-spin bet cycle and an 80 percent long-run return to player.");
+      setStatus("Match three Ruby symbols or three Golden 7 symbols across the curved center line.");
     }
 
     resetDemo() {
@@ -821,7 +936,7 @@
       this.totalReturned = 0;
       this.spinCount = 0;
       this.outcomeBags.clear();
-      this.cycleText.setText(`BET ${this.bet} CYCLE 0 / 30`);
+      this.cycleText.setText(`EMBER SPIN  •  BET ${this.bet}`);
       this.resultText.setText("DEMO CREDITS RESTORED").setColor("#7af0b1");
       this.refreshHud();
       setStatus("Phoenix Ruby demo reset to 1,000 virtual credits. All shuffled outcome cycles were restarted.");
