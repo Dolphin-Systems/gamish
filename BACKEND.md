@@ -21,6 +21,8 @@ Reports can be filtered to 7, 30, or 90 days and downloaded as a generated PDF. 
 
 Player Analytics uses the same 7, 30, or 90 day ranges to show active players, rounds, observed win rate and return, daily wager/win trends, and a per-player activity ranking. These observed values describe completed virtual-credit play in the selected range.
 
+Player support messages are stored in Postgres. Players can write from the Messages page, while admins can select a player and reply from the chat button in the dashboard header.
+
 The current Phoenix game has a fixed theoretical 40% hit rate and 80% virtual-credit RTP. These long-run theoretical values do not guarantee profit for any day or week.
 
 ## Payment notification contract

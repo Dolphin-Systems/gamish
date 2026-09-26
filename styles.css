@@ -720,10 +720,10 @@ button {
 
 .quick-replies {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   padding: 12px 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 .quick-replies::-webkit-scrollbar { display: none; }
 .quick-replies button {

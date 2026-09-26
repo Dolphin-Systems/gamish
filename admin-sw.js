@@ -1,13 +1,15 @@
-const CACHE_NAME = "gamish777-admin-v2";
+const CACHE_NAME = "gamish777-admin-v3";
 const ADMIN_SHELL = [
   "/admin",
   "/admin.css",
   "/admin.js",
   "/admin.webmanifest",
-  "/favicon-32.png",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/apple-touch-icon.png",
+  "/admin-favicon-32.png",
+  "/admin-icon-192.png",
+  "/admin-icon-512.png",
+  "/admin-icon-maskable-192.png",
+  "/admin-icon-maskable-512.png",
+  "/admin-apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {

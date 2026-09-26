@@ -7,6 +7,7 @@ let players = [];
 let report = null;
 let noticeTimer;
 let installPrompt;
+let chatTimer;
 
 const pageCopy = {
   overview: ["Overview", "A quick look at today."],
@@ -34,6 +35,7 @@ const money = (cents) => new Intl.NumberFormat("en-US", { style: "currency", cur
 const dollarsToCents = (value) => Math.round(Number(value) * 100);
 const date = (value) => value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never";
 const percent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
+const time = (value) => new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 const setNotice = (message, error = false) => {
   clearTimeout(noticeTimer);
@@ -81,12 +83,12 @@ const renderPlayers = () => {
   const rows = players.filter((player) => player.role === "player" && player.loginId.toLowerCase().includes(query));
   document.getElementById("players-table").innerHTML = rows.map((player) => `
     <tr>
-      <td><div class="player-name"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>
-      <td>${statusPill(player.status)}</td>
-      <td class="money">${money(player.totalCredits)}</td>
-      <td class="money">${money(player.lifetimeCashInCents)}</td>
-      <td class="money">${money(player.lifetimeCashOutCents)}</td>
-      <td>${playerActions(player)}</td>
+      <td data-label="Player"><div class="player-name"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>
+      <td data-label="Status">${statusPill(player.status)}</td>
+      <td data-label="Available" class="money">${money(player.totalCredits)}</td>
+      <td data-label="Lifetime in" class="money">${money(player.lifetimeCashInCents)}</td>
+      <td data-label="Lifetime out" class="money">${money(player.lifetimeCashOutCents)}</td>
+      <td data-label="Manage">${playerActions(player)}</td>
     </tr>
   `).join("") || "<tr><td colspan='6'>No matching players.</td></tr>";
 
@@ -98,7 +100,7 @@ const renderPlayers = () => {
   }
 
   document.getElementById("cashflow-table").innerHTML = rows.map((player) => `
-    <tr><td><b>${player.loginId}</b></td><td class="money">${money(player.totalCredits)}</td><td class="money">${money(player.lifetimeCashInCents)}</td><td class="money">${money(player.lifetimeCashOutCents)}</td><td class="money">${money(player.lifetimeCashInCents - player.lifetimeCashOutCents)}</td></tr>
+    <tr><td data-label="Player"><b>${player.loginId}</b></td><td data-label="Available" class="money">${money(player.totalCredits)}</td><td data-label="Cash in" class="money">${money(player.lifetimeCashInCents)}</td><td data-label="Cash out" class="money">${money(player.lifetimeCashOutCents)}</td><td data-label="Net cash" class="money">${money(player.lifetimeCashInCents - player.lifetimeCashOutCents)}</td></tr>
   `).join("") || "<tr><td colspan='5'>No player cash flow yet.</td></tr>";
   renderRecentPlayers();
 };
@@ -115,11 +117,11 @@ const renderReport = () => {
   document.getElementById("daily-report-title").textContent = `Last ${report.days} days`;
 
   document.getElementById("daily-table").innerHTML = report.daily.map((row) => `
-    <tr><td>${new Date(row.date).toLocaleDateString("en-US", { timeZone: "UTC" })}</td><td class="money">${money(row.cashInCents)}</td><td class="money">${money(row.cashOutCents)}</td><td class="money">${money(row.wagered)}</td><td class="money">${money(row.won)}</td><td class="money">${money(row.gameNet)}</td></tr>
+    <tr><td data-label="Date">${new Date(row.date).toLocaleDateString("en-US", { timeZone: "UTC" })}</td><td data-label="Cash in" class="money">${money(row.cashInCents)}</td><td data-label="Cash out" class="money">${money(row.cashOutCents)}</td><td data-label="Wagered" class="money">${money(row.wagered)}</td><td data-label="Won" class="money">${money(row.won)}</td><td data-label="Game net" class="money">${money(row.gameNet)}</td></tr>
   `).join("") || "<tr><td colspan='6'>No activity in this range.</td></tr>";
 
   document.getElementById("player-report-table").innerHTML = report.players.map((player) => `
-    <tr><td><b>${player.loginId}</b></td><td>${statusPill(player.status)}</td><td class="money">${money(player.paidInCents)}</td><td class="money">${money(player.paidOutCents)}</td><td class="money">${money(player.wagered)}</td><td class="money">${money(player.won)}</td><td class="money">${money(player.totalCredits)}</td></tr>
+    <tr><td data-label="Player"><b>${player.loginId}</b></td><td data-label="Status">${statusPill(player.status)}</td><td data-label="Cash in" class="money">${money(player.paidInCents)}</td><td data-label="Cash out" class="money">${money(player.paidOutCents)}</td><td data-label="Wagered" class="money">${money(player.wagered)}</td><td data-label="Won" class="money">${money(player.won)}</td><td data-label="Available" class="money">${money(player.totalCredits)}</td></tr>
   `).join("") || "<tr><td colspan='7'>No player activity yet.</td></tr>";
 
   document.getElementById("analytics-active-players").textContent = report.analytics.activePlayers;
@@ -131,7 +133,7 @@ const renderReport = () => {
   document.getElementById("analytics-return-money").textContent = `${money(report.analytics.won)} won from ${money(report.analytics.wagered)}`;
   document.getElementById("player-analytics-title").textContent = `Last ${report.days} days`;
 
-  const activityRows = report.daily.filter((row) => row.rounds > 0).reverse();
+  const activityRows = report.daily.filter((row) => row.rounds > 0).slice(0, 14).reverse();
   const activityMax = Math.max(1, ...activityRows.flatMap((row) => [row.wagered, row.won]));
   document.getElementById("player-activity-chart").innerHTML = activityRows.map((row) => `
     <div class="activity-day" title="${money(row.wagered)} wagered · ${money(row.won)} won">
@@ -145,9 +147,87 @@ const renderReport = () => {
     player.rounds || (player.status !== "deleted" && (player.cashInCents || player.cashOutCents))
   );
   document.getElementById("player-analytics-table").innerHTML = rankedPlayers.map((player, index) => `
-    <tr><td><div class="ranked-player"><span>${index + 1}</span><div><b>${player.loginId}</b><small>Last played ${date(player.lastPlayedAt)}</small></div></div></td><td>${statusPill(player.status)}</td><td class="money">${money(player.cashInCents)}</td><td class="money">${money(player.cashOutCents)}</td><td class="money">${money(player.wagered)}</td><td class="money">${money(player.won)}</td><td class="money">${money(player.gameNet)}</td><td>${player.rounds.toLocaleString("en-US")}</td><td>${percent(player.winRate)}</td><td>${percent(player.returnRate)}</td></tr>
+    <tr><td data-label="Player"><div class="ranked-player"><span>${index + 1}</span><div><b>${player.loginId}</b><small>Last played ${date(player.lastPlayedAt)}</small></div></div></td><td data-label="Status">${statusPill(player.status)}</td><td data-label="Cash in" class="money">${money(player.cashInCents)}</td><td data-label="Cash out" class="money">${money(player.cashOutCents)}</td><td data-label="Wagered" class="money">${money(player.wagered)}</td><td data-label="Won" class="money">${money(player.won)}</td><td data-label="Game net" class="money">${money(player.gameNet)}</td><td data-label="Rounds">${player.rounds.toLocaleString("en-US")}</td><td data-label="Win rate">${percent(player.winRate)}</td><td data-label="Return">${percent(player.returnRate)}</td></tr>
   `).join("") || "<tr><td colspan='10'>No player activity in this range.</td></tr>";
 };
+
+const chatPanel = document.getElementById("admin-chat-panel");
+const chatBackdrop = document.getElementById("admin-chat-backdrop");
+const chatPlayer = document.getElementById("admin-chat-player");
+const chatMessages = document.getElementById("admin-chat-messages");
+const chatBadge = document.getElementById("admin-chat-badge");
+
+const renderChat = (messages) => {
+  chatMessages.replaceChildren();
+  if (!messages.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-chat-empty";
+    empty.textContent = "No messages yet. Start the conversation.";
+    chatMessages.append(empty);
+    return;
+  }
+  for (const message of messages) {
+    const row = document.createElement("div");
+    const content = document.createElement("div");
+    const bubble = document.createElement("p");
+    const stamp = document.createElement("time");
+    row.className = `admin-chat-message ${message.senderRole === "admin" ? "admin" : "player"}`;
+    bubble.textContent = message.body;
+    stamp.textContent = time(message.createdAt);
+    content.append(bubble, stamp);
+    row.append(content);
+    chatMessages.append(row);
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+};
+
+const loadAdminChat = async () => {
+  if (!chatPlayer.value) return renderChat([]);
+  const data = await request(`/api/messages?playerId=${encodeURIComponent(chatPlayer.value)}`);
+  renderChat(data.messages);
+};
+
+const refreshChatInbox = async () => {
+  const data = await request("/api/messages");
+  const selected = chatPlayer.value;
+  chatPlayer.replaceChildren(...data.conversations.map((conversation) =>
+    new Option(`${conversation.loginId}${conversation.unreadCount ? ` · ${conversation.unreadCount} new` : ""}`, conversation.playerId)
+  ));
+  if (data.conversations.some((conversation) => conversation.playerId === selected)) chatPlayer.value = selected;
+  const unread = data.conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
+  chatBadge.hidden = unread === 0;
+};
+
+const closeAdminChat = () => {
+  chatPanel.hidden = true;
+  chatBackdrop.hidden = true;
+  clearInterval(chatTimer);
+};
+
+document.getElementById("admin-chat-toggle").addEventListener("click", async () => {
+  chatPanel.hidden = false;
+  chatBackdrop.hidden = false;
+  try {
+    await refreshChatInbox();
+    await loadAdminChat();
+    chatTimer = setInterval(() => loadAdminChat().catch(() => {}), 8000);
+  } catch (error) { setNotice(error.message, true); }
+});
+document.getElementById("admin-chat-close").addEventListener("click", closeAdminChat);
+chatBackdrop.addEventListener("click", closeAdminChat);
+chatPlayer.addEventListener("change", () => loadAdminChat().catch((error) => setNotice(error.message, true)));
+document.getElementById("admin-chat-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const input = document.getElementById("admin-chat-input");
+  const button = event.currentTarget.querySelector("button");
+  button.disabled = true;
+  try {
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: chatPlayer.value, message: input.value }) });
+    input.value = "";
+    await loadAdminChat();
+  } catch (error) { setNotice(error.message, true); }
+  finally { button.disabled = false; }
+});
 
 const refresh = async () => {
   const days = Number(document.getElementById("report-range").value);
@@ -156,6 +236,7 @@ const refresh = async () => {
   report = reportData;
   renderPlayers();
   renderReport();
+  refreshChatInbox().catch(() => {});
 };
 
 const showDashboard = async (admin) => {

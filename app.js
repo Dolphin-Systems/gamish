@@ -217,89 +217,73 @@
   const messageForm = document.getElementById("message-form");
   const messageInput = document.getElementById("message-input");
 
-  const timeLabel = () => new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(new Date());
-
-  const addUserMessage = (text) => {
-    const row = document.createElement("div");
-    row.className = "message-row user-message";
-    const content = document.createElement("div");
-    const bubble = document.createElement("div");
-    const time = document.createElement("time");
-    bubble.className = "message-bubble";
-    bubble.textContent = text;
-    time.textContent = timeLabel();
-    content.append(bubble, time);
-    row.append(content);
-    messageList.append(row);
-    messageList.scrollTo({ top: messageList.scrollHeight, behavior: "smooth" });
+  const renderMessages = (messages) => {
+    messageList.replaceChildren();
+    if (!messages.length) {
+      const empty = document.createElement("p");
+      empty.className = "message-empty";
+      empty.textContent = "No messages yet. Say hello to the admin team.";
+      messageList.append(empty);
+      return;
+    }
+    for (const message of messages) {
+      const own = message.senderId === window.GamishAccount.player?.id;
+      const row = document.createElement("div");
+      const content = document.createElement("div");
+      const bubble = document.createElement("div");
+      const stamp = document.createElement("time");
+      row.className = `message-row ${own ? "user-message" : "agent-message"}`;
+      if (!own) {
+        const avatar = document.createElement("div");
+        avatar.className = "mini-avatar";
+        avatar.textContent = "G";
+        row.append(avatar);
+      }
+      bubble.className = "message-bubble";
+      bubble.textContent = message.body;
+      stamp.textContent = new Date(message.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      content.append(bubble, stamp);
+      row.append(content);
+      messageList.append(row);
+    }
+    messageList.scrollTop = messageList.scrollHeight;
   };
 
-  const addAgentMessage = (text) => {
-    const row = document.createElement("div");
-    row.className = "message-row agent-message";
-    const avatar = document.createElement("div");
-    const content = document.createElement("div");
-    const bubble = document.createElement("div");
-    const time = document.createElement("time");
-    avatar.className = "mini-avatar";
-    avatar.textContent = "M";
-    bubble.className = "message-bubble";
-    bubble.textContent = text;
-    time.textContent = timeLabel();
-    content.append(bubble, time);
-    row.append(avatar, content);
-    messageList.append(row);
-    messageList.scrollTo({ top: messageList.scrollHeight, behavior: "smooth" });
+  const loadMessages = async () => {
+    if (!window.GamishAccount.player) return;
+    const data = await request("/api/messages");
+    renderMessages(data.messages);
   };
 
-  const addTyping = () => {
-    const row = document.createElement("div");
-    row.className = "message-row agent-message typing-row";
-    const avatar = document.createElement("div");
-    const bubble = document.createElement("div");
-    avatar.className = "mini-avatar";
-    avatar.textContent = "M";
-    bubble.className = "message-bubble typing-bubble";
-    bubble.innerHTML = "<i></i><i></i><i></i>";
-    row.append(avatar, bubble);
-    messageList.append(row);
-    messageList.scrollTo({ top: messageList.scrollHeight, behavior: "smooth" });
-    return row;
-  };
-
-  const replyFor = (text) => {
-    const message = text.toLowerCase();
-    if (message.includes("reload") || message.includes("wallet")) return "Open the wallet icon above, enter an amount, choose a method, then continue. This preview won’t submit real money.";
-    if (message.includes("game")) return "Phoenix Ruby is playable now, with three more worlds waiting in the Game Zone.";
-    if (message.includes("payment")) return "I can help. The redesigned Payments page shows the selected method and handle clearly before any next step.";
-    return "Thanks — I’ve got your message. This demo keeps the conversation here so the support flow feels clear and familiar.";
-  };
-
-  const sendMessage = (text) => {
+  const sendMessage = async (text) => {
     const clean = text.trim();
     if (!clean) return;
     audio?.play("message");
-    addUserMessage(clean);
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ message: clean }) });
     messageInput.value = "";
-    const typing = addTyping();
-    window.setTimeout(() => {
-      typing.remove();
-      addAgentMessage(replyFor(clean));
-      audio?.play("reply");
-    }, 900);
+    await loadMessages();
   };
 
-  messageForm.addEventListener("submit", (event) => {
+  messageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    sendMessage(messageInput.value);
+    const button = messageForm.querySelector(".send-button");
+    button.disabled = true;
+    try { await sendMessage(messageInput.value); }
+    catch (error) { showToast(error.message); }
+    finally { button.disabled = false; }
   });
 
   document.querySelectorAll("[data-reply]").forEach((button) => {
-    button.addEventListener("click", () => sendMessage(button.dataset.reply));
+    button.addEventListener("click", () => sendMessage(button.dataset.reply).catch((error) => showToast(error.message)));
   });
 
   document.querySelector(".attach-button").addEventListener("click", () => {
     audio?.play("tap");
     showToast("Screenshot attachments are available in the connected support build");
   });
+
+  document.querySelector('[data-view="messages"]').addEventListener("click", () => loadMessages().catch((error) => showToast(error.message)));
+  window.setInterval(() => {
+    if (document.getElementById("messages-view").classList.contains("active")) loadMessages().catch(() => {});
+  }, 10000);
 })();
