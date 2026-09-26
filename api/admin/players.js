@@ -157,11 +157,12 @@ export default async function handler(req, res) {
       }
       const adminAccounts = await sql`SELECT id, login_id FROM players WHERE role = 'admin' ORDER BY login_id ASC`;
 
-      const [paymentEvents, messages, rounds, ledger, sessions, loginAttempts, playerAccounts] = await sql.transaction([
+      const [paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, playerAccounts] = await sql.transaction([
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
         sql`DELETE FROM game_rounds RETURNING id`,
         sql`DELETE FROM ledger_entries RETURNING id`,
+        sql`DELETE FROM payment_methods RETURNING id`,
         sql`DELETE FROM sessions RETURNING id`,
         sql`DELETE FROM login_attempts RETURNING attempt_key`,
         sql`DELETE FROM players WHERE role = 'player' RETURNING id`,
@@ -174,6 +175,7 @@ export default async function handler(req, res) {
           messages: messages.length,
           gameRounds: rounds.length,
           ledgerEntries: ledger.length,
+          paymentMethods: paymentMethods.length,
           sessions: sessions.length,
           loginAttempts: loginAttempts.length,
           playerAccounts: playerAccounts.length,

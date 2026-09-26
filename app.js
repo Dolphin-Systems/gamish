@@ -71,12 +71,9 @@
         body: JSON.stringify({
           loginId: document.getElementById("login-id").value,
           pin: document.getElementById("login-pin").value,
+          portal: "player",
         }),
       });
-      if (data.player.role === "admin") {
-        window.location.assign("/admin.html");
-        return;
-      }
       applyPlayer(data.player);
       loginForm.reset();
     } catch (error) {
@@ -95,9 +92,14 @@
     }
   });
 
-  request("/api/auth/me").then(({ player }) => {
-    if (player.role === "admin") window.location.assign("/admin.html");
-    else applyPlayer(player);
+  request("/api/auth/me").then(async ({ player }) => {
+    if (player.role === "admin") {
+      await request("/api/auth/logout", { method: "POST", body: "{}" }).catch(() => {});
+      lockApp();
+      loginError.textContent = "Admins sign in at /admin.html";
+      return;
+    }
+    applyPlayer(player);
   }).catch(lockApp);
 
   const views = new Map([
@@ -135,7 +137,9 @@
       else item.removeAttribute("aria-current");
     });
     if (name === "messages") document.querySelector(".unread-dot")?.remove();
-    if (name === "payments" && window.GamishAccount.player) refreshWallet().catch(() => {});
+    if (name === "payments" && window.GamishAccount.player) {
+      Promise.all([refreshWallet(), loadPaymentMethods()]).catch((error) => showToast(error.message));
+    }
   };
 
   viewTriggers.forEach((item) => item.addEventListener("click", () => {
@@ -185,9 +189,10 @@
 
   customAmount.addEventListener("input", () => updateAmount(customAmount.value, null, 0));
 
-  const methodCards = [...document.querySelectorAll(".method-card")];
+  const methodGrid = document.getElementById("payment-method-grid");
   const methodLabel = document.querySelector(".methods-panel .selection-label");
-  let selectedMethod = methodCards[0];
+  let methodCards = [];
+  let selectedMethod = null;
 
   const selectMethod = (card) => {
     selectedMethod = card;
@@ -195,10 +200,58 @@
     methodLabel.textContent = `${card.dataset.method} selected`;
   };
 
-  methodCards.forEach((card) => card.addEventListener("click", () => {
-    audio?.play("tap");
-    selectMethod(card);
-  }));
+  const paymentTone = (name) => {
+    const normalized = name.toLowerCase();
+    if (normalized.includes("cash")) return "cash";
+    if (normalized.includes("chime")) return "chime";
+    if (normalized.includes("paypal")) return "paypal";
+    if (normalized.includes("venmo")) return "venmo";
+    return "custom";
+  };
+
+  const renderPaymentMethods = (methods) => {
+    methodGrid.replaceChildren();
+    selectedMethod = null;
+    if (!methods.length) {
+      const empty = document.createElement("p");
+      empty.className = "payment-method-empty";
+      empty.textContent = "Payment methods are being updated. Please check again shortly.";
+      methodGrid.append(empty);
+      methodLabel.textContent = "No methods available";
+      methodCards = [];
+      return;
+    }
+    methodCards = methods.map((method) => {
+      const card = document.createElement("button");
+      const logo = document.createElement("span");
+      const name = document.createElement("b");
+      const paymentId = document.createElement("small");
+      const check = document.createElement("i");
+      card.className = "method-card";
+      card.type = "button";
+      card.dataset.method = method.methodName;
+      card.dataset.handle = method.paymentId;
+      card.setAttribute("aria-label", `${method.methodName}, ${method.paymentId}`);
+      logo.className = `method-logo ${paymentTone(method.methodName)}`;
+      logo.textContent = method.methodName.charAt(0).toUpperCase();
+      name.textContent = method.methodName;
+      paymentId.textContent = method.paymentId;
+      check.textContent = "✓";
+      card.append(logo, name, paymentId, check);
+      card.addEventListener("click", () => {
+        audio?.play("tap");
+        selectMethod(card);
+      });
+      methodGrid.append(card);
+      return card;
+    });
+    selectMethod(methodCards[0]);
+  };
+
+  const loadPaymentMethods = async () => {
+    const data = await request("/api/payment-methods");
+    renderPaymentMethods(data.methods);
+  };
 
   reviewButton.addEventListener("click", async () => {
     audio?.play("payment");

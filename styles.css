@@ -540,6 +540,8 @@ button {
 .method-logo.chime { background: #61d3b0; color: #092a22; }
 .method-logo.paypal { background: #1266d4; }
 .method-logo.venmo { background: #3284d7; }
+.method-logo.custom { background: linear-gradient(145deg, #8f3f9d, #552069); }
+.payment-method-empty { grid-column: 1 / -1; margin: 8px 0 0; padding: 22px; border: 1px dashed rgba(255,255,255,.12); border-radius: 18px; color: #bba9b4; text-align: center; font-size: 12px; line-height: 1.5; }
 
 .method-detail {
   display: flex;
@@ -918,6 +920,7 @@ button {
   overflow-wrap: anywhere;
   white-space: normal;
 }
+.method-card b { max-width: 100%; overflow: hidden; color: #fff2e9; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .method-card i { position: absolute; top: 8px; right: 8px; }
 .method-logo { width: 46px; height: 46px; border-radius: 16px 7px 16px 16px; font-size: 17px; }
 .demo-note { justify-content: center; margin-top: 18px; text-align: center; }

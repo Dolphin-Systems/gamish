@@ -169,22 +169,49 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .ranked-player > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 10px; background: var(--green-soft); color: var(--green-dark); font-size: 11px; font-weight: 900; }
 .ranked-player small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
 
-.chat-backdrop { position: fixed; inset: 0; z-index: 39; border: 0; background: rgba(0,0,0,.34); backdrop-filter: blur(3px); }
-.admin-chat-panel { position: fixed; inset: 0 0 0 auto; z-index: 40; display: flex; flex-direction: column; width: min(430px, 100%); padding: max(22px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom)); background: #fff; box-shadow: -24px 0 70px rgba(0,0,0,.2); }
-.chat-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.chat-panel-header .eyebrow { margin-top: 0; }
+.side-panel-backdrop { position: fixed; inset: 0; z-index: 39; border: 0; background: rgba(4, 7, 5, .48); backdrop-filter: blur(5px); }
+.admin-side-panel { position: fixed; inset: 10px 10px 10px auto; z-index: 40; display: flex; flex-direction: column; width: min(520px, calc(100% - 20px)); padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid var(--line); border-radius: 30px; background: #fff; box-shadow: -24px 0 80px rgba(0,0,0,.24); }
+.side-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.side-panel-title { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.side-panel-title .eyebrow { margin-top: 0; }
+.side-panel-title h2 { font-size: 26px; }
+.side-panel-mark { display: grid; flex: none; place-items: center; width: 46px; height: 46px; border-radius: 16px; background: var(--green); color: #06150b; }
+.side-panel-mark svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.side-panel-copy { margin: 18px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
 .chat-player-field { margin-top: 22px; }
-.admin-chat-messages { flex: 1; min-height: 220px; margin: 16px 0; padding: 10px 3px; overflow-y: auto; }
+.admin-chat-messages { flex: 1; min-height: 220px; margin: 14px 0; padding: 14px; overflow-y: auto; border-radius: 22px; background: var(--surface); }
 .admin-chat-message { display: flex; margin: 10px 0; }
 .admin-chat-message.admin { justify-content: flex-end; }
-.admin-chat-message > div { max-width: 82%; }
-.admin-chat-message p { margin: 0; padding: 11px 13px; border-radius: 16px 16px 16px 4px; background: var(--surface); line-height: 1.45; overflow-wrap: anywhere; }
-.admin-chat-message.admin p { border-radius: 16px 16px 4px 16px; background: var(--green); }
+.admin-chat-message > div { max-width: 84%; }
+.admin-chat-message p { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 18px 18px 18px 5px; background: #fff; line-height: 1.45; overflow-wrap: anywhere; box-shadow: 0 5px 15px rgba(0,0,0,.04); }
+.admin-chat-message.admin p { border-color: transparent; border-radius: 18px 18px 5px 18px; background: var(--green); }
 .admin-chat-message time { display: block; margin: 5px 4px; color: var(--muted); font-size: 9px; }
 .admin-chat-message.admin time { text-align: right; }
 .admin-chat-empty { margin: 60px 20px; color: var(--muted); text-align: center; }
-.admin-chat-form { display: grid; grid-template-columns: 1fr 48px; gap: 8px; }
-.admin-chat-form .button { min-width: 48px; padding: 0; font-size: 20px; }
+.admin-chat-form { display: grid; grid-template-columns: 1fr 52px; gap: 9px; }
+.admin-chat-form input { min-height: 52px; border-radius: 17px; }
+.admin-chat-form .button { min-width: 52px; min-height: 52px; padding: 0; border-radius: 17px; font-size: 20px; }
+
+.payment-method-form { display: grid; grid-template-columns: 1fr 1.35fr; gap: 11px; margin-top: 20px; padding: 16px; border-radius: 22px; background: var(--surface); }
+.payment-method-form .button { grid-column: 1 / -1; width: 100%; }
+.admin-payment-methods { flex: 1; min-height: 0; margin-top: 16px; padding-right: 2px; overflow-y: auto; }
+.payment-method-empty { display: grid; min-height: 190px; place-items: center; margin: 0; padding: 30px; border: 1px dashed var(--line); border-radius: 22px; color: var(--muted); text-align: center; }
+.payment-route-group { padding: 16px; border: 1px solid var(--line); border-radius: 22px; background: #fff; }
+.payment-route-group + .payment-route-group { margin-top: 11px; }
+.payment-route-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.payment-route-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.payment-route-logo { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: var(--ink); color: var(--green); font-weight: 900; }
+.payment-route-name b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.payment-route-name small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+.payment-route-heading .mini-button { flex: none; color: var(--green-dark); }
+.payment-id-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 12px 2px 0; }
+.payment-id-copy { min-width: 0; }
+.payment-id-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.payment-id-copy small { display: inline-block; margin-top: 5px; color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .08em; }
+.payment-id-copy small.live { color: var(--green-dark); }
+.payment-id-copy small.off { color: var(--danger); }
+.payment-id-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.payment-id-actions .mini-button { padding: 0 8px; }
 
 @media (max-width: 1100px) {
   .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -233,6 +260,10 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
   .hard-reset-zone { align-items: stretch; flex-direction: column; }
   .activity-chart { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); }
   .activity-day { grid-template-rows: 130px auto auto; }
+  .admin-side-panel { inset: max(7px, env(safe-area-inset-top)) 7px max(7px, env(safe-area-inset-bottom)); width: auto; padding: 20px 16px; border-radius: 26px; }
+  .side-panel-title h2 { font-size: 23px; }
+  .payment-method-form { grid-template-columns: 1fr; }
+  .payment-method-form .button { grid-column: auto; }
 }
 
 @media (max-width: 480px) {

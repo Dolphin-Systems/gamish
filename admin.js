@@ -36,6 +36,7 @@ const dollarsToCents = (value) => Math.round(Number(value) * 100);
 const date = (value) => value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never";
 const percent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
 const time = (value) => new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
 const setNotice = (message, error = false) => {
   clearTimeout(noticeTimer);
@@ -216,6 +217,7 @@ const closeAdminChat = () => {
 };
 
 document.getElementById("admin-chat-toggle").addEventListener("click", async () => {
+  closeAdminPayment();
   chatPanel.hidden = false;
   chatBackdrop.hidden = false;
   try {
@@ -236,6 +238,108 @@ document.getElementById("admin-chat-form").addEventListener("submit", async (eve
     await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: chatPlayer.value, message: input.value }) });
     input.value = "";
     await loadAdminChat();
+  } catch (error) { setNotice(error.message, true); }
+  finally { button.disabled = false; }
+});
+
+const paymentPanel = document.getElementById("admin-payment-panel");
+const paymentBackdrop = document.getElementById("admin-payment-backdrop");
+const paymentMethodList = document.getElementById("admin-payment-methods");
+let paymentMethods = [];
+
+const renderPaymentMethods = () => {
+  const groups = new Map();
+  for (const method of paymentMethods) {
+    const key = method.methodName.toLowerCase();
+    if (!groups.has(key)) groups.set(key, { name: method.methodName, methods: [] });
+    groups.get(key).methods.push(method);
+  }
+  if (!groups.size) {
+    paymentMethodList.innerHTML = '<p class="payment-method-empty">No payment methods yet. Add a method and its first payment ID above.</p>';
+    return;
+  }
+  paymentMethodList.innerHTML = [...groups.values()].map((group) => {
+    const enabled = group.methods.filter((method) => method.enabled);
+    const current = enabled.find((method) => method.isCurrent);
+    return `
+      <section class="payment-route-group">
+        <div class="payment-route-heading">
+          <div class="payment-route-name"><span class="payment-route-logo">${escapeHtml(group.name.charAt(0).toUpperCase())}</span><div><b>${escapeHtml(group.name)}</b><small>${current ? `Live · ${escapeHtml(current.paymentId)}` : "Not shown to players"}</small></div></div>
+          ${enabled.length > 1 ? `<button class="mini-button" type="button" data-payment-action="rotate" data-method-name="${encodeURIComponent(group.name)}">Rotate</button>` : ""}
+        </div>
+        ${group.methods.map((method) => `
+          <div class="payment-id-row">
+            <div class="payment-id-copy"><strong>${escapeHtml(method.paymentId)}</strong><small class="${method.isCurrent && method.enabled ? "live" : method.enabled ? "" : "off"}">${method.isCurrent && method.enabled ? "LIVE NOW" : method.enabled ? "READY" : "DISABLED"}</small></div>
+            <div class="payment-id-actions">
+              ${method.enabled && !method.isCurrent ? `<button class="mini-button" type="button" data-payment-action="select" data-id="${method.id}">Use</button>` : ""}
+              <button class="mini-button" type="button" data-payment-action="toggle" data-id="${method.id}">${method.enabled ? "Disable" : "Enable"}</button>
+              <button class="mini-button danger" type="button" data-payment-action="remove" data-id="${method.id}">Remove</button>
+            </div>
+          </div>
+        `).join("")}
+      </section>`;
+  }).join("");
+};
+
+const loadPaymentMethods = async () => {
+  const data = await request("/api/payment-methods");
+  paymentMethods = data.methods;
+  renderPaymentMethods();
+};
+
+const closeAdminPayment = () => {
+  paymentPanel.hidden = true;
+  paymentBackdrop.hidden = true;
+};
+
+document.getElementById("admin-payment-toggle").addEventListener("click", async () => {
+  closeAdminChat();
+  paymentPanel.hidden = false;
+  paymentBackdrop.hidden = false;
+  try { await loadPaymentMethods(); }
+  catch (error) { setNotice(error.message, true); }
+});
+document.getElementById("admin-payment-close").addEventListener("click", closeAdminPayment);
+paymentBackdrop.addEventListener("click", closeAdminPayment);
+
+document.getElementById("payment-method-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  button.disabled = true;
+  try {
+    await request("/api/payment-methods", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "create",
+        methodName: document.getElementById("payment-method-name").value,
+        paymentId: document.getElementById("payment-method-id").value,
+      }),
+    });
+    event.currentTarget.reset();
+    await loadPaymentMethods();
+    setNotice("Payment ID added.");
+  } catch (error) { setNotice(error.message, true); }
+  finally { button.disabled = false; }
+});
+
+paymentMethodList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-payment-action]");
+  if (!button) return;
+  const action = button.dataset.paymentAction;
+  const method = paymentMethods.find((candidate) => candidate.id === button.dataset.id);
+  if (action === "remove" && !window.confirm(`Remove ${method?.paymentId || "this payment ID"}?`)) return;
+  button.disabled = true;
+  try {
+    await request("/api/payment-methods", {
+      method: "POST",
+      body: JSON.stringify({
+        action,
+        id: button.dataset.id,
+        methodName: button.dataset.methodName ? decodeURIComponent(button.dataset.methodName) : undefined,
+      }),
+    });
+    await loadPaymentMethods();
+    setNotice(action === "rotate" ? "Payment ID rotated." : "Payment methods updated.");
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }
 });
@@ -268,7 +372,7 @@ document.getElementById("admin-login-form").addEventListener("submit", async (ev
   try {
     const data = await request("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ loginId: document.getElementById("admin-login-id").value, pin: document.getElementById("admin-login-pin").value }),
+      body: JSON.stringify({ loginId: document.getElementById("admin-login-id").value, pin: document.getElementById("admin-login-pin").value, portal: "admin" }),
     });
     await showDashboard(data.player);
   } catch (failure) { error.textContent = failure.message; }

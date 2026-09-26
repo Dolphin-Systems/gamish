@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=6" />
+  <link rel="stylesheet" href="admin.css?v=7" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -54,6 +54,9 @@
         </div>
         <div class="topbar-actions">
           <span id="admin-identity" class="identity"></span>
+          <button id="admin-payment-toggle" class="icon-button" type="button" aria-label="Manage payment methods" title="Payment methods">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.75h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-10a2.5 2.5 0 0 1 2.5-2.5h12"/><path d="M15.5 11h5v4h-5a2 2 0 1 1 0-4Z"/><circle cx="16" cy="13" r=".65"/></svg>
+          </button>
           <button id="admin-chat-toggle" class="icon-button chat-toggle" type="button" aria-label="Chat with players" title="Chat with players">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-9 8.47 9.7 9.7 0 0 1-3.45-.9L3 20.5l1.43-4.18A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg>
             <i id="admin-chat-badge" hidden></i>
@@ -210,20 +213,35 @@
       </section>
     </main>
 
-    <button id="admin-chat-backdrop" class="chat-backdrop" type="button" aria-label="Close player chat" hidden></button>
-    <aside id="admin-chat-panel" class="admin-chat-panel" aria-labelledby="admin-chat-title" hidden>
-      <header class="chat-panel-header">
-        <div><p class="eyebrow">PLAYER CHAT</p><h2 id="admin-chat-title">Messages</h2></div>
+    <button id="admin-chat-backdrop" class="side-panel-backdrop" type="button" aria-label="Close player chat" hidden></button>
+    <aside id="admin-chat-panel" class="admin-side-panel admin-chat-panel" aria-labelledby="admin-chat-title" hidden>
+      <header class="side-panel-header">
+        <div class="side-panel-title"><span class="side-panel-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-9 8.47 9.7 9.7 0 0 1-3.45-.9L3 20.5l1.43-4.18A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg></span><div><p class="eyebrow">PLAYER CHAT</p><h2 id="admin-chat-title">Messages</h2></div></div>
         <button id="admin-chat-close" class="icon-button" type="button" aria-label="Close player chat">×</button>
       </header>
-      <label class="chat-player-field">Player<select id="admin-chat-player"></select></label>
+      <label class="chat-player-field">Conversation<select id="admin-chat-player"></select></label>
       <div id="admin-chat-messages" class="admin-chat-messages" aria-live="polite"></div>
       <form id="admin-chat-form" class="admin-chat-form">
         <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" required /></label>
         <button class="button primary" type="submit" aria-label="Send message">↑</button>
       </form>
     </aside>
+
+    <button id="admin-payment-backdrop" class="side-panel-backdrop" type="button" aria-label="Close payment methods" hidden></button>
+    <aside id="admin-payment-panel" class="admin-side-panel admin-payment-panel" aria-labelledby="admin-payment-title" hidden>
+      <header class="side-panel-header">
+        <div class="side-panel-title"><span class="side-panel-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.75h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-10a2.5 2.5 0 0 1 2.5-2.5h12"/><path d="M15.5 11h5v4h-5a2 2 0 1 1 0-4Z"/></svg></span><div><p class="eyebrow">PLAYER PAYMENTS</p><h2 id="admin-payment-title">Payment methods</h2></div></div>
+        <button id="admin-payment-close" class="icon-button" type="button" aria-label="Close payment methods">×</button>
+      </header>
+      <p class="side-panel-copy">Add multiple IDs under the same method. The live ID appears to players; Rotate switches to the next enabled ID.</p>
+      <form id="payment-method-form" class="payment-method-form">
+        <label>Method name<input id="payment-method-name" maxlength="32" placeholder="Cash App" required /></label>
+        <label>Payment ID<input id="payment-method-id" maxlength="100" placeholder="$YourCashTag" required /></label>
+        <button class="button primary" type="submit">Add payment ID</button>
+      </form>
+      <div id="admin-payment-methods" class="admin-payment-methods" aria-live="polite"></div>
+    </aside>
   </div>
-  <script type="module" src="admin.js"></script>
+  <script type="module" src="admin.js?v=7"></script>
 </body>
 </html>

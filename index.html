@@ -16,16 +16,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="styles.css?v=3" />
   <title>Gamish777 — Ember Crown Arcade</title>
 </head>
 <body>
   <section id="login-view" class="auth-gate" aria-labelledby="login-title">
-    <form id="login-form" class="login-card">
+    <form id="login-form" class="login-card" autocomplete="off">
       <span class="login-mark" aria-hidden="true">◆</span>
       <h1 id="login-title">Enter Gamish777</h1>
-      <label>Login ID<input id="login-id" name="loginId" autocomplete="username" placeholder="Ricky123" required /></label>
-      <label>PIN<input id="login-pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="8" placeholder="••••" required /></label>
+      <label>Login ID<input id="login-id" name="player-id" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Ricky123" required /></label>
+      <label>PIN<input id="login-pin" name="player-pin" type="password" inputmode="numeric" autocomplete="one-time-code" minlength="4" maxlength="8" placeholder="••••" required /></label>
       <button type="submit">Enter the arcade</button>
       <p id="login-error" role="alert"></p>
     </form>
@@ -72,22 +72,9 @@
         <section class="surface methods-panel" aria-labelledby="method-heading">
           <div class="surface-heading">
             <h2 id="method-heading">Pay with</h2>
-            <span class="selection-label">Cash App selected</span>
+            <span class="selection-label">Choose a method</span>
           </div>
-          <div class="method-grid">
-            <button class="method-card selected" type="button" data-method="Cash App" data-handle="$Gamish777" aria-label="Cash App, $Gamish777">
-              <span class="method-logo cash">$</span><small>$Gamish777</small><i>✓</i>
-            </button>
-            <button class="method-card" type="button" data-method="Chime" data-handle="$Gamish777" aria-label="Chime, $Gamish777">
-              <span class="method-logo chime">C</span><small>$Gamish777</small><i>✓</i>
-            </button>
-            <button class="method-card" type="button" data-method="PayPal" data-handle="paypal.me/Gamish777" aria-label="PayPal, paypal.me/Gamish777">
-              <span class="method-logo paypal">P</span><small>paypal.me/Gamish777</small><i>✓</i>
-            </button>
-            <button class="method-card" type="button" data-method="Venmo" data-handle="@Gamish777" aria-label="Venmo, @Gamish777">
-              <span class="method-logo venmo">V</span><small>@Gamish777</small><i>✓</i>
-            </button>
-          </div>
+          <div id="payment-method-grid" class="method-grid"><p class="payment-method-empty">Payment methods are being updated.</p></div>
           <p class="demo-note"><span>i</span>Verified payment notifications refresh this wallet automatically.</p>
           <button id="review-reload" class="primary-action" type="button"><span>Refresh payment status</span><b>↻</b></button>
         </section>
@@ -156,6 +143,6 @@
   <script defer src="audio.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
   <script defer src="game.js"></script>
-  <script defer src="app.js"></script>
+  <script defer src="app.js?v=3"></script>
 </body>
 </html>
