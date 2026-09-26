@@ -1,10 +1,11 @@
 import { getSessionPlayer, publicPlayer } from "../../lib/auth.js";
 import { ensureSchema, getSql } from "../../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
-import { creditPlayer, getWeeklyBonusPool } from "../../lib/ledger.js";
+import { creditPlayer, getWeeklyBonusPool, resetPlayerBalance } from "../../lib/ledger.js";
 import { hashPin, normalizeLoginId, randomUUID, validateLoginId, validatePin } from "../../lib/security.js";
 
 const MAX_CREDIT = 1_000_000;
+const formatMoney = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
 export default async function handler(req, res) {
   try {
@@ -15,11 +16,30 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const rows = await sql`
-        SELECT id, login_id, role, status, regular_credits, bonus_credits, created_at, last_login_at
-        FROM players
-        ORDER BY created_at DESC
+        SELECT
+          p.id, p.login_id, p.role, p.status, p.regular_credits, p.bonus_credits,
+          p.created_at, p.last_login_at, p.deleted_at,
+          COALESCE(SUM(CASE
+            WHEN l.entry_type = 'payment_credit' THEN l.cash_cents
+            WHEN l.entry_type = 'admin_credit' THEN GREATEST(l.regular_delta, 0)
+            ELSE 0
+          END), 0) AS lifetime_cash_in_cents,
+          COALESCE(SUM(CASE WHEN l.entry_type = 'withdrawal' THEN ABS(l.cash_cents) ELSE 0 END), 0) AS lifetime_cash_out_cents
+        FROM players p
+        LEFT JOIN ledger_entries l ON l.player_id = p.id
+        GROUP BY p.id
+        ORDER BY p.deleted_at NULLS FIRST, p.created_at DESC
       `;
-      return json(res, 200, { players: rows.map(publicPlayer), bonusPool: await getWeeklyBonusPool() });
+      return json(res, 200, {
+        players: rows.map((row) => ({
+          ...publicPlayer(row),
+          createdAt: row.created_at,
+          lastLoginAt: row.last_login_at,
+          lifetimeCashInCents: Number(row.lifetime_cash_in_cents),
+          lifetimeCashOutCents: Number(row.lifetime_cash_out_cents),
+        })),
+        bonusPool: await getWeeklyBonusPool(),
+      });
     }
 
     requireBrowserAction(req);
@@ -46,25 +66,48 @@ export default async function handler(req, res) {
     }
 
     if (body.action === "credit") {
-      const amount = Number(body.amount);
+      const amount = Number(body.amountCents ?? body.amount);
       const balanceType = body.balanceType === "bonus" ? "bonus" : "regular";
       if (!Number.isInteger(amount) || amount < 1 || amount > MAX_CREDIT) {
-        throw new HttpError(400, `Credit must be a whole number from 1 to ${MAX_CREDIT.toLocaleString("en-US")}`, "invalid_credit");
+        throw new HttpError(400, "Amount must be from $0.01 to $10,000.00", "invalid_amount");
       }
       if (balanceType === "bonus") {
         const pool = await getWeeklyBonusPool();
-        if (amount > pool.available) throw new HttpError(409, `Only ${pool.available} bonus credits are currently available`, "bonus_pool_exceeded");
+        if (amount > pool.available) throw new HttpError(409, `Only ${formatMoney(pool.available)} in bonus cash is currently available`, "bonus_pool_exceeded");
       }
       const result = await creditPlayer({
         playerId: body.playerId,
         regular: balanceType === "regular" ? amount : 0,
         bonus: balanceType === "bonus" ? amount : 0,
         entryType: balanceType === "bonus" ? "bonus_credit" : "admin_credit",
-        reference: String(body.reason || "Admin credit").slice(0, 120),
+        reference: String(body.reason || "Admin funding").slice(0, 120),
         createdBy: admin.id,
         idempotencyKey: `admin:${randomUUID()}`,
       });
       if (!result.applied) throw new HttpError(404, "Player not found", "player_not_found");
+      return json(res, 200, result);
+    }
+
+    if (body.action === "cashout") {
+      const amount = Number(body.amountCents);
+      if (!Number.isInteger(amount) || amount < 1 || amount > MAX_CREDIT) {
+        throw new HttpError(400, "Cash out must be from $0.01 to $10,000.00", "invalid_cashout");
+      }
+      const result = await creditPlayer({
+        playerId: body.playerId,
+        regular: -amount,
+        entryType: "withdrawal",
+        reference: String(body.reason || "Admin cash out record").slice(0, 120),
+        createdBy: admin.id,
+        idempotencyKey: `cashout:${randomUUID()}`,
+        cashCents: -amount,
+      });
+      if (!result.applied) throw new HttpError(409, "The available cash balance is too low", "insufficient_cash_balance");
+      return json(res, 200, result);
+    }
+
+    if (body.action === "reset_balance") {
+      const result = await resetPlayerBalance({ playerId: body.playerId, createdBy: admin.id });
       return json(res, 200, result);
     }
 
@@ -74,7 +117,7 @@ export default async function handler(req, res) {
       const rows = await sql`
         UPDATE players
         SET pin_salt = ${credentials.salt}, pin_hash = ${credentials.hash}, updated_at = NOW()
-        WHERE id = ${body.playerId} AND role = 'player'
+        WHERE id = ${body.playerId} AND role = 'player' AND deleted_at IS NULL
         RETURNING id
       `;
       if (!rows.length) throw new HttpError(404, "Player not found", "player_not_found");
@@ -87,11 +130,23 @@ export default async function handler(req, res) {
       const rows = await sql`
         UPDATE players
         SET status = ${body.status}, updated_at = NOW()
-        WHERE id = ${body.playerId} AND role = 'player'
+        WHERE id = ${body.playerId} AND role = 'player' AND deleted_at IS NULL
         RETURNING id
       `;
       if (!rows.length) throw new HttpError(404, "Player not found", "player_not_found");
       if (body.status === "suspended") await sql`DELETE FROM sessions WHERE player_id = ${body.playerId}`;
+      return json(res, 200, { ok: true });
+    }
+
+    if (body.action === "delete") {
+      const rows = await sql`
+        UPDATE players
+        SET status = 'suspended', deleted_at = NOW(), updated_at = NOW()
+        WHERE id = ${body.playerId} AND role = 'player' AND deleted_at IS NULL
+        RETURNING id
+      `;
+      if (!rows.length) throw new HttpError(404, "Player not found", "player_not_found");
+      await sql`DELETE FROM sessions WHERE player_id = ${body.playerId}`;
       return json(res, 200, { ok: true });
     }
 

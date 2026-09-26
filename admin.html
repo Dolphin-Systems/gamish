@@ -4,86 +4,158 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#00c853" />
   <title>Gamish777 Admin</title>
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <main>
-    <section id="admin-login" class="panel narrow">
-      <h1>Gamish777 Admin</h1>
-      <form id="admin-login-form">
-        <label>Login ID<input id="admin-login-id" autocomplete="username" required /></label>
-        <label>PIN<input id="admin-login-pin" type="password" inputmode="numeric" autocomplete="current-password" required /></label>
-        <button type="submit">Sign in</button>
-        <p id="admin-login-error" class="error" role="alert"></p>
-      </form>
-    </section>
+  <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
+    <form id="admin-login-form" class="login-card">
+      <span class="brand-mark" aria-hidden="true">G</span>
+      <p class="eyebrow">ADMIN ACCESS</p>
+      <h1 id="admin-login-title">Welcome back</h1>
+      <label>Login ID<input id="admin-login-id" autocomplete="username" required /></label>
+      <label>PIN<input id="admin-login-pin" type="password" inputmode="numeric" autocomplete="current-password" required /></label>
+      <button class="button primary wide" type="submit">Sign in</button>
+      <p id="admin-login-error" class="form-error" role="alert"></p>
+    </form>
+  </section>
 
-    <section id="admin-dashboard" hidden>
-      <header>
-        <div><h1>Gamish777 Admin</h1><p id="admin-identity"></p></div>
-        <div><a href="/">Game</a><button id="admin-logout" type="button">Sign out</button></div>
+  <div id="admin-dashboard" class="admin-shell" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="Gamish777 admin home"><span class="brand-mark">G</span><b>Gamish777</b></a>
+      <nav class="tab-nav" aria-label="Admin pages">
+        <button class="tab-button active" type="button" data-tab="overview"><span>⌂</span>Overview</button>
+        <button class="tab-button" type="button" data-tab="players"><span>◎</span>Players</button>
+        <button class="tab-button" type="button" data-tab="money"><span>$</span>Money</button>
+        <button class="tab-button" type="button" data-tab="reports"><span>▤</span>Reports</button>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="side-action" href="/" title="Open game"><span>↗</span>Game</a>
+        <button id="admin-logout" class="side-action" type="button" title="Sign out"><span>⇥</span>Sign out</button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">GAMISH777 CONTROL</p>
+          <h1 id="page-title">Overview</h1>
+          <p id="page-description" class="page-description">A quick look at today.</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="admin-identity" class="identity"></span>
+          <button id="refresh-admin" class="icon-button" type="button" aria-label="Refresh dashboard" title="Refresh">↻</button>
+          <a class="icon-button" href="/" aria-label="Open game" title="Open game">↗</a>
+        </div>
       </header>
 
-      <section class="summary" aria-label="Today summary">
-        <article><span>Cash in today</span><strong id="today-cash-in">$0.00</strong></article>
-        <article><span>Cash out today</span><strong id="today-cash-out">$0.00</strong></article>
-        <article><span>Game net today</span><strong id="today-game-net">0</strong></article>
-        <article><span>Bonus pool</span><strong id="bonus-pool">0</strong></article>
-      </section>
+      <div id="admin-notice" class="notice" role="status" hidden></div>
 
-      <div id="admin-notice" role="status"></div>
+      <section class="tab-panel" data-panel="overview">
+        <div class="stat-grid">
+          <article class="stat-card hero-stat"><span>Cash in · 30 days</span><strong id="period-cash-in">$0.00</strong><small id="cash-flow-note">$0.00 out</small></article>
+          <article class="stat-card"><span>Game net · 30 days</span><strong id="period-game-net">$0.00</strong><small>Wagers minus wins and bonuses</small></article>
+          <article class="stat-card"><span>Active players</span><strong id="active-players">0</strong><small id="frozen-players">0 frozen</small></article>
+          <article class="stat-card"><span>Bonus available</span><strong id="bonus-pool">$0.00</strong><small>Current weekly pool</small></article>
+        </div>
 
-      <section class="columns">
-        <form id="create-player-form" class="panel">
-          <h2>Create player login</h2>
-          <label>Login ID<input id="new-login-id" placeholder="Ricky123" required /></label>
-          <label>PIN<input id="new-login-pin" type="password" inputmode="numeric" minlength="4" maxlength="8" placeholder="4–8 digits" required /></label>
-          <button type="submit">Create player</button>
-        </form>
-
-        <form id="credit-player-form" class="panel">
-          <h2>Send credits</h2>
-          <label>Player<select id="credit-player-id" required></select></label>
-          <label>Amount<input id="credit-amount" type="number" min="1" max="1000000" required /></label>
-          <label>Balance<select id="credit-balance"><option value="regular">Regular</option><option value="bonus">Bonus</option></select></label>
-          <label>Reason<input id="credit-reason" maxlength="120" value="Admin credit" /></label>
-          <button type="submit">Send credits</button>
-        </form>
-      </section>
-
-      <section class="panel">
-        <div class="section-title"><h2>Players</h2><button id="refresh-admin" type="button">Refresh</button></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Login ID</th><th>Status</th><th>Regular</th><th>Bonus</th><th>Total</th><th>Actions</th></tr></thead>
-            <tbody id="players-table"></tbody>
-          </table>
+        <div class="split-grid">
+          <section class="content-section">
+            <div class="section-heading"><div><p class="eyebrow">PLAYERS</p><h2>Recent accounts</h2></div><button class="text-button" type="button" data-open-tab="players">View all →</button></div>
+            <div id="recent-players" class="mini-list"></div>
+          </section>
+          <section class="content-section dark-section">
+            <p class="eyebrow">SYSTEM</p>
+            <h2>Balance model</h2>
+            <p id="game-model-note">Loading model details…</p>
+            <div class="model-meter"><i></i></div>
+          </section>
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Daily report</h2>
-        <p id="game-model-note" class="muted"></p>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Date</th><th>Cash in</th><th>Cash out</th><th>Wagered</th><th>Won</th><th>Game net</th></tr></thead>
-            <tbody id="daily-table"></tbody>
-          </table>
-        </div>
+      <section class="tab-panel" data-panel="players" hidden>
+        <section class="content-section create-strip">
+          <div><p class="eyebrow">NEW ACCOUNT</p><h2>Create player</h2></div>
+          <form id="create-player-form" class="inline-form">
+            <label>Login ID<input id="new-login-id" placeholder="Ricky123" required /></label>
+            <label>PIN<input id="new-login-pin" type="password" inputmode="numeric" minlength="4" maxlength="8" placeholder="4-8 digits" required /></label>
+            <button class="button primary" type="submit">Create</button>
+          </form>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">ACCOUNT DIRECTORY</p><h2>Player user IDs</h2></div>
+            <label class="search-field"><span>⌕</span><input id="player-search" type="search" placeholder="Search players" /></label>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table player-table">
+              <thead><tr><th>Player</th><th>Status</th><th>Available</th><th>Lifetime in</th><th>Lifetime out</th><th>Manage</th></tr></thead>
+              <tbody id="players-table"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
-      <section class="panel">
-        <h2>Player totals · last 7 days</h2>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Player</th><th>Paid in</th><th>Wagered</th><th>Won</th><th>Bonus</th><th>Wallet</th></tr></thead>
-            <tbody id="player-report-table"></tbody>
-          </table>
+      <section class="tab-panel" data-panel="money" hidden>
+        <div class="form-grid">
+          <form id="credit-player-form" class="content-section money-form">
+            <span class="money-icon add">+</span>
+            <p class="eyebrow">ADD MONEY</p>
+            <h2>Fund a player</h2>
+            <label>Player<select id="credit-player-id" required></select></label>
+            <label>Amount<input id="credit-amount" type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" placeholder="$0.00" required /></label>
+            <label>Destination<select id="credit-balance"><option value="regular">Available cash</option><option value="bonus">Bonus cash</option></select></label>
+            <label>Note<input id="credit-reason" maxlength="120" value="Admin funding" /></label>
+            <button class="button primary wide" type="submit">Add money</button>
+          </form>
+
+          <form id="cashout-player-form" class="content-section money-form">
+            <span class="money-icon out">−</span>
+            <p class="eyebrow">CASH OUT RECORD</p>
+            <h2>Debit available cash</h2>
+            <label>Player<select id="cashout-player-id" required></select></label>
+            <label>Amount<input id="cashout-amount" type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" placeholder="$0.00" required /></label>
+            <label>Note<input id="cashout-reason" maxlength="120" value="Admin cash out" /></label>
+            <p class="helper">Records the debit in the internal ledger. It does not send an external payout.</p>
+            <button class="button dark wide" type="submit">Record cash out</button>
+          </form>
         </div>
+
+        <section class="content-section">
+          <div class="section-heading"><div><p class="eyebrow">LIFETIME</p><h2>Cash flow by player</h2></div></div>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Player</th><th>Available</th><th>Cash in</th><th>Cash out</th><th>Net cash</th></tr></thead><tbody id="cashflow-table"></tbody></table>
+          </div>
+        </section>
       </section>
-    </section>
-  </main>
+
+      <section class="tab-panel" data-panel="reports" hidden>
+        <section class="report-hero">
+          <div><p class="eyebrow">EXPORT</p><h2>Financial report</h2><p>Daily totals and lifetime player cash flow in a clean PDF.</p></div>
+          <div class="report-actions">
+            <label>Range<select id="report-range"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></label>
+            <a id="download-pdf" class="button primary" href="/api/admin/report-pdf?days=30" download>Download PDF ↓</a>
+          </div>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading"><div><p class="eyebrow">DAILY ACTIVITY</p><h2 id="daily-report-title">Last 30 days</h2></div></div>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Date</th><th>Cash in</th><th>Cash out</th><th>Wagered</th><th>Won</th><th>Game net</th></tr></thead><tbody id="daily-table"></tbody></table>
+          </div>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading"><div><p class="eyebrow">PLAYER TOTALS</p><h2>Lifetime report</h2></div></div>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Player</th><th>Status</th><th>Cash in</th><th>Cash out</th><th>Wagered</th><th>Won</th><th>Available</th></tr></thead><tbody id="player-report-table"></tbody></table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
   <script type="module" src="admin.js"></script>
 </body>
 </html>

@@ -4,3 +4,5 @@
 node_modules/
 .agents/
 skills-lock.json
+tmp/
+output/

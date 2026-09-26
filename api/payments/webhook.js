@@ -35,6 +35,7 @@ export default async function handler(req, res) {
       WHERE login_id_normalized = ${normalizeLoginId(event.playerId)}
         AND role = 'player'
         AND status = 'active'
+        AND deleted_at IS NULL
       LIMIT 1
     `;
     if (!player) throw new HttpError(404, "Player not found", "player_not_found");
