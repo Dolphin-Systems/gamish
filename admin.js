@@ -343,6 +343,36 @@ document.getElementById("players-table").addEventListener("click", async (event)
 });
 
 document.getElementById("player-search").addEventListener("input", renderPlayers);
+document.getElementById("hard-reset-all").addEventListener("click", async (event) => {
+  const preserved = players.filter((player) => player.role === "player" && player.status !== "deleted");
+  if (preserved.length !== 3) {
+    setNotice("Hard reset requires exactly three current player accounts.", true);
+    return;
+  }
+  const names = preserved.map((player) => player.loginId).join(", ");
+  if (!window.confirm(`TESTING ONLY\n\nDelete every transaction, payment, game round, and chat message?\n\nThese three logins and their PINs will remain: ${names}`)) return;
+  const phrase = window.prompt('Type DELETE ALL TRANSACTIONS to permanently continue:');
+  if (phrase !== "DELETE ALL TRANSACTIONS") {
+    setNotice("Hard reset cancelled. Confirmation phrase did not match.", true);
+    return;
+  }
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const result = await request("/api/admin/players", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "hard_reset_all",
+        confirmation: phrase,
+        preservePlayerIds: preserved.map((player) => player.id),
+      }),
+    });
+    const deleted = Object.values(result.deleted).reduce((sum, count) => sum + count, 0);
+    setNotice(`Hard reset complete. ${deleted} records deleted; 3 player logins preserved.`);
+    await refresh();
+  } catch (error) { setNotice(error.message, true); }
+  finally { button.disabled = false; }
+});
 document.getElementById("report-range").addEventListener("change", async (event) => {
   const days = Number(event.target.value);
   document.getElementById("analytics-range").value = String(days);

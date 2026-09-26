@@ -150,6 +150,53 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true });
     }
 
+    if (body.action === "hard_reset_all") {
+      if (body.confirmation !== "DELETE ALL TRANSACTIONS") {
+        throw new HttpError(400, "Type the exact confirmation phrase", "confirmation_required");
+      }
+      const currentPlayers = await sql`
+        SELECT id, login_id
+        FROM players
+        WHERE role = 'player' AND deleted_at IS NULL
+        ORDER BY login_id ASC
+      `;
+      const preserveIds = Array.isArray(body.preservePlayerIds) ? [...new Set(body.preservePlayerIds)] : [];
+      const currentIds = currentPlayers.map((player) => player.id).sort();
+      if (currentIds.length !== 3 || preserveIds.length !== 3 || preserveIds.sort().some((id, index) => id !== currentIds[index])) {
+        throw new HttpError(409, "Hard reset requires exactly the three current player accounts", "player_set_changed");
+      }
+
+      const [paymentEvents, messages, rounds, ledger, resetPlayers, removedPlayers] = await sql.transaction([
+        sql`DELETE FROM payment_events RETURNING id`,
+        sql`DELETE FROM support_messages RETURNING id`,
+        sql`DELETE FROM game_rounds RETURNING id`,
+        sql`DELETE FROM ledger_entries RETURNING id`,
+        sql`
+          UPDATE players
+          SET regular_credits = 0, bonus_credits = 0, updated_at = NOW()
+          WHERE role = 'player' AND id IN (${currentIds[0]}, ${currentIds[1]}, ${currentIds[2]})
+          RETURNING id
+        `,
+        sql`
+          DELETE FROM players
+          WHERE role = 'player' AND id NOT IN (${currentIds[0]}, ${currentIds[1]}, ${currentIds[2]})
+          RETURNING id
+        `,
+      ]);
+      return json(res, 200, {
+        ok: true,
+        preservedAccounts: currentPlayers.map((player) => player.login_id),
+        deleted: {
+          paymentEvents: paymentEvents.length,
+          messages: messages.length,
+          gameRounds: rounds.length,
+          ledgerEntries: ledger.length,
+          oldAccounts: removedPlayers.length,
+        },
+        resetAccounts: resetPlayers.length,
+      });
+    }
+
     throw new HttpError(400, "Unknown admin action", "unknown_action");
   } catch (error) {
     return handleApiError(res, error);
