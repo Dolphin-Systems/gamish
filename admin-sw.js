@@ -1,8 +1,8 @@
-const CACHE_NAME = "gamish777-admin-v8";
+const CACHE_NAME = "gamish777-admin-v9";
 const ADMIN_SHELL = [
   "/admin.html",
-  "/admin.css?v=7",
-  "/admin.js?v=8",
+  "/admin.css?v=9",
+  "/admin.js?v=9",
   "/admin.webmanifest",
   "/admin-favicon-32.png",
   "/admin-icon-192.png",

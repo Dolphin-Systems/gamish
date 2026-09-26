@@ -36,6 +36,14 @@ const dollarsToCents = (value) => Math.round(Number(value) * 100);
 const date = (value) => value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never";
 const percent = (value) => `${(Number(value || 0) * 100).toFixed(1)}%`;
 const time = (value) => new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const inboxTime = (value) => {
+  if (!value) return "";
+  const stamp = new Date(value);
+  const today = new Date();
+  return stamp.toDateString() === today.toDateString()
+    ? stamp.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : stamp.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
 const setNotice = (message, error = false) => {
@@ -165,9 +173,72 @@ const renderReport = () => {
 
 const chatPanel = document.getElementById("admin-chat-panel");
 const chatBackdrop = document.getElementById("admin-chat-backdrop");
-const chatPlayer = document.getElementById("admin-chat-player");
+const chatList = document.getElementById("admin-chat-list");
+const chatSearch = document.getElementById("admin-chat-search");
 const chatMessages = document.getElementById("admin-chat-messages");
 const chatBadge = document.getElementById("admin-chat-badge");
+const chatInput = document.getElementById("admin-chat-input");
+const chatForm = document.getElementById("admin-chat-form");
+const chatPlayerName = document.getElementById("admin-chat-player-name");
+const chatPlayerStatus = document.getElementById("admin-chat-player-status");
+const chatAvatar = document.getElementById("admin-chat-avatar");
+let chatConversations = [];
+let selectedChatPlayerId = "";
+
+const selectedConversation = () => chatConversations.find((conversation) => conversation.playerId === selectedChatPlayerId);
+
+const setChatThread = (conversation) => {
+  const enabled = Boolean(conversation);
+  chatPlayerName.textContent = conversation?.loginId || "Choose a player";
+  chatPlayerStatus.textContent = conversation
+    ? `${conversation.status === "suspended" ? "Frozen" : "Active"} account`
+    : "Choose anyone from the inbox";
+  chatAvatar.textContent = conversation?.loginId?.charAt(0).toUpperCase() || "?";
+  chatInput.disabled = !enabled;
+  chatForm.querySelector("button").disabled = !enabled;
+};
+
+const renderChatInbox = () => {
+  const query = chatSearch.value.trim().toLowerCase();
+  const conversations = chatConversations.filter((conversation) => conversation.loginId.toLowerCase().includes(query));
+  chatList.replaceChildren();
+  if (!conversations.length) {
+    const empty = document.createElement("p");
+    empty.className = "chat-inbox-empty";
+    empty.textContent = chatConversations.length ? "No players match that search." : "No player accounts yet.";
+    chatList.append(empty);
+    return;
+  }
+  for (const conversation of conversations) {
+    const button = document.createElement("button");
+    const avatar = document.createElement("span");
+    const copy = document.createElement("span");
+    const name = document.createElement("strong");
+    const preview = document.createElement("small");
+    const meta = document.createElement("span");
+    const stamp = document.createElement("time");
+    button.type = "button";
+    button.className = `chat-inbox-item${conversation.playerId === selectedChatPlayerId ? " active" : ""}`;
+    button.dataset.playerId = conversation.playerId;
+    button.setAttribute("role", "listitem");
+    avatar.className = `chat-inbox-avatar${conversation.status === "suspended" ? " suspended" : ""}`;
+    avatar.textContent = conversation.loginId.charAt(0).toUpperCase();
+    copy.className = "chat-inbox-copy";
+    name.textContent = conversation.loginId;
+    preview.textContent = conversation.lastMessage || "Start a conversation";
+    meta.className = "chat-inbox-meta";
+    stamp.textContent = inboxTime(conversation.lastMessageAt);
+    meta.append(stamp);
+    if (conversation.unreadCount) {
+      const unread = document.createElement("b");
+      unread.textContent = conversation.unreadCount > 99 ? "99+" : String(conversation.unreadCount);
+      meta.append(unread);
+    }
+    copy.append(name, preview);
+    button.append(avatar, copy, meta);
+    chatList.append(button);
+  }
+};
 
 const renderChat = (messages) => {
   chatMessages.replaceChildren();
@@ -194,25 +265,38 @@ const renderChat = (messages) => {
 };
 
 const loadAdminChat = async () => {
-  if (!chatPlayer.value) return renderChat([]);
-  const data = await request(`/api/messages?playerId=${encodeURIComponent(chatPlayer.value)}`);
+  const conversation = selectedConversation();
+  setChatThread(conversation);
+  if (!conversation) return renderChat([]);
+  const data = await request(`/api/messages?playerId=${encodeURIComponent(selectedChatPlayerId)}`);
+  conversation.unreadCount = 0;
+  conversation.status = data.player.status;
+  setChatThread(conversation);
+  renderChatInbox();
   renderChat(data.messages);
 };
 
 const refreshChatInbox = async () => {
   const data = await request("/api/messages");
-  const selected = chatPlayer.value;
-  chatPlayer.replaceChildren(...data.conversations.map((conversation) =>
-    new Option(`${conversation.loginId}${conversation.unreadCount ? ` · ${conversation.unreadCount} new` : ""}`, conversation.playerId)
-  ));
-  if (data.conversations.some((conversation) => conversation.playerId === selected)) chatPlayer.value = selected;
-  const unread = data.conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
+  chatConversations = data.conversations;
+  if (!chatConversations.some((conversation) => conversation.playerId === selectedChatPlayerId)) {
+    selectedChatPlayerId = "";
+  }
+  renderChatInbox();
+  setChatThread(selectedConversation());
+  const unread = chatConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
   chatBadge.hidden = unread === 0;
+};
+
+const pollAdminChat = async () => {
+  await refreshChatInbox();
+  await loadAdminChat();
 };
 
 const closeAdminChat = () => {
   chatPanel.hidden = true;
   chatBackdrop.hidden = true;
+  chatPanel.classList.remove("conversation-open");
   clearInterval(chatTimer);
 };
 
@@ -223,21 +307,36 @@ document.getElementById("admin-chat-toggle").addEventListener("click", async () 
   try {
     await refreshChatInbox();
     await loadAdminChat();
-    chatTimer = setInterval(() => loadAdminChat().catch(() => {}), 8000);
+    clearInterval(chatTimer);
+    chatTimer = setInterval(() => pollAdminChat().catch(() => {}), 8000);
   } catch (error) { setNotice(error.message, true); }
 });
 document.getElementById("admin-chat-close").addEventListener("click", closeAdminChat);
 chatBackdrop.addEventListener("click", closeAdminChat);
-chatPlayer.addEventListener("change", () => loadAdminChat().catch((error) => setNotice(error.message, true)));
-document.getElementById("admin-chat-form").addEventListener("submit", async (event) => {
+chatSearch.addEventListener("input", renderChatInbox);
+chatList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-player-id]");
+  if (!button) return;
+  selectedChatPlayerId = button.dataset.playerId;
+  chatPanel.classList.add("conversation-open");
+  renderChatInbox();
+  try { await loadAdminChat(); }
+  catch (error) { setNotice(error.message, true); }
+});
+document.getElementById("admin-chat-back").addEventListener("click", () => {
+  chatPanel.classList.remove("conversation-open");
+  chatSearch.focus();
+});
+chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const input = document.getElementById("admin-chat-input");
   const button = event.currentTarget.querySelector("button");
+  if (!selectedChatPlayerId) return;
   button.disabled = true;
   try {
-    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: chatPlayer.value, message: input.value }) });
-    input.value = "";
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: selectedChatPlayerId, message: chatInput.value }) });
+    chatInput.value = "";
     await loadAdminChat();
+    await refreshChatInbox();
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }
 });

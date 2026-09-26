@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=7" />
+  <link rel="stylesheet" href="admin.css?v=9" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -219,12 +219,24 @@
         <div class="side-panel-title"><span class="side-panel-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-9 8.47 9.7 9.7 0 0 1-3.45-.9L3 20.5l1.43-4.18A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"/></svg></span><div><p class="eyebrow">PLAYER CHAT</p><h2 id="admin-chat-title">Messages</h2></div></div>
         <button id="admin-chat-close" class="icon-button" type="button" aria-label="Close player chat">×</button>
       </header>
-      <label class="chat-player-field">Conversation<select id="admin-chat-player"></select></label>
-      <div id="admin-chat-messages" class="admin-chat-messages" aria-live="polite"></div>
-      <form id="admin-chat-form" class="admin-chat-form">
-        <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" required /></label>
-        <button class="button primary" type="submit" aria-label="Send message">↑</button>
-      </form>
+      <div class="admin-chat-layout">
+        <section class="chat-inbox" aria-label="Player conversations">
+          <label class="chat-search"><span aria-hidden="true">⌕</span><input id="admin-chat-search" type="search" autocomplete="off" placeholder="Search players" aria-label="Search players" /></label>
+          <div id="admin-chat-list" class="admin-chat-list" role="list"></div>
+        </section>
+        <section class="chat-thread" aria-label="Active conversation">
+          <header class="chat-thread-header">
+            <button id="admin-chat-back" class="chat-back-button" type="button" aria-label="Back to conversations">‹</button>
+            <span id="admin-chat-avatar" class="chat-thread-avatar">?</span>
+            <div><strong id="admin-chat-player-name">Choose a player</strong><small id="admin-chat-player-status">All player conversations are on the left</small></div>
+          </header>
+          <div id="admin-chat-messages" class="admin-chat-messages" aria-live="polite"></div>
+          <form id="admin-chat-form" class="admin-chat-form">
+            <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" required disabled /></label>
+            <button class="button primary" type="submit" aria-label="Send message" disabled>↑</button>
+          </form>
+        </section>
+      </div>
     </aside>
 
     <button id="admin-payment-backdrop" class="side-panel-backdrop" type="button" aria-label="Close payment methods" hidden></button>
@@ -242,6 +254,6 @@
       <div id="admin-payment-methods" class="admin-payment-methods" aria-live="polite"></div>
     </aside>
   </div>
-  <script type="module" src="admin.js?v=8"></script>
+  <script type="module" src="admin.js?v=9"></script>
 </body>
 </html>
