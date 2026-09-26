@@ -304,7 +304,8 @@ paymentBackdrop.addEventListener("click", closeAdminPayment);
 
 document.getElementById("payment-method-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
   button.disabled = true;
   try {
     await request("/api/payment-methods", {
@@ -315,7 +316,7 @@ document.getElementById("payment-method-form").addEventListener("submit", async 
         paymentId: document.getElementById("payment-method-id").value,
       }),
     });
-    event.currentTarget.reset();
+    form.reset();
     await loadPaymentMethods();
     setNotice("Payment ID added.");
   } catch (error) { setNotice(error.message, true); }
@@ -381,12 +382,16 @@ document.getElementById("admin-login-form").addEventListener("submit", async (ev
 
 document.getElementById("create-player-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
   try {
     await request("/api/admin/players", { method: "POST", body: JSON.stringify({ action: "create", loginId: document.getElementById("new-login-id").value, pin: document.getElementById("new-login-pin").value }) });
-    event.currentTarget.reset();
+    form.reset();
     setNotice("Player account created.");
     await refresh();
   } catch (error) { setNotice(error.message, true); }
+  finally { button.disabled = false; }
 });
 
 document.getElementById("credit-player-form").addEventListener("submit", async (event) => {
