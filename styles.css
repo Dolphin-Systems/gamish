@@ -995,8 +995,8 @@ button {
   gap: 8px;
   padding: 6px;
   border: 1px solid rgba(255, 216, 148, 0.18);
-  border-radius: 18px;
-  background: rgba(14, 9, 18, 0.88);
+  border-radius: 999px;
+  background: rgba(14, 9, 18, 0.92);
   box-shadow: 0 18px 60px rgba(0,0,0,0.46), inset 0 1px rgba(255,255,255,0.06);
   backdrop-filter: blur(22px) saturate(1.2);
 }
@@ -1009,7 +1009,8 @@ button {
   width: 44px;
   height: 44px;
   border: 0;
-  border-radius: 13px;
+  border: 1px solid rgba(255, 197, 105, 0.12);
+  border-radius: 50%;
   background: transparent;
   color: #c7b6c2;
   cursor: pointer;
@@ -1132,6 +1133,36 @@ noscript {
   #game-shell canvas {
     border: 1px solid rgba(238, 181, 92, 0.24);
     border-radius: 22px;
+  }
+}
+
+@media (max-width: 819px) {
+  .arcade-view #game-shell {
+    height: 100dvh;
+    padding: calc(max(env(safe-area-inset-top), 10px) + 64px) 0 max(env(safe-area-inset-bottom), 8px);
+  }
+
+  .arcade-view #game-shell canvas {
+    max-height: 100%;
+  }
+
+  .utility-nav {
+    top: max(8px, calc(env(safe-area-inset-top) + 6px));
+    right: 12px;
+    gap: 3px;
+    padding: 5px;
+    border-color: rgba(255, 203, 119, 0.28);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.48), inset 0 1px rgba(255,255,255,0.07);
+  }
+
+  .utility-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .utility-button svg {
+    width: 22px;
+    height: 22px;
   }
 }
 

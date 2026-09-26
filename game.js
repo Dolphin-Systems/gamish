@@ -228,26 +228,28 @@
   };
 
   const addTopBar = (scene, options = {}) => {
-    const bar = addOrnatePanel(scene, WIDTH / 2, 58, WIDTH - 42, 82, {
+    const bar = addOrnatePanel(scene, WIDTH / 2, 70, WIDTH - 64, 92, {
       fill: COLORS.panel, fillAlpha: 0.84, stroke: COLORS.gold, strokeAlpha: 0.34, bend: 28,
     });
 
     if (options.back) {
-      const back = scene.add.container(62, 52);
-      const disk = scene.add.circle(0, 0, 27, 0x0e0912, 0.94).setStrokeStyle(2, COLORS.gold, 0.65);
-      const arrow = scene.add.text(-1, -2, "‹", { fontFamily: BODY_FONT, fontSize: "45px", color: "#ffe4a3" }).setOrigin(0.5);
-      back.add([disk, arrow]).setSize(64, 64).setInteractive({ useHandCursor: true });
+      const back = scene.add.container(88, 70);
+      const outerGlow = scene.add.circle(0, 0, 36, COLORS.ember, 0.09).setStrokeStyle(2, COLORS.ember, 0.25);
+      const disk = scene.add.circle(0, 0, 31, 0x0e0912, 0.96).setStrokeStyle(2, COLORS.gold, 0.82);
+      const arrow = scene.add.text(-2, -2, "‹", { fontFamily: BODY_FONT, fontSize: "49px", color: "#ffe4a3" }).setOrigin(0.5);
+      back.add([outerGlow, disk, arrow]).setSize(82, 82).setInteractive({ useHandCursor: true });
       back.on("pointerup", () => {
         window.GamishAudio?.play("nav");
         options.back();
       });
       back.on("pointerover", () => scene.tweens.add({ targets: back, scale: 1.08, duration: 120 }));
       back.on("pointerout", () => scene.tweens.add({ targets: back, scale: 1, duration: 120 }));
+      scene.tweens.add({ targets: outerGlow, alpha: { from: 0.18, to: 0.68 }, scale: { from: 0.92, to: 1.08 }, duration: 1000, yoyo: true, repeat: -1 });
     }
 
-    scene.add.text(105, 52, options.title ?? "GAMISH777", {
+    scene.add.text(options.back ? 138 : 64, 70, options.title ?? "GAMISH777", {
       fontFamily: DISPLAY_FONT,
-      fontSize: "22px",
+      fontSize: "24px",
       color: "#fff0c0",
       stroke: "#5d250d",
       strokeThickness: 4,
@@ -286,6 +288,8 @@
       this.load.image("fox", "assets/moon-fox.webp");
       this.load.image("phoenix-realm-v2", "assets/phoenix-realm-bg-v2.webp");
       this.load.image("phoenix-symbols-v2", "assets/phoenix-symbols-v2.webp");
+      this.load.image("phoenix-gameplay-v3", "assets/phoenix-gameplay-bg-v3.webp");
+      this.load.image("phoenix-reel-frame-v3", "assets/phoenix-reel-frame-v3.webp");
     }
 
     create() {
@@ -886,7 +890,7 @@
       this.totalWagered += this.bet;
       this.spinCount += 1;
       this.lastWin = 0;
-      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
+      this.cycleText.setText(`EMBER CIRCLE  •  SPIN ${this.spinCount}  •  BET ${this.bet}`);
       this.resultText.setText("REELS IN MOTION…").setColor("#ffd58c");
       this.refreshHud();
       this.animateRound(round);
@@ -1007,7 +1011,7 @@
         button.setAlpha(value === amount ? 1 : 0.7);
         this.tweens.add({ targets: button, scale: value === amount ? 1.045 : 1, duration: 140 });
       });
-      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${amount}`);
+      this.cycleText.setText(`EMBER CIRCLE  •  SPIN ${this.spinCount}  •  BET ${amount}`);
       this.refreshHud();
       setStatus(`Phoenix Ruby bet set to ${amount} virtual credits.`);
     }
@@ -1072,10 +1076,10 @@
       this.collection = this.loadCollection();
       setStatus("Phoenix Ruby. Choose 10, 20, or 40 credits and match the curved center line.");
 
-      fitBackground(this, "phoenix-realm-v2");
-      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x07030a, 0.58);
-      addVignette(this, 0.18);
-      addAtmosphere(this, 34, [0xff5b16, 0xffc457, 0xe0323d]);
+      fitBackground(this, "phoenix-gameplay-v3");
+      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x07030a, 0.38);
+      addVignette(this, 0.12);
+      addAtmosphere(this, 26, [0xff5b16, 0xffc457, 0xe0323d]);
       addTopBar(this, { title: "PHOENIX RUBY", back: () => this.returnToHall() });
 
       this.add.text(WIDTH / 2, 126, "EMBER CIRCLE", {
@@ -1094,28 +1098,26 @@
         letterSpacing: 5,
       }).setOrigin(0.5);
 
-      this.creditText = this.addStatCard(142, 232, "CREDITS", "0");
-      this.betText = this.addStatCard(384, 232, "BET", "10");
-      this.winText = this.addStatCard(626, 232, "WIN", "0");
+      this.creditText = this.addStatCard(112, 232, "CREDITS", "0", 166);
+      this.betText = this.addStatCard(294, 232, "BET", "10", 166);
+      this.winText = this.addStatCard(476, 232, "WIN", "0", 166);
+      this.totalWinText = this.addStatCard(658, 232, "TOTAL WIN", "0", 166, true);
 
-      const machineGlow = addOrnatePanel(this, WIDTH / 2, 566, 696, 562, {
-        fill: COLORS.ember, fillAlpha: 0.08, stroke: COLORS.ember, strokeAlpha: 0.24, bend: 58,
+      const machineGlow = addOrnatePanel(this, WIDTH / 2, 555, 720, 512, {
+        fill: COLORS.ember, fillAlpha: 0.06, stroke: COLORS.ember, strokeAlpha: 0.18, bend: 58,
       });
-      this.machinePanel = addOrnatePanel(this, WIDTH / 2, 566, 668, 536, {
-        fill: 0x0c0710, fillAlpha: 0.97, stroke: COLORS.gold, strokeAlpha: 0.88, lineWidth: 3, bend: 54,
+      this.machinePanel = addOrnatePanel(this, WIDTH / 2, 555, 692, 484, {
+        fill: 0x0c0710, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.42, lineWidth: 2, bend: 50,
       });
       this.tweens.add({ targets: machineGlow, alpha: { from: 0.28, to: 0.92 }, duration: 1200, yoyo: true, repeat: -1 });
 
-      addOrnatePanel(this, WIDTH / 2, 322, 620, 46, {
-        fill: 0x4a120f, fillAlpha: 0.96, stroke: COLORS.ember, strokeAlpha: 0.86, bend: 16,
-      });
-      this.cycleText = this.add.text(WIDTH / 2, 322, "EMBER SPIN  •  BET 10", {
+      this.cycleText = this.add.text(WIDTH / 2, 342, "EMBER CIRCLE  •  BET 10", {
         fontFamily: BODY_FONT,
-        fontSize: "13px",
+        fontSize: "12px",
         fontStyle: "700",
         color: "#ffd38a",
         letterSpacing: 3,
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setDepth(5);
 
       const reelXs = [190, 384, 578];
       const reelYs = [420, 552, 684];
@@ -1134,27 +1136,14 @@
         this.reelGlows.push(glow);
       });
 
-      const dividers = this.add.graphics();
-      dividers.lineStyle(2, 0xf0a44e, 0.22);
-      [287, 481].forEach((x, index) => {
-        dividers.beginPath();
-        dividers.moveTo(x, 366);
-        traceCubic(dividers,
-          { x, y: 366 },
-          { x: x + (index ? 8 : -8), y: 470 },
-          { x: x + (index ? -8 : 8), y: 640 },
-          { x, y: 738 },
-          22);
-        dividers.strokePath();
-      });
-
       reelYs.forEach((y, row) => {
         reelXs.forEach((x, column) => {
           const symbol = PHOENIX_SYMBOLS[(row * 2 + column) % PHOENIX_SYMBOLS.length];
           const halo = this.add.circle(x, y, 63, row === 1 ? COLORS.ember : COLORS.gold, row === 1 ? 0.055 : 0.025)
-            .setBlendMode(Phaser.BlendModes.ADD);
+            .setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
           const image = this.add.image(x, y, "phoenix-symbols-v2", symbol.frame)
             .setDisplaySize(132, 132)
+            .setDepth(2)
             .setData("baseY", y)
             .setData("row", row)
             .setData("column", column)
@@ -1163,16 +1152,28 @@
         });
       });
 
+      this.reelFrame = this.add.image(WIDTH / 2, 552, "phoenix-reel-frame-v3")
+        .setDisplaySize(724, 454)
+        .setDepth(3);
+      this.add.text(WIDTH / 2, 758, "PHOENIX RUBY", {
+        fontFamily: DISPLAY_FONT,
+        fontSize: "14px",
+        color: "#fff0b4",
+        stroke: "#6c1608",
+        strokeThickness: 4,
+        letterSpacing: 3,
+      }).setOrigin(0.5).setDepth(5);
+
       this.centerBand = this.add.rectangle(WIDTH / 2, 552, 592, 126, 0x9b1625, 0.09)
-        .setBlendMode(Phaser.BlendModes.ADD);
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
       this.winLine = this.add.graphics();
       this.drawWinLine(0.56);
-      this.winLine.setBlendMode(Phaser.BlendModes.ADD);
+      this.winLine.setBlendMode(Phaser.BlendModes.ADD).setDepth(4);
 
-      addOrnatePanel(this, WIDTH / 2, 796, 610, 58, {
+      addOrnatePanel(this, WIDTH / 2, 804, 610, 58, {
         fill: 0x170a14, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.4, bend: 18,
       });
-      this.resultText = this.add.text(WIDTH / 2, 796, "PRESS SPIN TO BEGIN", {
+      this.resultText = this.add.text(WIDTH / 2, 804, "PRESS SPIN TO BEGIN", {
         fontFamily: BODY_FONT,
         fontSize: "15px",
         fontStyle: "700",
@@ -1180,14 +1181,14 @@
         letterSpacing: 3,
       }).setOrigin(0.5);
 
-      this.spinButton = makeButton(this, WIDTH / 2, 892, 544, 92, "SPIN  •  10 CREDITS", () => this.spin(), {
+      this.spinButton = makeButton(this, WIDTH / 2, 894, 544, 92, "SPIN  •  10 CREDITS", () => this.spin(), {
         fill: 0x9b2014,
         stroke: 0xffdc7b,
         accent: 0xff5c14,
         fontSize: "25px",
       });
 
-      this.add.text(78, 966, "CHOOSE YOUR BET", {
+      this.add.text(78, 962, "CHOOSE YOUR BET", {
         fontFamily: BODY_FONT,
         fontSize: "12px",
         fontStyle: "700",
@@ -1195,7 +1196,7 @@
         letterSpacing: 3,
       });
       PHOENIX_BETS.forEach((amount, index) => {
-        const button = makeButton(this, 200 + index * 184, 1012, 154, 58, `${amount} CR`, () => this.selectBet(amount), {
+        const button = makeButton(this, 200 + index * 184, 1008, 154, 58, `${amount} CR`, () => this.selectBet(amount), {
           fill: amount === this.bet ? 0x7e1915 : 0x1b0c18,
           stroke: amount === this.bet ? COLORS.gold : 0x784446,
           accent: amount === this.bet ? COLORS.ember : 0x5b3142,
@@ -1205,52 +1206,70 @@
         this.betButtons.set(amount, button);
       });
 
-      this.collectionPanel = addOrnatePanel(this, WIDTH / 2, 1151, 650, 188, {
+      this.add.text(78, 1062, "PHOENIX FLAME", {
+        fontFamily: BODY_FONT,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#e8b765",
+        letterSpacing: 3,
+      });
+      this.flameValueText = this.add.text(690, 1062, "0%", {
+        fontFamily: BODY_FONT,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#ffd87e",
+      }).setOrigin(1, 0);
+      this.flameSegments = Array.from({ length: 10 }, (_, index) => this.add.rectangle(92 + index * 59, 1093, 48, 22, 0x4a2524, 0.72)
+        .setStrokeStyle(1, 0xd57132, 0.34));
+      this.flameMarker = this.add.image(688, 1093, "phoenix-symbols-v2", "symbol-4").setDisplaySize(52, 52);
+
+      this.collectionPanel = addOrnatePanel(this, WIDTH / 2, 1190, 650, 176, {
         fill: 0x0f0812, fillAlpha: 0.96, stroke: COLORS.gold, strokeAlpha: 0.5, bend: 36,
       });
-      this.add.image(118, 1132, "phoenix-symbols-v2", "symbol-8").setDisplaySize(94, 94);
-      this.add.text(176, 1088, "EMBER COLLECTION", {
+      this.add.image(118, 1181, "phoenix-symbols-v2", "symbol-8").setDisplaySize(88, 88);
+      this.add.text(176, 1136, "EMBER COLLECTION", {
         fontFamily: BODY_FONT,
         fontSize: "13px",
         fontStyle: "700",
         color: "#f0c475",
         letterSpacing: 3,
       });
-      this.themeText = this.add.text(176, 1120, "PHOENIX THEME  •  EMBER", {
+      this.themeText = this.add.text(176, 1166, "PHOENIX THEME  •  EMBER", {
         fontFamily: DISPLAY_FONT,
         fontSize: "19px",
         color: "#fff0bd",
       });
-      this.collectionTrack = this.add.rectangle(176, 1172, 460, 18, 0x3b2830, 0.94).setOrigin(0, 0.5);
-      this.collectionFill = this.add.rectangle(176, 1172, 0, 12, COLORS.ember, 1).setOrigin(0, 0.5);
-      this.collectionFill.setBlendMode(Phaser.BlendModes.ADD);
-      this.collectionText = this.add.text(636, 1202, "0 / 10 GEMS", {
+      this.collectionTrack = this.add.rectangle(176, 1208, 460, 18, 0x2e2030, 0.94).setOrigin(0, 0.5);
+      this.collectionSegments = Array.from({ length: 10 }, (_, index) => this.add.rectangle(180 + index * 45, 1208, 38, 12, 0x4f285d, 0.76)
+        .setOrigin(0, 0.5));
+      this.collectionMarker = this.add.image(176, 1208, "phoenix-symbols-v2", "symbol-1").setDisplaySize(34, 34);
+      this.collectionText = this.add.text(636, 1242, "0 / 10 GEMS", {
         fontFamily: BODY_FONT,
         fontSize: "12px",
         fontStyle: "700",
         color: "#e8c792",
         letterSpacing: 2,
       }).setOrigin(1, 0.5);
-      this.add.text(176, 1202, "Find Phoenix crests to unlock the next theme", {
+      this.add.text(176, 1242, "Find Phoenix crests to unlock the next theme", {
         fontFamily: BODY_FONT,
         fontSize: "12px",
         color: "#bbaab1",
       }).setOrigin(0, 0.5);
 
-      makeButton(this, 262, 1310, 310, 56, "REFRESH WALLET", () => this.refreshAccountWallet(), {
+      makeButton(this, 262, 1320, 310, 58, "REFRESH WALLET", () => this.refreshAccountWallet(), {
         fill: 0x1a0d19, stroke: 0x8a574c, accent: 0x673742, fontSize: "13px",
       });
-      makeButton(this, 534, 1310, 190, 56, "HOW TO PLAY", () => this.highlightRules(), {
+      makeButton(this, 534, 1320, 190, 58, "HOW TO PLAY", () => this.highlightRules(), {
         fill: 0x321125, stroke: 0x9e624e, accent: COLORS.ruby, fontSize: "12px",
       });
-      this.sessionText = this.add.text(WIDTH / 2, 1384, "0 SPINS  •  0 CREDITS WON", {
+      this.sessionText = this.add.text(WIDTH / 2, 1392, "0 SPINS  •  0 CREDITS WON", {
         fontFamily: BODY_FONT,
         fontSize: "12px",
         fontStyle: "700",
         color: "#caa47e",
         letterSpacing: 3,
       }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 1430, "RUBY 1.5×   •   GOLDEN SEVEN 3×   •   CENTER LINE WINS", {
+      this.add.text(WIDTH / 2, 1436, "RUBY 1.5×   •   GOLDEN SEVEN 3×   •   CENTER LINE WINS", {
         fontFamily: BODY_FONT,
         fontSize: "11px",
         fontStyle: "700",
@@ -1271,20 +1290,28 @@
       this.cameras.main.fadeIn(500, 8, 4, 10);
     }
 
-    addStatCard(x, y, label, value) {
-      addOrnatePanel(this, x, y, 198, 86, {
-        fill: 0x0f0812, fillAlpha: 0.95, stroke: 0xa46646, strokeAlpha: 0.72, bend: 22,
+    addStatCard(x, y, label, value, width = 198, winged = false) {
+      addOrnatePanel(this, x, y, width, 86, {
+        fill: winged ? 0x2b0b12 : 0x0f0812,
+        fillAlpha: 0.95,
+        stroke: winged ? COLORS.gold : 0xa46646,
+        strokeAlpha: winged ? 0.9 : 0.72,
+        bend: 22,
       });
+      if (winged) {
+        this.add.image(x - width / 2 + 19, y + 5, "phoenix-symbols-v2", "symbol-4").setDisplaySize(40, 40).setAngle(-24);
+        this.add.image(x + width / 2 - 19, y + 5, "phoenix-symbols-v2", "symbol-4").setDisplaySize(40, 40).setAngle(24).setFlipX(true);
+      }
       this.add.text(x, y - 20, label, {
         fontFamily: BODY_FONT,
-        fontSize: "11px",
+        fontSize: label === "TOTAL WIN" ? "9px" : "11px",
         fontStyle: "700",
         color: "#bca092",
         letterSpacing: 3,
       }).setOrigin(0.5);
       return this.add.text(x, y + 14, value, {
         fontFamily: DISPLAY_FONT,
-        fontSize: "24px",
+        fontSize: width < 180 ? "20px" : "24px",
         color: "#ffe9ae",
       }).setOrigin(0.5);
     }
@@ -1348,7 +1375,7 @@
       this.credits = Math.max(0, this.credits - this.bet);
       this.spinCount += 1;
       this.lastWin = 0;
-      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
+      this.cycleText.setText(`EMBER CIRCLE  •  SPIN ${this.spinCount}  •  BET ${this.bet}`);
       this.resultText.setText("REELS IN MOTION…").setColor("#ffd48b");
       this.refreshHud();
       this.animateRound(round);
@@ -1442,7 +1469,7 @@
       if (phoenixFound > 0) this.collectPhoenix(phoenixFound);
 
       if (payout > 0) {
-        const title = multiplier === 3 ? "GOLDEN SEVEN" : "RUBY WIN";
+        const title = this.winTier(multiplier, payout);
         this.resultText.setText(`${title}  •  +${payout.toLocaleString("en-US")} CREDITS`).setColor("#ffe080");
         this.drawWinLine(1);
         this.tweens.add({ targets: this.reelSymbols.slice(3, 6), scale: (132 / 418) * 1.17, duration: 180, yoyo: true, repeat: 3 });
@@ -1465,6 +1492,14 @@
         this.time.delayedCall(300, () => this.unlockSpin());
       }
       this.refreshHud();
+    }
+
+    winTier(multiplier, payout) {
+      const ratio = this.bet > 0 ? payout / this.bet : multiplier;
+      if (ratio >= 10) return "MEGA WIN";
+      if (ratio >= 5) return "SUPER WIN";
+      if (ratio >= 3) return "BIG WIN";
+      return "NICE WIN";
     }
 
     showWinCelebration(title, payout, multiplier) {
@@ -1499,7 +1534,29 @@
         color: "#f2c989",
         letterSpacing: 5,
       }).setOrigin(0.5);
-      overlay.add([shade, glow, leftFlame, rightFlame, panel, icon, heading, amount, caption]);
+      let closed = false;
+      const closeCelebration = () => {
+        if (closed) return;
+        closed = true;
+        window.GamishAudio?.play("tap");
+        this.tweens.add({
+          targets: overlay,
+          alpha: 0,
+          scale: 1.04,
+          duration: 260,
+          onComplete: () => {
+            overlay.destroy(true);
+            this.unlockSpin();
+          },
+        });
+      };
+      const collectButton = makeButton(this, 0, 308, 390, 70, "COLLECT", closeCelebration, {
+        fill: 0xa51f16,
+        stroke: 0xffdc7b,
+        accent: 0xff5c14,
+        fontSize: "21px",
+      });
+      overlay.add([shade, glow, leftFlame, rightFlame, panel, icon, heading, amount, caption, collectButton]);
 
       for (let index = 0; index < 24; index += 1) {
         const coin = this.add.image(Phaser.Math.Between(-340, 340), Phaser.Math.Between(-850, -460), "phoenix-symbols-v2", "symbol-7")
@@ -1522,18 +1579,7 @@
       this.tweens.add({ targets: glow, scale: { from: 0.82, to: 1.25 }, alpha: { from: 0.12, to: 0.34 }, duration: 700, yoyo: true, repeat: 2 });
       this.tweens.add({ targets: [leftFlame, rightFlame], y: { from: -78, to: -125 }, alpha: { from: 0.5, to: 0.95 }, duration: 640, yoyo: true, repeat: 2 });
       this.tweens.add({ targets: icon, scale: { from: icon.scaleX * 0.72, to: icon.scaleX }, angle: { from: -5, to: 0 }, duration: 520, ease: "Back.Out" });
-      this.time.delayedCall(2450, () => {
-        this.tweens.add({
-          targets: overlay,
-          alpha: 0,
-          scale: 1.04,
-          duration: 260,
-          onComplete: () => {
-            overlay.destroy(true);
-            this.unlockSpin();
-          },
-        });
-      });
+      this.time.delayedCall(4200, closeCelebration);
     }
 
     unlockSpin() {
@@ -1548,7 +1594,7 @@
         button.setAlpha(value === amount ? 1 : 0.7);
         this.tweens.add({ targets: button, scale: value === amount ? 1.06 : 1, duration: 150, ease: "Back.Out" });
       });
-      this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${amount}`);
+      this.cycleText.setText(`EMBER CIRCLE  •  SPIN ${this.spinCount}  •  BET ${amount}`);
       this.refreshHud();
       window.GamishAudio?.play("chip");
       setStatus(`Phoenix Ruby bet set to ${amount} virtual credits.`);
@@ -1558,8 +1604,18 @@
       this.creditText?.setText(this.credits.toLocaleString("en-US"));
       this.betText?.setText(this.bet.toLocaleString("en-US"));
       this.winText?.setText(this.lastWin.toLocaleString("en-US"));
+      this.totalWinText?.setText(this.totalReturned.toLocaleString("en-US"));
       this.spinButton?.getAt(3)?.setText(`SPIN  •  ${this.bet} CREDITS`);
       this.sessionText?.setText(`${this.spinCount} SPIN${this.spinCount === 1 ? "" : "S"}  •  ${this.totalReturned.toLocaleString("en-US")} CREDITS WON`);
+      const momentum = this.spinCount === 0 ? 0 : (this.spinCount % 10 || 10);
+      this.flameValueText?.setText(`${momentum * 10}%`);
+      this.flameSegments?.forEach((segment, index) => {
+        segment.setFillStyle(index < momentum ? (index > 6 ? 0xffc33e : 0xe64a23) : 0x4a2524, index < momentum ? 1 : 0.72);
+      });
+      if (this.flameMarker) {
+        const targetX = 92 + Math.max(0, momentum - 1) * 59;
+        this.tweens.add({ targets: this.flameMarker, x: targetX, duration: 360, ease: "Cubic.Out" });
+      }
     }
 
     collectionStorageKey() {
@@ -1601,13 +1657,16 @@
       const theme = themes[Math.min(this.collection.theme, themes.length - 1)];
       this.themeText?.setText(`PHOENIX THEME  •  ${theme}`);
       this.collectionText?.setText(`${this.collection.gems} / 10 GEMS`);
-      if (!this.collectionFill) return;
-      const targetWidth = 460 * (this.collection.gems / 10);
+      if (!this.collectionSegments) return;
+      this.collectionSegments.forEach((segment, index) => {
+        segment.setFillStyle(index < this.collection.gems ? 0xd94ce4 : 0x4f285d, index < this.collection.gems ? 1 : 0.76);
+      });
+      const markerX = 176 + this.collection.gems * 45;
       if (animate) {
-        this.tweens.add({ targets: this.collectionFill, displayWidth: targetWidth, duration: 520, ease: "Cubic.Out" });
+        this.tweens.add({ targets: this.collectionMarker, x: markerX, scale: { from: 0.07, to: 34 / 418 }, duration: 520, ease: "Back.Out" });
         this.tweens.add({ targets: this.collectionPanel, alpha: { from: 0.45, to: 1 }, duration: 220, yoyo: true, repeat: 1 });
       } else {
-        this.collectionFill.displayWidth = targetWidth;
+        this.collectionMarker.x = markerX;
       }
     }
 
