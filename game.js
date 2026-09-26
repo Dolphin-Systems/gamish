@@ -617,11 +617,15 @@
       this.isSpinning = false;
       this.outcomeBags = new Map();
       this.reelTexts = [];
+      this.reelBands = [];
+      this.reelGlows = [];
       this.betButtons = new Map();
     }
 
     create() {
       this.reelTexts = [];
+      this.reelBands = [];
+      this.reelGlows = [];
       this.betButtons = new Map();
       this.isSpinning = false;
       setStatus("Phoenix Ruby. A curved, animated virtual-credit reel game with no cash value.");
@@ -672,15 +676,57 @@
 
       const reelXs = [188, 384, 580];
       const reelYs = [438, 595, 752];
+      const reelSurface = this.add.graphics();
+      reelSurface.fillGradientStyle(0x33152f, 0x33152f, 0x09060e, 0x09060e, 0.72, 0.72, 0.98, 0.98);
+      reelSurface.fillRoundedRect(74, 378, 620, 434, 48);
+      addOrnatePanel(this, WIDTH / 2, 595, 622, 438, {
+        fill: 0x09060e,
+        fillAlpha: 0.08,
+        stroke: 0xf0ad55,
+        strokeAlpha: 0.46,
+        lineWidth: 2,
+        bend: 42,
+        anchors: false,
+      });
+
+      reelXs.forEach((x, column) => {
+        const band = this.add.rectangle(x, 595, 190, 412, column === 1 ? 0x50182d : 0x2f1328, column === 1 ? 0.2 : 0.14);
+        band.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.72);
+        this.reelBands.push(band);
+
+        const glow = this.add.ellipse(x, 595, 170, 116, column === 1 ? COLORS.ember : COLORS.ruby, 0.055);
+        glow.setBlendMode(Phaser.BlendModes.ADD);
+        this.reelGlows.push(glow);
+      });
+
+      const reelDetails = this.add.graphics();
+      reelDetails.lineStyle(2, 0xd78b52, 0.26);
+      [286, 482].forEach((x, index) => {
+        reelDetails.beginPath();
+        reelDetails.moveTo(x, 398);
+        traceCubic(reelDetails,
+          { x, y: 398 },
+          { x: x + (index ? 8 : -8), y: 492 },
+          { x: x + (index ? -8 : 8), y: 698 },
+          { x, y: 792 },
+          22);
+        reelDetails.strokePath();
+      });
+      reelDetails.fillStyle(COLORS.gold, 0.38);
+      reelXs.forEach((x) => {
+        [397, 793].forEach((y) => {
+          reelDetails.fillPoints([
+            new Phaser.Geom.Point(x, y - 5),
+            new Phaser.Geom.Point(x + 5, y),
+            new Phaser.Geom.Point(x, y + 5),
+            new Phaser.Geom.Point(x - 5, y),
+          ]);
+        });
+      });
+
+      this.add.rectangle(WIDTH / 2, 595, 600, 142, 0x8b1f2c, 0.1).setBlendMode(Phaser.BlendModes.ADD);
       reelYs.forEach((y, row) => {
         reelXs.forEach((x, column) => {
-          const cell = addOrnatePanel(this, x, y, 174, 138, {
-            fill: row === 1 ? 0x26101c : 0x1b101d,
-            fillAlpha: 0.98,
-            stroke: 0x9d5b3f,
-            strokeAlpha: row === 1 ? 0.92 : 0.68,
-            bend: 24,
-          });
           const symbol = PHOENIX_SYMBOLS[(row * 2 + column) % PHOENIX_SYMBOLS.length];
           const text = this.add.text(x, y - 3, symbol.mark, {
             fontFamily: DISPLAY_FONT,
@@ -689,17 +735,21 @@
             stroke: "#3b0d0b",
             strokeThickness: 7,
             shadow: { offsetY: 6, color: "#000000", blur: 12, fill: true },
-          }).setOrigin(0.5);
+          }).setOrigin(0.5)
+            .setData("baseY", y - 3)
+            .setData("row", row)
+            .setData("column", column);
           this.reelTexts.push(text);
         });
       });
 
       this.winLine = this.add.graphics();
-      this.winLine.lineStyle(4, COLORS.gold, 0.3);
+      this.winLine.lineStyle(5, COLORS.gold, 0.44);
       this.winLine.beginPath();
-      this.winLine.moveTo(86, 600);
-      traceCubic(this.winLine, { x: 86, y: 600 }, { x: 220, y: 566 }, { x: 548, y: 624 }, { x: 682, y: 590 }, 24);
+      this.winLine.moveTo(82, 600);
+      traceCubic(this.winLine, { x: 82, y: 600 }, { x: 220, y: 568 }, { x: 548, y: 622 }, { x: 686, y: 590 }, 28);
       this.winLine.strokePath();
+      this.winLine.setBlendMode(Phaser.BlendModes.ADD);
       this.resultText = this.add.text(WIDTH / 2, 860, "PRESS SPIN TO BEGIN", {
         fontFamily: BODY_FONT,
         fontSize: "17px",
@@ -853,53 +903,110 @@
       this.spinCount += 1;
       this.lastWin = 0;
       const outcome = this.getOutcome();
+      const grid = this.buildResultGrid(outcome.multiplier);
       this.cycleText.setText(`EMBER SPIN ${this.spinCount}  •  BET ${this.bet}`);
-      this.resultText.setText("THE EMBERS ARE TURNING…").setColor("#ffd58c");
+      this.resultText.setText("REELS IN MOTION…").setColor("#ffd58c");
       this.spinButton.disableInteractive().setAlpha(0.72);
       this.refreshHud();
 
       let ticks = 0;
-      const spinner = this.time.addEvent({
-        delay: 72,
-        repeat: 11,
+      const stopTicks = [10, 14, 18];
+      const settled = [false, false, false];
+      this.reelBands.forEach((band, column) => {
+        this.tweens.add({
+          targets: band,
+          alpha: { from: 0.42, to: 1 },
+          duration: 150 + column * 24,
+          yoyo: true,
+          repeat: 7,
+        });
+      });
+      this.tweens.add({ targets: this.winLine, alpha: { from: 0.16, to: 0.62 }, duration: 220, yoyo: true, repeat: 5 });
+
+      this.time.addEvent({
+        delay: 74,
+        repeat: 17,
         callback: () => {
           ticks += 1;
-          this.reelTexts.forEach((text, index) => {
-            if (ticks < 7 + (index % 3) * 2) this.setSymbol(text, this.randomSymbol());
+          this.reelTexts.forEach((text) => {
+            const column = text.getData("column");
+            const row = text.getData("row");
+            if (ticks >= stopTicks[column]) return;
+            this.setSymbol(text, this.randomSymbol());
+            const travelStep = (ticks + row * 2) % 3;
+            text
+              .setY(text.getData("baseY") + [48, 2, -44][travelStep])
+              .setAlpha(0.42 + travelStep * 0.13)
+              .setScale(0.9, 1.22)
+              .setAngle(travelStep === 1 ? 0 : (travelStep - 1) * 2);
           });
-          if (ticks % 3 === 0) {
+
+          stopTicks.forEach((stopTick, column) => {
+            if (ticks !== stopTick || settled[column]) return;
+            settled[column] = true;
+            [column, column + 3, column + 6].forEach((index, row) => {
+              const text = this.reelTexts[index];
+              this.setSymbol(text, grid[index]);
+              text
+                .setY(text.getData("baseY") - 54)
+                .setAlpha(0.5)
+                .setScale(0.88, 1.16)
+                .setAngle(0);
+              this.tweens.add({
+                targets: text,
+                y: text.getData("baseY"),
+                alpha: 1,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 250,
+                delay: row * 34,
+                ease: "Back.Out",
+              });
+            });
+            this.tweens.add({
+              targets: [this.reelBands[column], this.reelGlows[column]],
+              alpha: { from: 0.32, to: 1 },
+              duration: 150,
+              yoyo: true,
+            });
             window.GamishAudio?.play("tick");
-            this.cameras.main.shake(45, 0.0014);
+            this.cameras.main.shake(70, 0.0015 + column * 0.0003);
+          });
+
+          if (ticks % 4 === 0 && ticks < stopTicks[2]) {
+            window.GamishAudio?.play("tick");
+            this.cameras.main.shake(42, 0.0009);
           }
+
+          if (ticks === stopTicks[2]) this.time.delayedCall(380, () => this.finishSpin(outcome));
         },
       });
+    }
 
-      this.time.delayedCall(980, () => {
-        spinner.remove(false);
-        const grid = this.buildResultGrid(outcome.multiplier);
-        this.reelTexts.forEach((text, index) => this.setSymbol(text, grid[index]));
-        const payout = this.bet * outcome.multiplier;
-        this.lastWin = payout;
-        this.credits += payout;
-        this.totalReturned += payout;
+    finishSpin(outcome) {
+      const payout = this.bet * outcome.multiplier;
+      this.lastWin = payout;
+      this.credits += payout;
+      this.totalReturned += payout;
 
-        if (payout > 0) {
-          window.GamishAudio?.play(outcome.multiplier === 3 ? "win-big" : "win-small");
-          this.resultText.setText(`WIN  +${payout.toLocaleString("en-US")} CREDITS  •  ${outcome.multiplier}×`).setColor("#ffdc83");
-          this.tweens.add({ targets: this.reelTexts.slice(3, 6), scale: 1.16, duration: 180, yoyo: true, repeat: 2 });
-          this.tweens.add({ targets: this.winLine, alpha: 1, scaleX: 1.05, duration: 190, yoyo: true, repeat: 3 });
-          this.cameras.main.flash(220, 255, 126, 34, false);
-          setStatus(`Phoenix Ruby win. ${payout} virtual credits returned at ${outcome.multiplier} times the bet.`);
-        } else {
-          window.GamishAudio?.play("lose");
-          this.resultText.setText("NO WIN  •  THE PHOENIX RISES AGAIN").setColor("#c4abb1");
-          setStatus("Phoenix Ruby spin complete. No win on this virtual-credit spin.");
-        }
+      if (payout > 0) {
+        window.GamishAudio?.play(outcome.multiplier === 3 ? "win-big" : "win-small");
+        this.resultText.setText(`WIN  +${payout.toLocaleString("en-US")} CREDITS  •  ${outcome.multiplier}×`).setColor("#ffdc83");
+        this.tweens.add({ targets: this.reelTexts.slice(3, 6), scale: 1.16, duration: 180, yoyo: true, repeat: 2 });
+        this.tweens.add({ targets: this.reelGlows, alpha: { from: 0.2, to: 1 }, scaleX: 1.08, scaleY: 1.08, duration: 180, yoyo: true, repeat: 3 });
+        this.tweens.add({ targets: this.winLine, alpha: 1, scaleX: 1.05, duration: 190, yoyo: true, repeat: 3 });
+        this.cameras.main.flash(220, 255, 126, 34, false);
+        setStatus(`Phoenix Ruby win. ${payout} virtual credits returned at ${outcome.multiplier} times the bet.`);
+      } else {
+        window.GamishAudio?.play("lose");
+        this.resultText.setText("NO WIN  •  THE PHOENIX RISES AGAIN").setColor("#c4abb1");
+        this.tweens.add({ targets: this.winLine, alpha: 0.3, duration: 260 });
+        setStatus("Phoenix Ruby spin complete. No win on this virtual-credit spin.");
+      }
 
-        this.refreshHud();
-        this.isSpinning = false;
-        this.spinButton.setInteractive({ useHandCursor: true }).setAlpha(1);
-      });
+      this.refreshHud();
+      this.isSpinning = false;
+      this.spinButton.setInteractive({ useHandCursor: true }).setAlpha(1);
     }
 
     selectBet(amount) {
