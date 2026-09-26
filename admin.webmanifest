@@ -9,16 +9,16 @@
     { "purpose": "maskable", "sizes": "192x192", "src": "/admin-icon-maskable-192.png", "type": "image/png" },
     { "purpose": "maskable", "sizes": "512x512", "src": "/admin-icon-maskable-512.png", "type": "image/png" }
   ],
-  "id": "/admin",
+  "id": "/admin.html",
   "name": "Gamish777 Admin",
   "orientation": "any",
   "scope": "/admin",
   "short_name": "G777 Admin",
   "shortcuts": [
-    { "name": "Player analytics", "short_name": "Analytics", "url": "/admin#analytics" },
-    { "name": "Manage players", "short_name": "Players", "url": "/admin#players" },
-    { "name": "Money", "short_name": "Money", "url": "/admin#money" }
+    { "name": "Player analytics", "short_name": "Analytics", "url": "/admin.html#analytics" },
+    { "name": "Manage players", "short_name": "Players", "url": "/admin.html#players" },
+    { "name": "Money", "short_name": "Money", "url": "/admin.html#money" }
   ],
-  "start_url": "/admin",
+  "start_url": "/admin.html",
   "theme_color": "#00c853"
 }

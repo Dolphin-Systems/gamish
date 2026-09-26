@@ -1,6 +1,6 @@
 const CACHE_NAME = "gamish777-admin-v7";
 const ADMIN_SHELL = [
-  "/admin",
+  "/admin.html",
   "/admin.css?v=7",
   "/admin.js?v=7",
   "/admin.webmanifest",
@@ -39,6 +39,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/admin")))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/admin.html")))
   );
 });
