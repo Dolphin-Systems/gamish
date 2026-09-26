@@ -3,6 +3,7 @@ const dashboard = document.getElementById("admin-dashboard");
 const notice = document.getElementById("admin-notice");
 const pageTitle = document.getElementById("page-title");
 const pageDescription = document.getElementById("page-description");
+const chatImages = window.GamishChatImages;
 let players = [];
 let report = null;
 let noticeTimer;
@@ -182,8 +183,27 @@ const chatForm = document.getElementById("admin-chat-form");
 const chatPlayerName = document.getElementById("admin-chat-player-name");
 const chatPlayerStatus = document.getElementById("admin-chat-player-status");
 const chatAvatar = document.getElementById("admin-chat-avatar");
+const chatImageInput = document.getElementById("admin-chat-image-input");
+const chatImagePreview = document.getElementById("admin-chat-image-preview");
+const chatImagePreviewPhoto = document.getElementById("admin-chat-image-preview-photo");
+const chatImagePreviewName = document.getElementById("admin-chat-image-preview-name");
+const chatAttach = document.getElementById("admin-chat-attach");
 let chatConversations = [];
 let selectedChatPlayerId = "";
+let pendingAdminImage = null;
+chatImages?.setupViewer();
+
+const setPendingAdminImage = (attachment) => {
+  pendingAdminImage = attachment;
+  chatImagePreview.hidden = !attachment;
+  if (attachment) {
+    chatImagePreviewPhoto.src = attachment.previewUrl;
+    chatImagePreviewName.textContent = attachment.name;
+  } else {
+    chatImagePreviewPhoto.removeAttribute("src");
+    chatImageInput.value = "";
+  }
+};
 
 const selectedConversation = () => chatConversations.find((conversation) => conversation.playerId === selectedChatPlayerId);
 
@@ -195,7 +215,9 @@ const setChatThread = (conversation) => {
     : "Choose anyone from the inbox";
   chatAvatar.textContent = conversation?.loginId?.charAt(0).toUpperCase() || "?";
   chatInput.disabled = !enabled;
-  chatForm.querySelector("button").disabled = !enabled;
+  chatImageInput.disabled = !enabled;
+  chatAttach.disabled = !enabled;
+  chatForm.querySelector('button[type="submit"]').disabled = !enabled;
 };
 
 const renderChatInbox = () => {
@@ -252,10 +274,20 @@ const renderChat = (messages) => {
   for (const message of messages) {
     const row = document.createElement("div");
     const content = document.createElement("div");
-    const bubble = document.createElement("p");
+    const bubble = document.createElement("div");
     const stamp = document.createElement("time");
     row.className = `admin-chat-message ${message.senderRole === "admin" ? "admin" : "player"}`;
-    bubble.textContent = message.body;
+    bubble.className = "admin-chat-bubble";
+    if (message.attachment) {
+      bubble.classList.add("has-image");
+      bubble.append(chatImages.createMessageImage(message.attachment));
+    }
+    if (!message.attachment || message.body !== "Photo") {
+      const caption = document.createElement("p");
+      caption.className = "chat-photo-caption";
+      caption.textContent = message.body;
+      bubble.append(caption);
+    }
     stamp.textContent = time(message.createdAt);
     content.append(bubble, stamp);
     row.append(content);
@@ -297,6 +329,7 @@ const closeAdminChat = () => {
   chatPanel.hidden = true;
   chatBackdrop.hidden = true;
   chatPanel.classList.remove("conversation-open");
+  setPendingAdminImage(null);
   clearInterval(chatTimer);
 };
 
@@ -317,6 +350,7 @@ chatSearch.addEventListener("input", renderChatInbox);
 chatList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-player-id]");
   if (!button) return;
+  if (selectedChatPlayerId !== button.dataset.playerId) setPendingAdminImage(null);
   selectedChatPlayerId = button.dataset.playerId;
   chatPanel.classList.add("conversation-open");
   renderChatInbox();
@@ -325,21 +359,47 @@ chatList.addEventListener("click", async (event) => {
 });
 document.getElementById("admin-chat-back").addEventListener("click", () => {
   chatPanel.classList.remove("conversation-open");
+  setPendingAdminImage(null);
   chatSearch.focus();
 });
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
+  const button = event.currentTarget.querySelector('button[type="submit"]');
   if (!selectedChatPlayerId) return;
   button.disabled = true;
   try {
-    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: selectedChatPlayerId, message: chatInput.value }) });
+    const message = chatInput.value.trim();
+    if (!message && !pendingAdminImage) return;
+    const attachment = pendingAdminImage ? {
+      data: pendingAdminImage.data,
+      type: pendingAdminImage.type,
+      name: pendingAdminImage.name,
+    } : null;
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: selectedChatPlayerId, message, attachment }) });
     chatInput.value = "";
+    setPendingAdminImage(null);
     await loadAdminChat();
     await refreshChatInbox();
   } catch (error) { setNotice(error.message, true); }
-  finally { button.disabled = false; }
+  finally { button.disabled = !selectedChatPlayerId; }
 });
+chatAttach.addEventListener("click", () => chatImageInput.click());
+chatImageInput.addEventListener("change", async () => {
+  const [file] = chatImageInput.files;
+  if (!file) return;
+  chatAttach.disabled = true;
+  try {
+    setNotice("Preparing image…");
+    setPendingAdminImage(await chatImages.prepare(file));
+    setNotice("Image ready to send.");
+  } catch (error) {
+    setPendingAdminImage(null);
+    setNotice(error.message, true);
+  } finally {
+    chatAttach.disabled = !selectedChatPlayerId;
+  }
+});
+document.getElementById("admin-chat-image-remove").addEventListener("click", () => setPendingAdminImage(null));
 
 const paymentPanel = document.getElementById("admin-payment-panel");
 const paymentBackdrop = document.getElementById("admin-payment-backdrop");

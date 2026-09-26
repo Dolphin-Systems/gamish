@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=9" />
+  <link rel="stylesheet" href="admin.css?v=10" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -231,8 +231,15 @@
             <div><strong id="admin-chat-player-name">Choose a player</strong><small id="admin-chat-player-status">All player conversations are on the left</small></div>
           </header>
           <div id="admin-chat-messages" class="admin-chat-messages" aria-live="polite"></div>
+          <div id="admin-chat-image-preview" class="admin-chat-image-preview" hidden>
+            <img id="admin-chat-image-preview-photo" alt="Selected attachment preview" />
+            <div><b id="admin-chat-image-preview-name">Photo</b><small>Ready to send</small></div>
+            <button id="admin-chat-image-remove" type="button" aria-label="Remove selected image">×</button>
+          </div>
           <form id="admin-chat-form" class="admin-chat-form">
-            <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" required disabled /></label>
+            <input id="admin-chat-image-input" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" disabled />
+            <button id="admin-chat-attach" class="admin-chat-attach" type="button" aria-label="Attach an image" disabled>＋</button>
+            <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" disabled /></label>
             <button class="button primary" type="submit" aria-label="Send message" disabled>↑</button>
           </form>
         </section>
@@ -254,6 +261,12 @@
       <div id="admin-payment-methods" class="admin-payment-methods" aria-live="polite"></div>
     </aside>
   </div>
-  <script type="module" src="admin.js?v=9"></script>
+  <dialog id="chat-image-viewer" class="chat-image-viewer" aria-labelledby="chat-image-viewer-title">
+    <form method="dialog"><button type="submit" aria-label="Close image">×</button></form>
+    <img id="chat-image-viewer-photo" alt="" />
+    <p id="chat-image-viewer-title">Chat image</p>
+  </dialog>
+  <script src="chat-images.js?v=1"></script>
+  <script type="module" src="admin.js?v=10"></script>
 </body>
 </html>

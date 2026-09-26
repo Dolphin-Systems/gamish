@@ -209,15 +209,34 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .admin-chat-message { display: flex; margin: 10px 0; }
 .admin-chat-message.admin { justify-content: flex-end; }
 .admin-chat-message > div { max-width: 84%; }
-.admin-chat-message p { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 18px 18px 18px 5px; background: #fff; line-height: 1.45; overflow-wrap: anywhere; box-shadow: 0 5px 15px rgba(0,0,0,.04); }
-.admin-chat-message.admin p { border-color: transparent; border-radius: 18px 18px 5px 18px; background: var(--green); }
+.admin-chat-bubble { padding: 12px 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 18px 18px 18px 5px; background: #fff; line-height: 1.45; overflow-wrap: anywhere; box-shadow: 0 5px 15px rgba(0,0,0,.04); }
+.admin-chat-message.admin .admin-chat-bubble { border-color: transparent; border-radius: 18px 18px 5px 18px; background: var(--green); }
+.admin-chat-bubble .chat-photo-caption { margin: 0; }
+.admin-chat-bubble.has-image { min-width: min(300px, 58vw); padding: 5px; }
+.admin-chat-bubble.has-image .chat-photo-caption { padding: 9px 10px 8px; }
+.chat-photo-button { display: block; width: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 14px; background: transparent; cursor: zoom-in; }
+.chat-photo { display: block; width: 100%; max-height: 350px; border-radius: 14px; object-fit: cover; }
 .admin-chat-message time { display: block; margin: 5px 4px; color: var(--muted); font-size: 9px; }
 .admin-chat-message.admin time { text-align: right; }
 .admin-chat-empty { margin: 60px 20px; color: var(--muted); text-align: center; }
-.admin-chat-form { display: grid; grid-template-columns: 1fr 52px; gap: 9px; padding: 12px; border-top: 1px solid var(--line); background: #fff; }
+.admin-chat-image-preview { display: grid; grid-template-columns: 50px minmax(0, 1fr) 34px; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--green-soft); }
+.admin-chat-image-preview img { width: 50px; height: 50px; border-radius: 13px; object-fit: cover; }
+.admin-chat-image-preview b, .admin-chat-image-preview small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-chat-image-preview b { font-size: 11px; }
+.admin-chat-image-preview small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.admin-chat-image-preview button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 11px; background: #fff; cursor: pointer; font-size: 18px; }
+.admin-chat-form { display: grid; grid-template-columns: 44px 1fr 52px; gap: 9px; padding: 12px; border-top: 1px solid var(--line); background: #fff; }
+.admin-chat-attach { width: 44px; height: 52px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 21px; }
+.admin-chat-attach:disabled { color: #aab0ac; cursor: default; }
 .admin-chat-form input { min-height: 52px; border-radius: 17px; }
 .admin-chat-form .button { min-width: 52px; min-height: 52px; padding: 0; border-radius: 17px; font-size: 20px; }
 .admin-chat-form .button:disabled { background: #dce1dd; color: #8a918c; }
+.chat-image-viewer { width: min(92vw, 900px); max-width: none; padding: 8px; border: 1px solid var(--line); border-radius: 22px; background: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.35); }
+.chat-image-viewer::backdrop { background: rgba(4,7,5,.78); backdrop-filter: blur(8px); }
+.chat-image-viewer form { position: absolute; top: 14px; right: 14px; z-index: 1; }
+.chat-image-viewer form button { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.38); border-radius: 50%; background: rgba(8,10,9,.72); color: #fff; cursor: pointer; font-size: 22px; }
+.chat-image-viewer img { display: block; width: 100%; max-height: 80vh; border-radius: 16px; object-fit: contain; }
+.chat-image-viewer p { margin: 10px 10px 4px; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 .payment-method-form { display: grid; grid-template-columns: 1fr 1.35fr; gap: 11px; margin-top: 20px; padding: 16px; border-radius: 22px; background: var(--surface); }
 .payment-method-form .button { grid-column: 1 / -1; width: 100%; }
@@ -296,6 +315,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
   .admin-chat-panel.conversation-open .chat-inbox { transform: translateX(-24%); opacity: 0; }
   .admin-chat-panel.conversation-open .chat-thread { transform: translateX(0); opacity: 1; }
   .chat-back-button { display: grid; place-items: center; }
+  .admin-chat-bubble.has-image { min-width: min(270px, 72vw); }
   .payment-method-form { grid-template-columns: 1fr; }
   .payment-method-form .button { grid-column: auto; }
 }

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <title>Gamish777 — Ember Crown Arcade</title>
 </head>
 <body>
@@ -103,8 +103,14 @@
             <button type="button" data-reply="I need help with a payment.">Payment help</button>
           </div>
 
+          <div id="message-image-preview" class="message-image-preview" hidden>
+            <img id="message-image-preview-photo" alt="Selected attachment preview" />
+            <div><b id="message-image-preview-name">Photo</b><small>Ready to send</small></div>
+            <button id="message-image-remove" type="button" aria-label="Remove selected image">×</button>
+          </div>
           <form id="message-form" class="message-composer">
-            <button class="attach-button" type="button" aria-label="Attach a screenshot">＋</button>
+            <input id="message-image-input" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" />
+            <button id="message-attach" class="attach-button" type="button" aria-label="Attach an image">＋</button>
             <label class="message-input"><span class="sr-only">Message</span><input id="message-input" autocomplete="off" placeholder="Write a message…" maxlength="500" /></label>
             <button class="send-button" type="submit" aria-label="Send message">↑</button>
           </form>
@@ -138,11 +144,17 @@
     </nav>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <dialog id="chat-image-viewer" class="chat-image-viewer" aria-labelledby="chat-image-viewer-title">
+      <form method="dialog"><button type="submit" aria-label="Close image">×</button></form>
+      <img id="chat-image-viewer-photo" alt="" />
+      <p id="chat-image-viewer-title">Chat image</p>
+    </dialog>
   </main>
   <noscript>This experience requires JavaScript to run.</noscript>
   <script defer src="audio.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
   <script defer src="game.js"></script>
-  <script defer src="app.js?v=3"></script>
+  <script src="chat-images.js?v=1"></script>
+  <script defer src="app.js?v=4"></script>
 </body>
 </html>

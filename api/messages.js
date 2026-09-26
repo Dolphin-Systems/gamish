@@ -1,6 +1,7 @@
 import { getSessionPlayer } from "../lib/auth.js";
 import { ensureSchema, getSql } from "../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../lib/http.js";
+import { MAX_MESSAGE_REQUEST_BYTES, parseImageAttachment } from "../lib/message-images.js";
 import { randomUUID } from "../lib/security.js";
 
 const normalizeMessage = (row) => ({
@@ -9,6 +10,11 @@ const normalizeMessage = (row) => ({
   senderId: row.sender_id,
   senderRole: row.sender_role,
   body: row.body,
+  attachment: row.attachment_type ? {
+    url: `/api/message-image?id=${encodeURIComponent(row.id)}`,
+    type: row.attachment_type,
+    name: row.attachment_name || "Chat image",
+  } : null,
   createdAt: row.created_at,
   readAt: row.read_at,
 });
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const body = req.method === "POST" ? await readJson(req) : {};
+    const body = req.method === "POST" ? await readJson(req, MAX_MESSAGE_REQUEST_BYTES) : {};
     const requestedPlayerId = req.method === "GET" ? url.searchParams.get("playerId") : body.playerId;
     const playerId = account.role === "admin" ? requestedPlayerId : account.id;
     if (!playerId) throw new HttpError(400, "Choose a player", "player_required");
@@ -62,13 +68,27 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       requireBrowserAction(req);
       const message = String(body.message || "").trim();
-      if (!message || message.length > 500) {
-        throw new HttpError(400, "Message must contain 1–500 characters", "invalid_message");
+      const attachment = parseImageAttachment(body.attachment);
+      if ((!message && !attachment) || message.length > 500) {
+        throw new HttpError(400, "Add a message or image, with no more than 500 text characters", "invalid_message");
       }
+      if (attachment) {
+        const [usage] = await sql`
+          SELECT COUNT(*)::INTEGER AS image_count
+          FROM support_messages
+          WHERE sender_id = ${account.id}
+            AND attachment_data IS NOT NULL
+            AND created_at > NOW() - INTERVAL '1 hour'
+        `;
+        if (Number(usage.image_count) >= 20) {
+          throw new HttpError(429, "Image limit reached. Try again later", "image_rate_limited");
+        }
+      }
+      const storedBody = message || "Photo";
       const [created] = await sql`
-        INSERT INTO support_messages (id, player_id, sender_id, body)
-        VALUES (${randomUUID()}, ${player.id}, ${account.id}, ${message})
-        RETURNING *
+        INSERT INTO support_messages (id, player_id, sender_id, body, attachment_type, attachment_name, attachment_data)
+        VALUES (${randomUUID()}, ${player.id}, ${account.id}, ${storedBody}, ${attachment?.type || null}, ${attachment?.name || null}, ${attachment?.data || null})
+        RETURNING id, player_id, sender_id, body, attachment_type, attachment_name, created_at, read_at
       `;
       return json(res, 201, {
         message: normalizeMessage({ ...created, sender_role: account.role }),
@@ -81,7 +101,9 @@ export default async function handler(req, res) {
       WHERE player_id = ${player.id} AND sender_id <> ${account.id} AND read_at IS NULL
     `;
     const messages = await sql`
-      SELECT m.*, sender.role AS sender_role
+      SELECT
+        m.id, m.player_id, m.sender_id, m.body, m.attachment_type, m.attachment_name,
+        m.created_at, m.read_at, sender.role AS sender_role
       FROM support_messages m
       JOIN players sender ON sender.id = m.sender_id
       WHERE m.player_id = ${player.id}

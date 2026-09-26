@@ -9,6 +9,7 @@
   const walletBalance = document.getElementById("wallet-balance");
   const walletPlayerId = document.getElementById("wallet-player-id");
   const accountInitial = document.getElementById("account-initial");
+  const chatImages = window.GamishChatImages;
 
   const request = async (url, options = {}) => {
     const response = await fetch(url, {
@@ -269,6 +270,25 @@
   const messageList = document.getElementById("message-list");
   const messageForm = document.getElementById("message-form");
   const messageInput = document.getElementById("message-input");
+  const messageImageInput = document.getElementById("message-image-input");
+  const messageImagePreview = document.getElementById("message-image-preview");
+  const messageImagePreviewPhoto = document.getElementById("message-image-preview-photo");
+  const messageImagePreviewName = document.getElementById("message-image-preview-name");
+  const messageAttach = document.getElementById("message-attach");
+  let pendingMessageImage = null;
+  chatImages?.setupViewer();
+
+  const setPendingMessageImage = (attachment) => {
+    pendingMessageImage = attachment;
+    messageImagePreview.hidden = !attachment;
+    if (attachment) {
+      messageImagePreviewPhoto.src = attachment.previewUrl;
+      messageImagePreviewName.textContent = attachment.name;
+    } else {
+      messageImagePreviewPhoto.removeAttribute("src");
+      messageImageInput.value = "";
+    }
+  };
 
   const renderMessages = (messages) => {
     messageList.replaceChildren();
@@ -293,7 +313,16 @@
         row.append(avatar);
       }
       bubble.className = "message-bubble";
-      bubble.textContent = message.body;
+      if (message.attachment) {
+        bubble.classList.add("has-image");
+        bubble.append(chatImages.createMessageImage(message.attachment));
+      }
+      if (!message.attachment || message.body !== "Photo") {
+        const caption = document.createElement("p");
+        caption.className = "chat-photo-caption";
+        caption.textContent = message.body;
+        bubble.append(caption);
+      }
       stamp.textContent = new Date(message.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
       content.append(bubble, stamp);
       row.append(content);
@@ -310,10 +339,16 @@
 
   const sendMessage = async (text) => {
     const clean = text.trim();
-    if (!clean) return;
+    if (!clean && !pendingMessageImage) return;
     audio?.play("message");
-    await request("/api/messages", { method: "POST", body: JSON.stringify({ message: clean }) });
+    const attachment = pendingMessageImage ? {
+      data: pendingMessageImage.data,
+      type: pendingMessageImage.type,
+      name: pendingMessageImage.name,
+    } : null;
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ message: clean, attachment }) });
     messageInput.value = "";
+    setPendingMessageImage(null);
     await loadMessages();
   };
 
@@ -330,10 +365,26 @@
     button.addEventListener("click", () => sendMessage(button.dataset.reply).catch((error) => showToast(error.message)));
   });
 
-  document.querySelector(".attach-button").addEventListener("click", () => {
+  messageAttach.addEventListener("click", () => {
     audio?.play("tap");
-    showToast("Screenshot attachments are available in the connected support build");
+    messageImageInput.click();
   });
+  messageImageInput.addEventListener("change", async () => {
+    const [file] = messageImageInput.files;
+    if (!file) return;
+    messageAttach.disabled = true;
+    try {
+      showToast("Preparing image…");
+      setPendingMessageImage(await chatImages.prepare(file));
+      showToast("Image ready to send");
+    } catch (error) {
+      setPendingMessageImage(null);
+      showToast(error.message);
+    } finally {
+      messageAttach.disabled = false;
+    }
+  });
+  document.getElementById("message-image-remove").addEventListener("click", () => setPendingMessageImage(null));
 
   document.querySelector('[data-view="messages"]').addEventListener("click", () => loadMessages().catch((error) => showToast(error.message)));
   window.setInterval(() => {

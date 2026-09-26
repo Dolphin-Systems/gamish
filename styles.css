@@ -722,6 +722,11 @@ button {
   font-size: 15px;
   line-height: 1.58;
 }
+.message-bubble .chat-photo-caption { margin: 0; }
+.message-bubble.has-image { min-width: min(280px, 66vw); padding: 5px; overflow: hidden; }
+.message-bubble.has-image .chat-photo-caption { padding: 9px 10px 8px; }
+.chat-photo-button { display: block; width: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 13px; background: transparent; cursor: zoom-in; }
+.chat-photo { display: block; width: 100%; max-height: 340px; border-radius: 13px; object-fit: cover; }
 .user-message .message-bubble {
   border-color: rgba(255, 180, 79, 0.25);
   border-radius: 17px 17px 5px 17px;
@@ -759,6 +764,13 @@ button {
 }
 .quick-replies button:hover { border-color: rgba(255, 184, 83, 0.55); background: rgba(255, 147, 51, 0.12); }
 
+.message-image-preview { display: grid; grid-template-columns: 54px minmax(0, 1fr) 34px; align-items: center; gap: 11px; margin-top: 8px; padding: 9px; border: 1px solid rgba(255, 184, 83, .24); border-radius: 17px; background: rgba(255, 148, 51, .08); }
+.message-image-preview img { width: 54px; height: 54px; border-radius: 12px; object-fit: cover; }
+.message-image-preview b, .message-image-preview small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.message-image-preview b { color: #f5e5dc; font-size: 12px; }
+.message-image-preview small { margin-top: 4px; color: #bba8b2; font-size: 9px; }
+.message-image-preview button { width: 32px; height: 32px; border: 1px solid rgba(255,255,255,.1); border-radius: 11px; background: rgba(255,255,255,.04); color: #e8d8df; cursor: pointer; font-size: 19px; }
+
 .message-composer {
   display: grid;
   grid-template-columns: 40px 1fr 44px;
@@ -790,6 +802,12 @@ button {
 }
 .message-input input:focus { border-color: rgba(255, 177, 76, 0.5); box-shadow: 0 0 0 3px rgba(255, 142, 43, 0.08); }
 .privacy-note { margin: 11px 0 0; text-align: center; color: #a0929d; font-size: 11px; }
+.chat-image-viewer { width: min(92vw, 860px); max-width: none; padding: 8px; border: 1px solid rgba(255, 196, 109, .22); border-radius: 22px; background: #140d18; color: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.55); }
+.chat-image-viewer::backdrop { background: rgba(5, 2, 8, .86); backdrop-filter: blur(8px); }
+.chat-image-viewer form { position: absolute; top: 14px; right: 14px; z-index: 1; }
+.chat-image-viewer form button { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(10,6,12,.72); color: #fff; cursor: pointer; font-size: 22px; }
+.chat-image-viewer img { display: block; width: 100%; max-height: 78vh; border-radius: 16px; object-fit: contain; }
+.chat-image-viewer p { margin: 10px 10px 4px; overflow: hidden; color: #cdbec6; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Curved wallet flow */
 .payment-shell { width: min(100%, 640px); }
