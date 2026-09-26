@@ -33,11 +33,11 @@
     <aside class="sidebar">
       <a class="brand" href="#overview" aria-label="Gamish777 admin home"><img class="brand-mark" src="/admin-icon-192.png" alt="" /><b>Gamish777</b></a>
       <nav class="tab-nav" aria-label="Admin pages">
-        <button class="tab-button active" type="button" data-tab="overview"><span>⌂</span>Overview</button>
-        <button class="tab-button" type="button" data-tab="players"><span>◎</span>Players</button>
-        <button class="tab-button" type="button" data-tab="analytics"><span>⌁</span>Analytics</button>
-        <button class="tab-button" type="button" data-tab="money"><span>$</span>Money</button>
-        <button class="tab-button" type="button" data-tab="reports"><span>▤</span>Reports</button>
+        <button class="tab-button active" type="button" data-tab="overview" aria-label="Overview"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5"/><path d="M5.5 9.5v10h13v-10M9.5 19.5v-6h5v6"/></svg></span><span class="tab-label">Overview</span></button>
+        <button class="tab-button" type="button" data-tab="players" aria-label="Players"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.25"/><path d="M3.5 19c.45-3.35 2.3-5.25 5.5-5.25s5.05 1.9 5.5 5.25M15 6.25a3 3 0 0 1 0 5.5M16 14c2.6.35 4.1 2 4.5 5"/></svg></span><span class="tab-label">Players</span></button>
+        <button class="tab-button" type="button" data-tab="analytics" aria-label="Analytics"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V14h3.5v5.5M10.25 19.5V9h3.5v10.5M16.5 19.5V4.5H20v15"/><path d="M3 19.5h18"/></svg></span><span class="tab-label">Analytics</span></button>
+        <button class="tab-button" type="button" data-tab="money" aria-label="Money"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M15.25 8.5c-.8-.65-1.8-1-3.05-1-1.55 0-2.7.75-2.7 1.95 0 3.25 5.25 1.1 5.25 4.2 0 1.25-1.1 2.1-2.85 2.1-1.25 0-2.35-.4-3.2-1.15M12 5.75v12.5"/></svg></span><span class="tab-label">Money</span></button>
+        <button class="tab-button" type="button" data-tab="reports" aria-label="Reports"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6z"/><path d="M15 3.5v3h3M9 16.5v-3M12 16.5v-6M15 16.5v-4.5"/></svg></span><span class="tab-label">Reports</span></button>
       </nav>
       <div class="sidebar-footer">
         <a class="side-action" href="/" title="Open game"><span>↗</span>Game</a>
@@ -74,18 +74,10 @@
           <article class="stat-card"><span>Bonus available</span><strong id="bonus-pool">$0.00</strong><small>Current weekly pool</small></article>
         </div>
 
-        <div class="split-grid">
-          <section class="content-section">
-            <div class="section-heading"><div><p class="eyebrow">PLAYERS</p><h2>Recent accounts</h2></div><button class="text-button" type="button" data-open-tab="players">View all →</button></div>
-            <div id="recent-players" class="mini-list"></div>
-          </section>
-          <section class="content-section dark-section">
-            <p class="eyebrow">SYSTEM</p>
-            <h2>Balance model</h2>
-            <p id="game-model-note">Loading model details…</p>
-            <div class="model-meter"><i></i></div>
-          </section>
-        </div>
+        <section class="content-section overview-list">
+          <div class="section-heading"><div><p class="eyebrow">PLAYERS</p><h2>Recent accounts</h2></div><button class="text-button" type="button" data-open-tab="players">View all →</button></div>
+          <div id="recent-players" class="mini-list"></div>
+        </section>
       </section>
 
       <section class="tab-panel" data-panel="players" hidden>

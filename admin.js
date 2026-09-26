@@ -125,7 +125,6 @@ const renderReport = () => {
   document.getElementById("active-players").textContent = report.summary.activePlayers;
   document.getElementById("frozen-players").textContent = `${report.summary.frozenPlayers} frozen`;
   document.getElementById("bonus-pool").textContent = money(report.bonusPool.available);
-  document.getElementById("game-model-note").textContent = `${(report.gameModel.theoreticalHitRate * 100).toFixed(0)}% theoretical hit rate and ${(report.gameModel.theoreticalRtp * 100).toFixed(0)}% theoretical return. ${report.gameModel.note}`;
   document.getElementById("daily-report-title").textContent = `Last ${report.days} days`;
 
   document.getElementById("daily-table").innerHTML = report.daily.map((row) => `
