@@ -355,10 +355,10 @@ document.getElementById("players-table").addEventListener("click", async (event)
 
 document.getElementById("player-search").addEventListener("input", renderPlayers);
 document.getElementById("hard-reset-all").addEventListener("click", async (event) => {
-  const preserved = players.filter((player) => player.role === "player");
-  if (!window.confirm(`TESTING ONLY\n\nDelete every payment, ledger entry, game round, and chat message, and reset all balances to $0.00?\n\nAll ${preserved.length} current and archived account IDs and PINs will remain.`)) return;
-  const phrase = window.prompt('Type DELETE ALL TRANSACTIONS to permanently continue:');
-  if (phrase !== "DELETE ALL TRANSACTIONS") {
+  const playerCount = players.filter((player) => player.role === "player").length;
+  if (!window.confirm(`TESTING ONLY — PERMANENT\n\nDelete ALL ${playerCount} active and archived player accounts, lifetime totals, payments, ledger entries, game rounds, chats, sessions, and login-attempt data?\n\nOnly the admin account will remain. This cannot be undone.`)) return;
+  const phrase = window.prompt('Type HARD RESET EVERYTHING to permanently continue:');
+  if (phrase !== "HARD RESET EVERYTHING") {
     setNotice("Hard reset cancelled. Confirmation phrase did not match.", true);
     return;
   }
@@ -373,8 +373,8 @@ document.getElementById("hard-reset-all").addEventListener("click", async (event
       }),
     });
     const deleted = Object.values(result.deleted).reduce((sum, count) => sum + count, 0);
-    setNotice(`Hard reset complete. ${deleted} activity records deleted; ${result.preservedAccounts.length} accounts preserved.`);
-    await refresh();
+    window.alert(`Hard reset complete. ${deleted} records were deleted. Only the admin account remains. You have been signed out.`);
+    window.location.replace("/admin.html");
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }
 });

@@ -11,7 +11,7 @@ Gamish777 uses Vercel Functions and Neon Postgres for authenticated virtual-cred
 - The admin dashboard at `/admin.html` has Overview, Players, Player Analytics, Money, and Reports pages.
 - The same dashboard is available at `/admin` and can be installed as a separate **Gamish777 Admin** PWA on supported desktop and mobile browsers.
 - Admins can create players, reset PINs, freeze access, soft-delete accounts, add available or bonus cash, record cash out, and reset a test balance to zero.
-- The Players page also has a guarded testing-only hard reset. It requires two confirmations, preserves every current and archived player ID and PIN, resets all player balances, and permanently removes all payment, ledger, game, and chat activity.
+- The Players page also has a guarded testing-only hard reset. It requires two confirmations and permanently removes every active or archived player account, lifetime total, payment, ledger entry, game round, chat, session, and login-attempt record. Only admin accounts remain, and the admin is signed out after completion.
 - Deleted accounts cannot sign in, while their lifetime ledger history remains available for audit reports.
 
 ## Ledger and reports

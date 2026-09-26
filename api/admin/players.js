@@ -152,41 +152,32 @@ export default async function handler(req, res) {
     }
 
     if (body.action === "hard_reset_all") {
-      if (body.confirmation !== "DELETE ALL TRANSACTIONS") {
+      if (body.confirmation !== "HARD RESET EVERYTHING") {
         throw new HttpError(400, "Type the exact confirmation phrase", "confirmation_required");
       }
-      const allPlayers = await sql`
-        SELECT id, login_id, deleted_at
-        FROM players
-        WHERE role = 'player'
-        ORDER BY login_id ASC
-      `;
+      const adminAccounts = await sql`SELECT id, login_id FROM players WHERE role = 'admin' ORDER BY login_id ASC`;
 
-      const [paymentEvents, messages, rounds, ledger, resetPlayers] = await sql.transaction([
+      const [paymentEvents, messages, rounds, ledger, sessions, loginAttempts, playerAccounts] = await sql.transaction([
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
         sql`DELETE FROM game_rounds RETURNING id`,
         sql`DELETE FROM ledger_entries RETURNING id`,
-        sql`
-          UPDATE players
-          SET regular_credits = 0, bonus_credits = 0, updated_at = NOW()
-          WHERE role = 'player'
-          RETURNING id
-        `,
+        sql`DELETE FROM sessions RETURNING id`,
+        sql`DELETE FROM login_attempts RETURNING attempt_key`,
+        sql`DELETE FROM players WHERE role = 'player' RETURNING id`,
       ]);
       return json(res, 200, {
         ok: true,
-        preservedAccounts: allPlayers.map((player) => ({
-          loginId: player.login_id,
-          archived: Boolean(player.deleted_at),
-        })),
+        preservedAdminAccounts: adminAccounts.map((account) => account.login_id),
         deleted: {
           paymentEvents: paymentEvents.length,
           messages: messages.length,
           gameRounds: rounds.length,
           ledgerEntries: ledger.length,
+          sessions: sessions.length,
+          loginAttempts: loginAttempts.length,
+          playerAccounts: playerAccounts.length,
         },
-        resetAccounts: resetPlayers.length,
       });
     }
 
