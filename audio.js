@@ -6,6 +6,9 @@
   let context;
   let master;
   let enabled = true;
+  const noiseBuffers = new Map();
+  const lastPlayed = new Map();
+  const MIN_REPEAT_MS = 40;
 
   try {
     enabled = window.localStorage.getItem(STORAGE_KEY) !== "off";
@@ -67,12 +70,17 @@
     const audio = ensureContext();
     if (!audio || !master) return;
     const start = audio.currentTime + (options.delay ?? 0);
-    const length = Math.max(1, Math.floor(audio.sampleRate * duration));
-    const buffer = audio.createBuffer(1, length, audio.sampleRate);
-    const channel = buffer.getChannelData(0);
-    for (let index = 0; index < length; index += 1) {
-      const envelope = 1 - index / length;
-      channel[index] = (Math.random() * 2 - 1) * envelope;
+    // Noise is generated once per length and reused; building it per cue allocated a new buffer every roll tick.
+    let buffer = noiseBuffers.get(duration);
+    if (!buffer) {
+      const length = Math.max(1, Math.floor(audio.sampleRate * duration));
+      buffer = audio.createBuffer(1, length, audio.sampleRate);
+      const channel = buffer.getChannelData(0);
+      for (let index = 0; index < length; index += 1) {
+        const envelope = 1 - index / length;
+        channel[index] = (Math.random() * 2 - 1) * envelope;
+      }
+      noiseBuffers.set(duration, buffer);
     }
     const source = audio.createBufferSource();
     const filter = audio.createBiquadFilter();
@@ -94,6 +102,10 @@
 
   const play = (name) => {
     if (!enabled) return;
+    // Mashed buttons would stack dozens of identical voices; one per cue per 40ms is inaudibly different.
+    const now = performance.now();
+    if (now - (lastPlayed.get(name) ?? -Infinity) < MIN_REPEAT_MS) return;
+    lastPlayed.set(name, now);
     switch (name) {
       case "tap":
         tone(480, 0.055, { to: 650, type: "triangle", gain: 0.022 });
