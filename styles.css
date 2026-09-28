@@ -1139,7 +1139,7 @@ noscript {
 @media (max-width: 819px) {
   .arcade-view #game-shell {
     height: 100dvh;
-    padding: calc(max(env(safe-area-inset-top), 10px) + 64px) 0 max(env(safe-area-inset-bottom), 8px);
+    padding: max(env(safe-area-inset-top), 6px) 0 max(env(safe-area-inset-bottom), 6px);
   }
 
   .arcade-view #game-shell canvas {
