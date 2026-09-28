@@ -81,7 +81,7 @@
       loginError.textContent = error.message;
     } finally {
       button.disabled = false;
-      button.textContent = "Enter the arcade";
+      button.textContent = "Enter the Phoenix Realm";
     }
   });
 

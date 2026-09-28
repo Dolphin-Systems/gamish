@@ -21,7 +21,15 @@ Ember Crown Arcade is a premium fantasy-casino world built around blackened bras
 
 ## Phoenix Ruby game feel
 
-Phoenix Ruby is the first complete playable game and uses virtual credits with no cash value. Its experience centers on a curved win arc, shuffled outcomes, escalating sound cues, jewel-line animations, selectable credit stakes, and a visible session tally.
+Phoenix Ruby is the first complete playable game and uses virtual credits with no cash value. It is designed phone-first, with one screen and the controls within thumb reach:
+
+- **Balance bar:** balance (tap to refresh) and last win, with count-up animations.
+- **Reels:** masked reel strips that blur while spinning and land with a bounce. Swipe down on the reels to spin; tap them (or Stop) to land the reels early.
+- **Controls:** a bet stepper (10/20/40), a round Spin button, and a 10-spin Auto mode that ends on a big win, low credits, or a tap.
+- **Wins:** the center line glows, coins fly into the balance, and three Golden Sevens open a tap-to-collect Big Win card.
+- **Ember Collection:** every Phoenix crest flies a gem into the collection bar; ten gems unlock the next realm theme (Ember → Crimson → Solar → Royal → Ascendant), which recolors the machine glow and win line.
+- **Rules:** tapping a payout chip or *Rules & Payouts* opens the rules sheet.
+- **Feedback:** synthesized sound cues and light vibration on supported phones.
 
 ## Generated assets
 
