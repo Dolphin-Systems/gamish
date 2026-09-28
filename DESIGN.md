@@ -31,6 +31,14 @@ Phoenix Ruby is the first complete playable game and uses virtual credits with n
 - **Rules:** tapping a payout chip or *Rules & Payouts* opens the rules sheet.
 - **Feedback:** synthesized sound cues and light vibration on supported phones.
 
+### Performance and robustness
+
+- **Pre-drawn UI:** static panels, gradients and the Spin ring are drawn once into shared textures. Phaser would otherwise re-tessellate Graphics paths every frame.
+- **Frame rate:** capped at 60 fps, and the game loop sleeps while the Wallet or Messages page covers it.
+- **Input:** Spin presses closer than 140 ms apart are ignored, press animations always settle back at full size, and overlays stop their child tweens before being destroyed.
+- **Network:** spin requests time out after 15 s, and the balance is re-read from the server after any failed spin.
+- **Audio:** noise buffers are cached, and the same cue can't retrigger within 40 ms.
+
 ## Generated assets
 
 - `assets/gamish777-icon-master.png` — original high-resolution Ember Crown brand mark.

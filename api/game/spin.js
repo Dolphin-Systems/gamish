@@ -1,5 +1,5 @@
 import { getSessionPlayer } from "../../lib/auth.js";
-import { BET_OPTIONS, buildResultMarks, drawOutcome, THEORETICAL_HIT_RATE, THEORETICAL_RTP } from "../../lib/game-math.js";
+import { BET_OPTIONS, buildResultMarks, drawOutcome } from "../../lib/game-math.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { recordGameRound } from "../../lib/ledger.js";
 
@@ -13,9 +13,9 @@ export default async function handler(req, res) {
     const multiplier = drawOutcome();
     const marks = buildResultMarks(multiplier);
     const round = await recordGameRound({ playerId: player.id, bet: Number(bet), multiplier, marks });
+    // Only what the reels need: outcome, marks and the new wallet.
     return json(res, 200, {
-      round,
-      gameModel: { theoreticalRtp: THEORETICAL_RTP, theoreticalHitRate: THEORETICAL_HIT_RATE },
+      round: { roundId: round.roundId, bet: round.bet, multiplier: round.multiplier, payout: round.payout, marks: round.marks, wallet: round.wallet },
     });
   } catch (error) {
     return handleApiError(res, error);

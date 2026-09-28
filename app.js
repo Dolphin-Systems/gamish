@@ -11,15 +11,25 @@
   const accountInitial = document.getElementById("account-initial");
   const chatImages = window.GamishChatImages;
 
-  const request = async (url, options = {}) => {
-    const response = await fetch(url, {
-      credentials: "same-origin",
-      ...options,
-      headers: {
-        ...(options.body ? { "Content-Type": "application/json", "X-Gamish-Action": "1" } : {}),
-        ...options.headers,
-      },
-    });
+  const request = async (url, { timeout, ...options } = {}) => {
+    const controller = timeout ? new AbortController() : null;
+    const timer = controller ? window.setTimeout(() => controller.abort(), timeout) : null;
+    let response;
+    try {
+      response = await fetch(url, {
+        credentials: "same-origin",
+        ...options,
+        signal: controller?.signal,
+        headers: {
+          ...(options.body ? { "Content-Type": "application/json", "X-Gamish-Action": "1" } : {}),
+          ...options.headers,
+        },
+      });
+    } catch (error) {
+      throw new Error(error.name === "AbortError" ? "The connection is slow. Please try again." : "You appear to be offline.");
+    } finally {
+      window.clearTimeout(timer);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.message || "Request failed");
     return payload;
@@ -137,6 +147,7 @@
       if (isActive) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
+    window.dispatchEvent(new CustomEvent("gamish:view", { detail: name }));
     if (name === "messages") document.querySelector(".unread-dot")?.remove();
     if (name === "payments" && window.GamishAccount.player) {
       Promise.all([refreshWallet(), loadPaymentMethods()]).catch((error) => showToast(error.message));

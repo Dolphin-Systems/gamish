@@ -95,13 +95,6 @@
     ["symbol-8", "COLLECT THE PHOENIX", "10 crests unlock a new realm theme.", "#ffba61"],
   ];
 
-  const secureRandom = () => {
-    if (!window.crypto?.getRandomValues) return Math.random();
-    const values = new Uint32Array(1);
-    window.crypto.getRandomValues(values);
-    return values[0] / 4294967296;
-  };
-
   const statusNode = document.getElementById("scene-status");
   const setStatus = (message) => {
     if (statusNode) statusNode.textContent = message;
@@ -150,16 +143,11 @@
 
   // Soft top and bottom fades keep header and footer text readable without hard bands.
   const addEdgeShade = (scene, top = 0.7, bottom = 0.75) => {
-    const shade = scene.add.graphics();
-    shade.fillStyle(0x07040b, top);
-    shade.fillRect(-BLEED, -BLEED, WIDTH + BLEED * 2, BLEED);
-    shade.fillGradientStyle(0x07040b, 0x07040b, 0x07040b, 0x07040b, top, top, 0, 0);
-    shade.fillRect(-BLEED, 0, WIDTH + BLEED * 2, 240);
-    shade.fillGradientStyle(0x07040b, 0x07040b, 0x07040b, 0x07040b, 0, 0, bottom, bottom);
-    shade.fillRect(-BLEED, HEIGHT - 300, WIDTH + BLEED * 2, 300);
-    shade.fillStyle(0x07040b, bottom);
-    shade.fillRect(-BLEED, HEIGHT, WIDTH + BLEED * 2, BLEED);
-    return shade;
+    const span = WIDTH + BLEED * 2;
+    scene.add.rectangle(WIDTH / 2, -BLEED / 2, span, BLEED, 0x07040b, top);
+    addGradient(scene, -BLEED, 0, span, 240, [[0, `rgba(7,4,11,${top})`], [1, "rgba(7,4,11,0)"]], `fade-down:${top}`);
+    addGradient(scene, -BLEED, HEIGHT - 300, span, 300, [[0, "rgba(7,4,11,0)"], [1, `rgba(7,4,11,${bottom})`]], `fade-up:${bottom}`);
+    scene.add.rectangle(WIDTH / 2, HEIGHT + BLEED / 2, span, BLEED, 0x07040b, bottom);
   };
 
   const traceCubic = (graphics, start, controlA, controlB, end, steps = 12) => {
@@ -182,7 +170,41 @@
     }
   };
 
-  const addOrnatePanel = (scene, x, y, width, height, options = {}) => {
+  // Static vector art is drawn once into a shared texture and reused as a plain image. Phaser
+  // re-tessellates Graphics paths every frame, which is the costliest thing a phone GPU/CPU
+  // would otherwise do for these decorative panels.
+  const bakeGraphics = (scene, key, width, height, draw) => {
+    if (!scene.textures.exists(key)) {
+      const graphics = scene.make.graphics({ add: false });
+      draw(graphics);
+      graphics.generateTexture(key, Math.ceil(width), Math.ceil(height));
+      graphics.destroy();
+    }
+    return key;
+  };
+
+  // Vertical gradients (Graphics only supports them in WebGL, not when baking) as a 4px-wide strip.
+  const gradientTexture = (scene, key, height, stops) => {
+    if (!scene.textures.exists(key)) {
+      const texture = scene.textures.createCanvas(key, 4, height);
+      const context = texture.getContext();
+      const gradient = context.createLinearGradient(0, 0, 0, height);
+      stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 4, height);
+      texture.refresh();
+    }
+    return key;
+  };
+
+  const addGradient = (scene, x, y, width, height, stops, key) => scene.add
+    .image(x, y, gradientTexture(scene, key, Math.max(2, Math.round(height)), stops))
+    .setOrigin(0)
+    .setDisplaySize(width, height);
+
+  const PANEL_PAD = 16;
+
+  const drawOrnatePanel = (panel, x, y, width, height, options) => {
     const fill = options.fill ?? COLORS.panel;
     const fillAlpha = options.fillAlpha ?? 0.94;
     const stroke = options.stroke ?? COLORS.gold;
@@ -193,7 +215,6 @@
     const right = x + width / 2;
     const top = y - height / 2;
     const bottom = y + height / 2;
-    const panel = scene.add.graphics();
 
     const drawPath = () => {
       panel.beginPath();
@@ -232,32 +253,60 @@
         ]);
       });
     }
-    return panel;
+  };
+
+  const addOrnatePanel = (scene, x, y, width, height, options = {}) => {
+    const w = Math.round(width);
+    const h = Math.round(height);
+    const key = `panel:${w}x${h}:${[options.fill, options.fillAlpha, options.stroke, options.strokeAlpha, options.lineWidth, options.bend, options.anchors].join(",")}`;
+    bakeGraphics(scene, key, w + PANEL_PAD * 2, h + PANEL_PAD * 2,
+      (graphics) => drawOrnatePanel(graphics, PANEL_PAD + w / 2, PANEL_PAD + h / 2, w, h, options));
+    return scene.add.image(x, y, key);
   };
 
   const addRule = (scene, y, width = 430) => {
-    const rule = scene.add.graphics();
-    rule.lineStyle(2, COLORS.gold, 0.52);
-    rule.beginPath();
-    rule.moveTo(WIDTH / 2 - width / 2, y + 5);
-    traceCubic(rule,
-      { x: WIDTH / 2 - width / 2, y: y + 5 }, { x: WIDTH / 2 - width * 0.36, y: y - 13 },
-      { x: WIDTH / 2 - width * 0.18, y: y + 13 }, { x: WIDTH / 2 - 24, y });
-    rule.strokePath();
-    rule.beginPath();
-    rule.moveTo(WIDTH / 2 + 24, y);
-    traceCubic(rule,
-      { x: WIDTH / 2 + 24, y }, { x: WIDTH / 2 + width * 0.18, y: y + 13 },
-      { x: WIDTH / 2 + width * 0.36, y: y - 13 }, { x: WIDTH / 2 + width / 2, y: y + 5 });
-    rule.strokePath();
-    rule.fillStyle(COLORS.ember, 0.95);
-    rule.fillPoints([
-      new Phaser.Geom.Point(WIDTH / 2, y - 8),
-      new Phaser.Geom.Point(WIDTH / 2 + 8, y),
-      new Phaser.Geom.Point(WIDTH / 2, y + 8),
-      new Phaser.Geom.Point(WIDTH / 2 - 8, y),
-    ]);
-    return rule;
+    const key = `rule:${width}`;
+    const cx = width / 2 + 4;
+    const cy = 20;
+    bakeGraphics(scene, key, width + 8, 40, (rule) => {
+      rule.lineStyle(2, COLORS.gold, 0.52);
+      rule.beginPath();
+      rule.moveTo(cx - width / 2, cy + 5);
+      traceCubic(rule,
+        { x: cx - width / 2, y: cy + 5 }, { x: cx - width * 0.36, y: cy - 13 },
+        { x: cx - width * 0.18, y: cy + 13 }, { x: cx - 24, y: cy });
+      rule.strokePath();
+      rule.beginPath();
+      rule.moveTo(cx + 24, cy);
+      traceCubic(rule,
+        { x: cx + 24, y: cy }, { x: cx + width * 0.18, y: cy + 13 },
+        { x: cx + width * 0.36, y: cy - 13 }, { x: cx + width / 2, y: cy + 5 });
+      rule.strokePath();
+      rule.fillStyle(COLORS.ember, 0.95);
+      rule.fillPoints([
+        new Phaser.Geom.Point(cx, cy - 8),
+        new Phaser.Geom.Point(cx + 8, cy),
+        new Phaser.Geom.Point(cx, cy + 8),
+        new Phaser.Geom.Point(cx - 8, cy),
+      ]);
+    });
+    return scene.add.image(WIDTH / 2, y, key);
+  };
+
+  // Destroying a container while its children still have running tweens leaves those tweens
+  // updating dead objects (a Text whose canvas is gone throws inside the tween system and
+  // freezes every animation), so stop them first.
+  const destroyWithTweens = (scene, container, extraTweens = []) => {
+    extraTweens.forEach((tween) => tween?.remove());
+    scene.tweens.killTweensOf([container, ...container.list]);
+    container.destroy(true);
+  };
+
+  // Press feedback that always settles back at full size, however fast the taps come.
+  const pressFeedback = (scene, target, pressed = 0.93, rest = 1) => {
+    scene.tweens.killTweensOf(target);
+    target.setScale(pressed);
+    scene.tweens.add({ targets: target, scale: rest, duration: 180, ease: "Back.Out" });
   };
 
   const makeButton = (scene, x, y, width, height, label, onClick, options = {}) => {
@@ -281,11 +330,17 @@
 
     container.add([halo, plate, shine, text]);
     container.setSize(width, height).setInteractive({ useHandCursor: true });
-    container.on("pointerover", () => scene.tweens.add({ targets: container, scale: 1.035, duration: 120 }));
-    container.on("pointerout", () => scene.tweens.add({ targets: container, scale: 1, duration: 140 }));
+    container.on("pointerover", () => {
+      scene.tweens.killTweensOf(container);
+      scene.tweens.add({ targets: container, scale: 1.035, duration: 120 });
+    });
+    container.on("pointerout", () => {
+      scene.tweens.killTweensOf(container);
+      scene.tweens.add({ targets: container, scale: 1, duration: 140 });
+    });
     container.on("pointerdown", () => {
       window.GamishAudio?.play("tap");
-      scene.tweens.add({ targets: container, scale: 0.97, duration: 70, yoyo: true });
+      pressFeedback(scene, container, 0.96);
     });
     container.on("pointerup", onClick);
     scene.tweens.add({ targets: halo, alpha: { from: 0.28, to: 0.7 }, duration: 1200, yoyo: true, repeat: -1 });
@@ -640,8 +695,8 @@
         scale: 0.94,
         duration: 180,
         onComplete: () => {
-          modal.destroy(true);
-          close.destroy(true);
+          destroyWithTweens(this, modal);
+          destroyWithTweens(this, close);
           setStatus("Game Zone. Phoenix Ruby is playable with virtual credits; three worlds are available to preview.");
         },
       });
@@ -680,6 +735,8 @@
     speed: 2.6,
   };
   const AUTO_SPINS = 10;
+  const SPIN_PRESS_GAP_MS = 140;
+  const SPIN_TIMEOUT_MS = 15000;
   const COLLECTION_GOAL = 10;
 
   const buzz = (pattern) => {
@@ -711,14 +768,15 @@
       this.stopEvents = [];
       this.autoLeft = 0;
       this.overlay = null;
+      this.lastSpinPress = 0;
       this.collection = this.loadCollection();
       this.theme = PHOENIX_THEMES[Math.min(this.collection.theme, PHOENIX_THEMES.length - 1)];
       setStatus("Phoenix Ruby. Swipe down on the reels or tap Spin. Match three on the center line to win.");
 
-      fitBackground(this, "phoenix-gameplay-v3");
-      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x07030a, 0.42);
+      // Darken the art with a tint rather than a full-screen overlay: one less full-screen blend per frame.
+      fitBackground(this, "phoenix-gameplay-v3").setTint(0x958f94);
       addEdgeShade(this, 0.6, 0.85);
-      addAtmosphere(this, 22, this.theme.particles);
+      addAtmosphere(this, 16, this.theme.particles);
       addTopBar(this, { title: "PHOENIX RUBY", back: () => this.returnToHall() });
 
       this.createHud();
@@ -785,14 +843,15 @@
         .setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: this.aura, alpha: { from: 0.1, to: 0.24 }, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.InOut" });
 
-      const backing = this.add.graphics();
+      const windowHeight = REEL.bottom - REEL.top;
       REEL.xs.forEach((x, column) => {
         const width = REEL.widths[column];
-        backing.fillGradientStyle(0x2d1027, 0x2d1027, 0x0b060e, 0x0b060e, 0.96, 0.96, 0.98, 0.98);
-        backing.fillRect(x - width / 2, REEL.top, width, REEL.bottom - REEL.top);
+        addGradient(this, x - width / 2, REEL.top, width, windowHeight,
+          [[0, "rgba(45,16,39,0.96)"], [1, "rgba(11,6,14,0.98)"]], "reel-backing");
       });
-      backing.fillStyle(0xffffff, 0.035);
-      backing.fillRect(REEL.xs[0] - REEL.widths[0] / 2, REEL.centerY - REEL.pitch / 2, REEL.xs[2] - REEL.xs[0] + REEL.widths[0], REEL.pitch);
+      const rowLeft = REEL.xs[0] - REEL.widths[0] / 2;
+      const rowWidth = REEL.xs[2] - REEL.xs[0] + REEL.widths[0];
+      this.add.rectangle(rowLeft + rowWidth / 2, REEL.centerY, rowWidth, REEL.pitch, 0xffffff, 0.035);
 
       const maskShape = this.make.graphics({ add: false });
       maskShape.fillStyle(0xffffff, 1);
@@ -812,11 +871,8 @@
       });
 
       // Shadow at the top and bottom of each reel window gives the strips depth.
-      const shade = this.add.graphics();
-      shade.fillGradientStyle(0x07030a, 0x07030a, 0x07030a, 0x07030a, 0.85, 0.85, 0, 0);
-      shade.fillRect(80, REEL.top, 610, 70);
-      shade.fillGradientStyle(0x07030a, 0x07030a, 0x07030a, 0x07030a, 0, 0, 0.85, 0.85);
-      shade.fillRect(80, REEL.bottom - 70, 610, 70);
+      addGradient(this, 80, REEL.top, 610, 70, [[0, "rgba(7,3,10,0.85)"], [1, "rgba(7,3,10,0)"]], "reel-shade-top");
+      addGradient(this, 80, REEL.bottom - 70, 610, 70, [[0, "rgba(7,3,10,0)"], [1, "rgba(7,3,10,0.85)"]], "reel-shade-bottom");
 
       this.winLine = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       this.drawWinLine(this.theme.accent);
@@ -881,20 +937,25 @@
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#c9a987", letterSpacing: 3,
       }).setOrigin(0.5);
       const autoZone = this.add.zone(630, 1150, 222, 104).setInteractive({ useHandCursor: true });
-      autoZone.on("pointerdown", () => this.tweens.add({ targets: [this.autoTitle, this.autoSub], scale: 0.92, duration: 70, yoyo: true }));
+      autoZone.on("pointerdown", () => {
+        pressFeedback(this, this.autoTitle, 0.9);
+        pressFeedback(this, this.autoSub, 0.9);
+      });
       autoZone.on("pointerup", () => this.toggleAuto());
 
       // Spin
       const spin = this.add.container(WIDTH / 2, 1150);
       this.spinHalo = this.add.circle(0, 0, 124, this.theme.accent, 0.18).setBlendMode(Phaser.BlendModes.ADD);
-      this.spinRing = this.add.graphics();
-      this.spinRing.lineStyle(5, COLORS.gold, 0.9);
-      for (let index = 0; index < 12; index += 1) {
-        const start = Phaser.Math.DegToRad(index * 30);
-        this.spinRing.beginPath();
-        this.spinRing.arc(0, 0, 110, start, start + Phaser.Math.DegToRad(18));
-        this.spinRing.strokePath();
-      }
+      const ringKey = bakeGraphics(this, "spin-ring", 232, 232, (ring) => {
+        ring.lineStyle(5, COLORS.gold, 0.9);
+        for (let index = 0; index < 12; index += 1) {
+          const start = Phaser.Math.DegToRad(index * 30);
+          ring.beginPath();
+          ring.arc(116, 116, 110, start, start + Phaser.Math.DegToRad(18));
+          ring.strokePath();
+        }
+      });
+      this.spinRing = this.add.image(0, 0, ringKey);
       const disc = this.add.circle(0, 0, 98, 0x9b2014, 1).setStrokeStyle(4, 0xffd87e, 1);
       const inner = this.add.circle(0, -6, 84, 0xc2331b, 0.55);
       const shine = this.add.ellipse(0, -52, 110, 26, 0xffffff, 0.16);
@@ -906,7 +967,7 @@
       }).setOrigin(0.5);
       spin.add([this.spinHalo, this.spinRing, disc, inner, shine, this.spinLabel, this.spinSub]);
       spin.setSize(236, 236).setInteractive({ useHandCursor: true });
-      spin.on("pointerdown", () => this.tweens.add({ targets: spin, scale: 0.93, duration: 80, yoyo: true }));
+      spin.on("pointerdown", () => pressFeedback(this, spin));
       spin.on("pointerup", () => this.spin());
       this.spinButton = spin;
       this.tweens.add({ targets: this.spinHalo, scale: { from: 0.94, to: 1.1 }, alpha: { from: 0.12, to: 0.32 }, duration: 1100, yoyo: true, repeat: -1, ease: "Sine.InOut" });
@@ -946,7 +1007,7 @@
       }).setOrigin(0.5);
       button.add([disc, text]);
       button.setSize(radius * 2 + 16, radius * 2 + 16).setInteractive({ useHandCursor: true });
-      button.on("pointerdown", () => this.tweens.add({ targets: button, scale: 0.88, duration: 70, yoyo: true }));
+      button.on("pointerdown", () => pressFeedback(this, button, 0.88));
       button.on("pointerup", onClick);
       return button;
     }
@@ -987,8 +1048,9 @@
       });
     }
 
+    // Cosmetic only: blur and filler symbols. Real results always come from the server.
     randomSymbol() {
-      return PHOENIX_SYMBOLS[Math.floor(secureRandom() * PHOENIX_SYMBOLS.length)];
+      return PHOENIX_SYMBOLS[Math.floor(Math.random() * PHOENIX_SYMBOLS.length)];
     }
 
     symbolForMark(mark) {
@@ -1080,6 +1142,10 @@
 
     async spin() {
       if (this.overlay) return;
+      // Ignore tap bursts: one press is one action, even when a finger bounces or taps are mashed.
+      const now = performance.now();
+      if (now - this.lastSpinPress < SPIN_PRESS_GAP_MS) return;
+      this.lastSpinPress = now;
       if (this.phase === "spinning") {
         this.requestQuickStop();
         return;
@@ -1106,7 +1172,7 @@
       this.setMessage(this.autoLeft > 0 ? "AUTO SPIN" : "TAP REELS TO STOP", "#ffd48b");
       this.spinLabel.setText("STOP");
       this.ringTween.timeScale = 8;
-      this.tweens.add({ targets: this.aura, scale: 1.08, duration: 300, yoyo: true });
+      this.tweens.add({ targets: this.aura, scale: { from: 1, to: 1.08 }, duration: 300, yoyo: true });
       this.refreshHud();
       window.GamishAudio?.play("reel-start");
       buzz(8);
@@ -1118,6 +1184,7 @@
         const response = await window.GamishAccount.request("/api/game/spin", {
           method: "POST",
           body: JSON.stringify({ bet: this.bet }),
+          timeout: SPIN_TIMEOUT_MS,
         });
         round = response.round;
       } catch (error) {
@@ -1153,6 +1220,12 @@
         this.setMessage("SPIN FAILED — TRY AGAIN", "#ff8277");
         setStatus(`Phoenix Ruby could not complete the spin: ${message}`);
         this.phase = "idle";
+        // A timed-out request may still have been recorded, so take the balance from the server.
+        window.GamishAccount.refreshWallet().then((player) => {
+          if (!this.sys.isActive() || this.phase !== "idle") return;
+          this.credits = Number(player.totalCredits || 0);
+          this.refreshHud();
+        }).catch(() => {});
         return;
       }
 
@@ -1234,8 +1307,11 @@
     }
 
     countTo(text, from, to, duration) {
+      // A newer count on the same text replaces the old one, so a late tween can't overwrite it.
+      text.getData("counter")?.remove();
+      this.tweens.killTweensOf(text);
       const counter = { value: from };
-      this.tweens.add({
+      const tween = this.tweens.add({
         targets: counter,
         value: to,
         duration,
@@ -1243,6 +1319,7 @@
         onUpdate: () => text.setText(Math.round(counter.value).toLocaleString("en-US")),
         onComplete: () => text.setText(to.toLocaleString("en-US")),
       });
+      text.setData("counter", tween);
       this.tweens.add({ targets: text, scale: { from: 1.18, to: 1 }, duration: 420, ease: "Back.Out" });
     }
 
@@ -1297,7 +1374,10 @@
       }).setOrigin(0.5);
       overlay.add([shade, glow, panel, phoenix, heading, amount, caption, hint]);
       const counter = { value: 0 };
-      this.tweens.add({ targets: counter, value: payout, duration: 1100, ease: "Cubic.Out", onUpdate: () => amount.setText(`+${Math.round(counter.value).toLocaleString("en-US")}`) });
+      const countUp = this.tweens.add({
+        targets: counter, value: payout, duration: 1100, ease: "Cubic.Out",
+        onUpdate: () => amount.setText(`+${Math.round(counter.value).toLocaleString("en-US")}`),
+      });
 
       for (let index = 0; index < 22; index += 1) {
         const coin = this.add.image(Phaser.Math.Between(-340, 340), Phaser.Math.Between(-860, -480), "phoenix-symbols-v2", "symbol-7")
@@ -1328,7 +1408,7 @@
         this.tweens.add({
           targets: overlay, alpha: 0, scale: 1.05, duration: 240,
           onComplete: () => {
-            overlay.destroy(true);
+            destroyWithTweens(this, overlay, [countUp]);
             this.overlay = null;
             this.endRound();
           },
@@ -1449,12 +1529,16 @@
       const index = PHOENIX_BETS.indexOf(this.bet);
       const next = PHOENIX_BETS[Phaser.Math.Clamp(index + direction, 0, PHOENIX_BETS.length - 1)];
       if (next === this.bet) {
-        this.tweens.add({ targets: this.betText, x: this.betText.x + direction * 6, duration: 50, yoyo: true, repeat: 1 });
+        this.tweens.killTweensOf(this.betText);
+        this.betText.setPosition(138, 1160).setScale(1);
+        this.tweens.add({ targets: this.betText, x: 138 + direction * 6, duration: 50, yoyo: true, repeat: 1 });
         return;
       }
       this.bet = next;
       window.GamishAudio?.play("chip");
       buzz(6);
+      this.tweens.killTweensOf(this.betText);
+      this.betText.setPosition(138, 1160);
       this.tweens.add({ targets: this.betText, scale: { from: 1.3, to: 1 }, duration: 260, ease: "Back.Out" });
       this.refreshHud();
       setStatus(`Bet set to ${next} virtual credits.`);
@@ -1521,10 +1605,13 @@
       }).setOrigin(0.5);
       sheet.add([shade, panel, title, ...items, tip, hint]);
       this.tweens.add({ targets: sheet, alpha: 1, scale: { from: 0.94, to: 1 }, duration: 220, ease: "Back.Out" });
+      let closed = false;
       const close = () => {
+        if (closed) return;
+        closed = true;
         this.tweens.add({
           targets: sheet, alpha: 0, duration: 160,
-          onComplete: () => { sheet.destroy(true); this.overlay = null; },
+          onComplete: () => { destroyWithTweens(this, sheet); this.overlay = null; },
         });
       };
       shade.on("pointerup", close);
@@ -1561,6 +1648,8 @@
     height: HEIGHT,
     backgroundColor: "#08050c",
     transparent: false,
+    // 120Hz phones would otherwise draw every frame twice; 60fps is plenty for this game.
+    fps: { target: 60, limit: 60 },
     render: {
       antialias: true,
       pixelArt: false,
@@ -1610,6 +1699,12 @@
     };
     window.addEventListener("resize", refit);
     window.visualViewport?.addEventListener("resize", refit);
+
+    // Stop drawing while the wallet or messages page covers the game; resume where it left off.
+    window.addEventListener("gamish:view", (event) => {
+      if (event.detail === "arcade") game.loop.wake();
+      else game.loop.sleep();
+    });
   };
 
   if (document.fonts?.ready) document.fonts.ready.then(start);
