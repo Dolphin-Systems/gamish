@@ -35,11 +35,17 @@
     return payload;
   };
 
+  const dollars = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents || 0) / 100);
+
   const setWallet = (player) => {
     if (!player) return;
-    walletBalance.textContent = `${Number(player.totalCredits || 0).toLocaleString("en-US")} CR`;
+    // One credit is one cent, so the wallet reads in dollars like the payment apps players use.
+    walletBalance.textContent = dollars(player.totalCredits);
+    document.getElementById("wallet-split").textContent = `${dollars(player.regularCredits)} cashable · ${dollars(player.bonusCredits)} bonus`;
     walletPlayerId.textContent = player.loginId;
     accountInitial.textContent = player.loginId.charAt(0).toUpperCase();
+    document.getElementById("pay-player-id").textContent = player.loginId;
+    window.dispatchEvent(new CustomEvent("gamish:cashable", { detail: Number(player.regularCredits || 0) }));
   };
 
   const applyPlayer = (player) => {
@@ -132,6 +138,8 @@
     toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2200);
   };
 
+  let currentView = "arcade";
+
   const showView = (name) => {
     const next = views.get(name);
     if (!next) return;
@@ -147,11 +155,8 @@
       if (isActive) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
+    currentView = name;
     window.dispatchEvent(new CustomEvent("gamish:view", { detail: name }));
-    if (name === "messages") document.querySelector(".unread-dot")?.remove();
-    if (name === "payments" && window.GamishAccount.player) {
-      Promise.all([refreshWallet(), loadPaymentMethods()]).catch((error) => showToast(error.message));
-    }
   };
 
   viewTriggers.forEach((item) => item.addEventListener("click", () => {
@@ -175,42 +180,58 @@
   window.addEventListener("gamish:soundchange", refreshSoundToggle);
   refreshSoundToggle();
 
+  // ---------- Wallet: deposits, cash-outs and request status ----------
+
   const amountButtons = [...document.querySelectorAll(".amount-chip")];
   const customAmount = document.getElementById("custom-amount");
   const amountLabel = document.getElementById("amount-label");
-  const reviewButton = document.getElementById("review-reload");
+  const methodGrid = document.getElementById("payment-method-grid");
+  const methodLabel = document.getElementById("method-label");
+  const payInstructions = document.getElementById("pay-instructions");
+  const depositButton = document.getElementById("submit-deposit");
+  const depositNote = document.getElementById("deposit-note");
+  const cashoutAmount = document.getElementById("cashout-amount");
+  const cashoutMethod = document.getElementById("cashout-method");
+  const cashoutHandle = document.getElementById("cashout-handle");
+  const cashoutButton = document.getElementById("submit-cashout");
+  const requestList = document.getElementById("request-list");
+  const BONUS_TIERS = [[100, 25], [50, 10], [20, 5]];
   let selectedAmount = 5;
-  let selectedBonus = 0;
+  let selectedMethod = null;
+  let methodCards = [];
+  let paymentMethods = [];
+  let requests = [];
+  let cashableCents = 0;
+  let requestTimer;
 
-  const updateAmount = (amount, source, bonus = 0) => {
+  const bonusFor = (amount) => (BONUS_TIERS.find(([minimum]) => amount >= minimum) || [0, 0])[1];
+  const toCents = (value) => Math.round(Number(String(value).replace(/[^0-9.]/g, "")) * 100);
+
+  const refreshDepositSummary = () => {
+    const amountText = dollars(Math.round(selectedAmount * 100));
+    const bonus = bonusFor(selectedAmount);
+    amountLabel.textContent = bonus ? `${amountText} + $${bonus} bonus` : `${amountText} selected`;
+    document.getElementById("pay-amount").textContent = amountText;
+    const ready = selectedMethod && selectedAmount >= 1 && selectedAmount <= 1000;
+    depositButton.disabled = !ready;
+    depositButton.querySelector("span").textContent = !selectedMethod
+      ? "Choose a method to continue"
+      : selectedAmount < 1 || selectedAmount > 1000 ? "Enter $1 to $1,000" : `I've sent ${amountText}`;
+  };
+
+  const updateAmount = (amount, source) => {
     const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
-    selectedAmount = Math.min(parsed, 9999);
-    selectedBonus = Math.max(0, Number(bonus) || 0);
+    selectedAmount = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 9999) : 0;
     amountButtons.forEach((button) => button.classList.toggle("selected", button === source));
-    const formattedAmount = selectedAmount.toLocaleString("en-US", { maximumFractionDigits: 2 });
-    amountLabel.textContent = selectedBonus ? `$${formattedAmount} + $${selectedBonus} bonus` : `$${formattedAmount} selected`;
-    reviewButton.querySelector("span").textContent = `Refresh $${formattedAmount} payment status`;
+    refreshDepositSummary();
   };
 
   amountButtons.forEach((button) => button.addEventListener("click", () => {
     audio?.play("tap");
     customAmount.value = button.dataset.amount;
-    updateAmount(button.dataset.amount, button, button.dataset.bonus);
+    updateAmount(button.dataset.amount, button);
   }));
-
-  customAmount.addEventListener("input", () => updateAmount(customAmount.value, null, 0));
-
-  const methodGrid = document.getElementById("payment-method-grid");
-  const methodLabel = document.querySelector(".methods-panel .selection-label");
-  let methodCards = [];
-  let selectedMethod = null;
-
-  const selectMethod = (card) => {
-    selectedMethod = card;
-    methodCards.forEach((item) => item.classList.toggle("selected", item === card));
-    methodLabel.textContent = `${card.dataset.method} selected`;
-  };
+  customAmount.addEventListener("input", () => updateAmount(customAmount.value.replace(/[^0-9.]/g, ""), null));
 
   const paymentTone = (name) => {
     const normalized = name.toLowerCase();
@@ -221,62 +242,278 @@
     return "custom";
   };
 
-  const renderPaymentMethods = (methods) => {
+  const selectMethod = (card) => {
+    selectedMethod = card;
+    methodCards.forEach((item) => item.classList.toggle("selected", item === card));
+    methodLabel.textContent = card ? `${card.dataset.method} selected` : "Choose a method";
+    payInstructions.hidden = !card;
+    if (card) {
+      document.getElementById("pay-method-name").textContent = `${card.dataset.method} · send to`;
+      document.getElementById("pay-handle").textContent = card.dataset.handle;
+      payInstructions.dataset.tone = paymentTone(card.dataset.method);
+    }
+    refreshDepositSummary();
+  };
+
+  const renderPaymentMethods = () => {
     methodGrid.replaceChildren();
+    const previous = selectedMethod?.dataset.method;
     selectedMethod = null;
-    if (!methods.length) {
+    methodCards = [];
+    if (!paymentMethods.length) {
       const empty = document.createElement("p");
       empty.className = "payment-method-empty";
       empty.textContent = "Payment methods are being updated. Please check again shortly.";
       methodGrid.append(empty);
-      methodLabel.textContent = "No methods available";
-      methodCards = [];
-      return;
-    }
-    methodCards = methods.map((method) => {
-      const card = document.createElement("button");
-      const logo = document.createElement("span");
-      const name = document.createElement("b");
-      const paymentId = document.createElement("small");
-      const check = document.createElement("i");
-      card.className = "method-card";
-      card.type = "button";
-      card.dataset.method = method.methodName;
-      card.dataset.handle = method.paymentId;
-      card.setAttribute("aria-label", `${method.methodName}, ${method.paymentId}`);
-      logo.className = `method-logo ${paymentTone(method.methodName)}`;
-      logo.textContent = method.methodName.charAt(0).toUpperCase();
-      name.textContent = method.methodName;
-      paymentId.textContent = method.paymentId;
-      check.textContent = "✓";
-      card.append(logo, name, paymentId, check);
-      card.addEventListener("click", () => {
-        audio?.play("tap");
-        selectMethod(card);
+      selectMethod(null);
+    } else {
+      methodCards = paymentMethods.map((method) => {
+        const card = document.createElement("button");
+        const logo = document.createElement("span");
+        const name = document.createElement("b");
+        const paymentId = document.createElement("small");
+        const check = document.createElement("i");
+        card.className = "method-card";
+        card.type = "button";
+        card.dataset.method = method.methodName;
+        card.dataset.handle = method.paymentId;
+        card.setAttribute("aria-label", `${method.methodName}, ${method.paymentId}`);
+        logo.className = `method-logo ${paymentTone(method.methodName)}`;
+        logo.textContent = method.methodName.charAt(0).toUpperCase();
+        name.textContent = method.methodName;
+        paymentId.textContent = method.paymentId;
+        check.textContent = "✓";
+        card.append(logo, name, paymentId, check);
+        card.addEventListener("click", () => {
+          audio?.play("tap");
+          selectMethod(card);
+        });
+        methodGrid.append(card);
+        return card;
       });
-      methodGrid.append(card);
-      return card;
-    });
-    selectMethod(methodCards[0]);
+      selectMethod(methodCards.find((card) => card.dataset.method === previous) || null);
+    }
+    // Cash-outs can go to any method players use; offer the known ones plus "Other".
+    const current = cashoutMethod.value;
+    const names = [...new Set([...paymentMethods.map((method) => method.methodName), "Cash App", "Chime", "PayPal", "Venmo"])];
+    cashoutMethod.replaceChildren(...names.map((name) => new Option(name, name)), new Option("Other", "Other"));
+    if (current) cashoutMethod.value = current;
   };
 
   const loadPaymentMethods = async () => {
     const data = await request("/api/payment-methods");
-    renderPaymentMethods(data.methods);
+    paymentMethods = data.methods;
+    renderPaymentMethods();
   };
 
-  reviewButton.addEventListener("click", async () => {
-    audio?.play("payment");
-    reviewButton.disabled = true;
+  document.getElementById("copy-pay-handle").addEventListener("click", async () => {
+    const handle = document.getElementById("pay-handle").textContent;
     try {
-      const player = await refreshWallet();
-      showToast(`Wallet refreshed • ${player.totalCredits.toLocaleString("en-US")} credits`);
+      await navigator.clipboard.writeText(handle);
+      showToast(`Copied ${handle}`);
+    } catch {
+      showToast(handle);
+    }
+    audio?.play("tap");
+  });
+
+  document.querySelectorAll("[data-wallet-tab]").forEach((tab) => tab.addEventListener("click", () => {
+    audio?.play("tap");
+    document.querySelectorAll("[data-wallet-tab]").forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll("[data-wallet-panel]").forEach((panel) => { panel.hidden = panel.dataset.walletPanel !== tab.dataset.walletTab; });
+  }));
+
+  const pendingCashoutCents = () => requests
+    .filter((item) => item.kind === "cashout" && item.status === "pending")
+    .reduce((sum, item) => sum + item.amountCents, 0);
+
+  const refreshCashable = () => {
+    const available = Math.max(0, cashableCents - pendingCashoutCents());
+    document.getElementById("cashout-available").textContent = `Up to ${dollars(available)}`;
+    return available;
+  };
+  window.addEventListener("gamish:cashable", (event) => {
+    cashableCents = event.detail;
+    refreshCashable();
+  });
+
+  document.querySelectorAll("[data-cashout-fraction]").forEach((button) => button.addEventListener("click", () => {
+    audio?.play("tap");
+    const cents = Math.floor(refreshCashable() * Number(button.dataset.cashoutFraction));
+    cashoutAmount.value = (cents / 100).toFixed(2).replace(/\.00$/, "");
+  }));
+
+  const STATUS_LABELS = { pending: "Pending", approved: "Completed", declined: "Declined", cancelled: "Cancelled" };
+  const requestTime = (value) => new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+  const renderRequests = () => {
+    requestList.replaceChildren();
+    if (!requests.length) {
+      const empty = document.createElement("p");
+      empty.className = "request-empty";
+      empty.textContent = "No requests yet. Deposits and cash-outs you send will appear here.";
+      requestList.append(empty);
+      return;
+    }
+    for (const item of requests) {
+      const row = document.createElement("article");
+      row.className = `request-row ${item.kind} ${item.status}`;
+      const icon = document.createElement("span");
+      icon.className = "request-icon";
+      icon.textContent = item.kind === "deposit" ? "↓" : "↑";
+      const body = document.createElement("div");
+      const title = document.createElement("b");
+      title.textContent = item.kind === "deposit" ? `Deposit · ${item.methodName}` : `Cash out · ${item.methodName}`;
+      const meta = document.createElement("small");
+      meta.textContent = item.kind === "deposit" ? `${requestTime(item.createdAt)} · sent to ${item.paymentHandle}` : `${requestTime(item.createdAt)} · to ${item.paymentHandle}`;
+      body.append(title, meta);
+      if (item.status === "approved" && item.kind === "deposit" && (item.creditedCents !== item.amountCents || item.bonusCents)) {
+        const extra = document.createElement("small");
+        extra.className = "request-extra";
+        extra.textContent = `${dollars(item.creditedCents)} credited${item.bonusCents ? ` + ${dollars(item.bonusCents)} bonus` : ""}`;
+        body.append(extra);
+      }
+      if (item.adminNote) {
+        const note = document.createElement("small");
+        note.className = "request-note";
+        note.textContent = `“${item.adminNote}”`;
+        body.append(note);
+      }
+      const side = document.createElement("div");
+      side.className = "request-side";
+      const amount = document.createElement("strong");
+      amount.textContent = `${item.kind === "deposit" ? "+" : "−"}${dollars(item.amountCents)}`;
+      const status = document.createElement("span");
+      status.className = `request-status ${item.status}`;
+      status.textContent = STATUS_LABELS[item.status] || item.status;
+      side.append(amount, status);
+      if (item.status === "pending") {
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.className = "request-cancel";
+        cancel.dataset.cancelRequest = item.id;
+        cancel.textContent = "Cancel";
+        side.append(cancel);
+      }
+      row.append(icon, body, side);
+      requestList.append(row);
+    }
+  };
+
+  const scheduleRequestPoll = () => {
+    window.clearTimeout(requestTimer);
+    // Poll quickly while the wallet is open, slowly while something is pending elsewhere.
+    const pending = requests.some((item) => item.status === "pending");
+    if (!pending && currentView !== "payments") return;
+    requestTimer = window.setTimeout(() => loadRequests().catch(() => {}), currentView === "payments" ? 10_000 : 25_000);
+  };
+
+  const loadRequests = async () => {
+    if (!window.GamishAccount.player) return;
+    const before = new Map(requests.map((item) => [item.id, item.status]));
+    const data = await request("/api/payment-methods?requests=1");
+    requests = data.requests;
+    const settled = requests.filter((item) => before.get(item.id) === "pending" && item.status !== "pending");
+    renderRequests();
+    refreshCashable();
+    if (settled.length) {
+      const item = settled[0];
+      if (item.status === "approved") {
+        audio?.play("payment");
+        showToast(item.kind === "deposit" ? `Deposit confirmed · ${dollars(item.creditedCents)} added` : `Cash out of ${dollars(item.amountCents)} sent`);
+      } else {
+        showToast(`${item.kind === "deposit" ? "Deposit" : "Cash out"} ${STATUS_LABELS[item.status].toLowerCase()}${item.adminNote ? `: ${item.adminNote}` : ""}`);
+      }
+      refreshWallet().catch(() => {});
+    }
+    scheduleRequestPoll();
+  };
+
+  requestList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-cancel-request]");
+    if (!button) return;
+    button.disabled = true;
+    try {
+      await request("/api/payment-methods", { method: "POST", body: JSON.stringify({ action: "request_cancel", id: button.dataset.cancelRequest }) });
+      showToast("Request cancelled");
+      await loadRequests();
+    } catch (error) {
+      showToast(error.message);
+      button.disabled = false;
+    }
+  });
+  document.getElementById("refresh-requests").addEventListener("click", () => {
+    audio?.play("tap");
+    Promise.all([loadRequests(), refreshWallet()]).catch((error) => showToast(error.message));
+  });
+
+  const submitRequest = async (button, payload, done) => {
+    button.disabled = true;
+    try {
+      await request("/api/payment-methods", { method: "POST", body: JSON.stringify({ action: "request_create", ...payload }) });
+      audio?.play("payment");
+      done();
+      await loadRequests();
+      requestList.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
       showToast(error.message);
     } finally {
-      reviewButton.disabled = false;
+      button.disabled = false;
+      refreshDepositSummary();
     }
+  };
+
+  depositButton.addEventListener("click", () => {
+    if (!selectedMethod) return;
+    submitRequest(depositButton, {
+      kind: "deposit",
+      amountCents: Math.round(selectedAmount * 100),
+      methodName: selectedMethod.dataset.method,
+      note: depositNote.value,
+    }, () => {
+      depositNote.value = "";
+      showToast("Got it! We'll add your credits once the payment arrives.");
+    });
   });
+
+  cashoutButton.addEventListener("click", () => {
+    const amountCents = toCents(cashoutAmount.value);
+    if (!amountCents) {
+      showToast("Enter an amount to cash out");
+      cashoutAmount.focus();
+      return;
+    }
+    if (amountCents > refreshCashable()) {
+      showToast(`You can cash out up to ${dollars(refreshCashable())}`);
+      return;
+    }
+    if (cashoutHandle.value.trim().length < 2) {
+      showToast("Enter where you want to receive it");
+      cashoutHandle.focus();
+      return;
+    }
+    submitRequest(cashoutButton, {
+      kind: "cashout",
+      amountCents,
+      methodName: cashoutMethod.value,
+      paymentHandle: cashoutHandle.value,
+    }, () => {
+      cashoutAmount.value = "";
+      showToast("Cash out requested. We'll let you know when it's sent.");
+    });
+  });
+
+  window.addEventListener("gamish:view", (event) => {
+    if (event.detail !== "payments" || !window.GamishAccount.player) return;
+    Promise.all([refreshWallet(), loadPaymentMethods(), loadRequests()]).catch((error) => showToast(error.message));
+  });
+  refreshDepositSummary();
+
+  // ---------- Messages ----------
 
   const messageList = document.getElementById("message-list");
   const messageForm = document.getElementById("message-form");
@@ -286,7 +523,13 @@
   const messageImagePreviewPhoto = document.getElementById("message-image-preview-photo");
   const messageImagePreviewName = document.getElementById("message-image-preview-name");
   const messageAttach = document.getElementById("message-attach");
+  const unreadDot = document.getElementById("unread-dot");
   let pendingMessageImage = null;
+  let chatMessages = [];
+  let seenUntil = null;
+  let chatLoaded = false;
+  let chatTimer;
+  let summaryTimer;
   chatImages?.setupViewer();
 
   const setPendingMessageImage = (attachment) => {
@@ -301,22 +544,44 @@
     }
   };
 
-  const renderMessages = (messages) => {
+  const dayLabel = (value) => {
+    const day = new Date(value);
+    const today = new Date();
+    const yesterday = new Date(Date.now() - 86_400_000);
+    if (day.toDateString() === today.toDateString()) return "Today";
+    if (day.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const renderMessages = () => {
+    const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
     messageList.replaceChildren();
-    if (!messages.length) {
+    if (!chatMessages.length) {
       const empty = document.createElement("p");
       empty.className = "message-empty";
-      empty.textContent = "No messages yet. Say hello to the admin team.";
+      empty.textContent = "No messages yet. Say hello, we usually reply quickly.";
       messageList.append(empty);
       return;
     }
-    for (const message of messages) {
-      const own = message.senderId === window.GamishAccount.player?.id;
+    const ownId = window.GamishAccount.player?.id;
+    const seenTime = seenUntil ? new Date(seenUntil).getTime() : 0;
+    const lastOwn = [...chatMessages].reverse().find((message) => message.senderId === ownId);
+    let lastDay = "";
+    for (const message of chatMessages) {
+      const label = dayLabel(message.createdAt);
+      if (label !== lastDay) {
+        const divider = document.createElement("div");
+        divider.className = "day-divider";
+        divider.textContent = label;
+        messageList.append(divider);
+        lastDay = label;
+      }
+      const own = message.senderId === ownId;
       const row = document.createElement("div");
       const content = document.createElement("div");
       const bubble = document.createElement("div");
       const stamp = document.createElement("time");
-      row.className = `message-row ${own ? "user-message" : "agent-message"}`;
+      row.className = `message-row ${own ? "user-message" : "agent-message"}${message.pending ? " pending" : ""}`;
       if (!own) {
         const avatar = document.createElement("div");
         avatar.className = "mini-avatar";
@@ -334,18 +599,49 @@
         caption.textContent = message.body;
         bubble.append(caption);
       }
-      stamp.textContent = new Date(message.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      let stampText = new Date(message.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      // Receipts on the latest own message only, like the messaging apps players know.
+      if (own && message === lastOwn) {
+        stampText += message.pending ? " · Sending…" : new Date(message.createdAt).getTime() <= seenTime ? " · Seen" : " · Sent";
+      }
+      stamp.textContent = stampText;
       content.append(bubble, stamp);
       row.append(content);
       messageList.append(row);
     }
-    messageList.scrollTop = messageList.scrollHeight;
+    if (nearBottom || !chatLoaded) messageList.scrollTop = messageList.scrollHeight;
   };
+
+  const setUnread = (count) => { unreadDot.hidden = !count || currentView === "messages"; };
 
   const loadMessages = async () => {
     if (!window.GamishAccount.player) return;
-    const data = await request("/api/messages");
-    renderMessages(data.messages);
+    const newest = chatMessages.filter((message) => !message.pending).at(-1)?.createdAt;
+    const data = await request(newest && chatLoaded ? `/api/messages?after=${encodeURIComponent(newest)}` : "/api/messages");
+    const known = new Set(chatMessages.map((message) => message.id));
+    chatMessages = chatLoaded ? [...chatMessages, ...data.messages.filter((message) => !known.has(message.id))] : data.messages;
+    if (data.messages.some((message) => message.senderId !== window.GamishAccount.player.id) && chatLoaded) audio?.play("reply");
+    seenUntil = data.seenUntil;
+    chatLoaded = true;
+    setUnread(0);
+    renderMessages();
+  };
+
+  const pollMessages = () => {
+    window.clearTimeout(chatTimer);
+    if (currentView !== "messages") return;
+    chatTimer = window.setTimeout(() => loadMessages().catch(() => {}).finally(pollMessages), 5000);
+  };
+
+  const pollSummary = async () => {
+    window.clearTimeout(summaryTimer);
+    if (window.GamishAccount.player && currentView !== "messages" && document.visibilityState === "visible") {
+      try {
+        const data = await request("/api/messages?summary=1");
+        setUnread(data.unreadCount);
+      } catch { /* keep the last known badge */ }
+    }
+    summaryTimer = window.setTimeout(pollSummary, 25_000);
   };
 
   const sendMessage = async (text) => {
@@ -357,19 +653,36 @@
       type: pendingMessageImage.type,
       name: pendingMessageImage.name,
     } : null;
-    await request("/api/messages", { method: "POST", body: JSON.stringify({ message: clean, attachment }) });
+    // Show the message immediately; the server copy replaces it when the send completes.
+    const optimistic = {
+      id: `pending-${Date.now()}`,
+      senderId: window.GamishAccount.player?.id,
+      body: clean || "Photo",
+      attachment: attachment ? { url: pendingMessageImage.previewUrl, name: attachment.name } : null,
+      createdAt: new Date().toISOString(),
+      pending: true,
+    };
+    chatMessages = [...chatMessages, optimistic];
     messageInput.value = "";
     setPendingMessageImage(null);
-    await loadMessages();
+    messageList.scrollTop = messageList.scrollHeight;
+    renderMessages();
+    try {
+      const data = await request("/api/messages", { method: "POST", body: JSON.stringify({ message: clean, attachment }) });
+      chatMessages = chatMessages.map((message) => (message === optimistic ? data.message : message));
+      renderMessages();
+    } catch (error) {
+      chatMessages = chatMessages.filter((message) => message !== optimistic);
+      messageInput.value = clean;
+      renderMessages();
+      throw error;
+    }
   };
 
   messageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const button = messageForm.querySelector(".send-button");
-    button.disabled = true;
     try { await sendMessage(messageInput.value); }
     catch (error) { showToast(error.message); }
-    finally { button.disabled = false; }
   });
 
   document.querySelectorAll("[data-reply]").forEach((button) => {
@@ -397,8 +710,24 @@
   });
   document.getElementById("message-image-remove").addEventListener("click", () => setPendingMessageImage(null));
 
-  document.querySelector('[data-view="messages"]').addEventListener("click", () => loadMessages().catch((error) => showToast(error.message)));
-  window.setInterval(() => {
-    if (document.getElementById("messages-view").classList.contains("active")) loadMessages().catch(() => {});
-  }, 10000);
+  window.addEventListener("gamish:view", (event) => {
+    if (event.detail === "messages") {
+      setUnread(0);
+      loadMessages().catch((error) => showToast(error.message)).finally(pollMessages);
+    } else {
+      window.clearTimeout(chatTimer);
+      scheduleRequestPoll();
+    }
+  });
+
+  // Start the background checks once someone is signed in.
+  window.addEventListener("gamish:account", () => {
+    chatMessages = [];
+    chatLoaded = false;
+    pollSummary();
+    loadRequests().catch(() => {});
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pollSummary();
+  });
 })();

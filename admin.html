@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=10" />
+  <link rel="stylesheet" href="admin.css?v=11" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -36,7 +36,7 @@
         <button class="tab-button active" type="button" data-tab="overview" aria-label="Overview"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5"/><path d="M5.5 9.5v10h13v-10M9.5 19.5v-6h5v6"/></svg></span><span class="tab-label">Overview</span></button>
         <button class="tab-button" type="button" data-tab="players" aria-label="Players"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.25"/><path d="M3.5 19c.45-3.35 2.3-5.25 5.5-5.25s5.05 1.9 5.5 5.25M15 6.25a3 3 0 0 1 0 5.5M16 14c2.6.35 4.1 2 4.5 5"/></svg></span><span class="tab-label">Players</span></button>
         <button class="tab-button" type="button" data-tab="analytics" aria-label="Analytics"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5V14h3.5v5.5M10.25 19.5V9h3.5v10.5M16.5 19.5V4.5H20v15"/><path d="M3 19.5h18"/></svg></span><span class="tab-label">Analytics</span></button>
-        <button class="tab-button" type="button" data-tab="money" aria-label="Money"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M15.25 8.5c-.8-.65-1.8-1-3.05-1-1.55 0-2.7.75-2.7 1.95 0 3.25 5.25 1.1 5.25 4.2 0 1.25-1.1 2.1-2.85 2.1-1.25 0-2.35-.4-3.2-1.15M12 5.75v12.5"/></svg></span><span class="tab-label">Money</span></button>
+        <button class="tab-button" type="button" data-tab="money" aria-label="Money"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M15.25 8.5c-.8-.65-1.8-1-3.05-1-1.55 0-2.7.75-2.7 1.95 0 3.25 5.25 1.1 5.25 4.2 0 1.25-1.1 2.1-2.85 2.1-1.25 0-2.35-.4-3.2-1.15M12 5.75v12.5"/></svg></span><span class="tab-label">Money</span><i id="money-badge" class="tab-badge" hidden></i></button>
         <button class="tab-button" type="button" data-tab="reports" aria-label="Reports"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6z"/><path d="M15 3.5v3h3M9 16.5v-3M12 16.5v-6M15 16.5v-4.5"/></svg></span><span class="tab-label">Reports</span></button>
       </nav>
       <div class="sidebar-footer">
@@ -70,17 +70,36 @@
       <div id="admin-notice" class="notice" role="status" hidden></div>
 
       <section class="tab-panel" data-panel="overview">
-        <div class="stat-grid">
-          <article class="stat-card hero-stat"><span>Cash in · 30 days</span><strong id="period-cash-in">$0.00</strong><small id="cash-flow-note">$0.00 out</small></article>
-          <article class="stat-card"><span>Game net · 30 days</span><strong id="period-game-net">$0.00</strong><small>Wagers minus wins and bonuses</small></article>
-          <article class="stat-card"><span>Active players</span><strong id="active-players">0</strong><small id="frozen-players">0 frozen</small></article>
-          <article class="stat-card"><span>Bonus available</span><strong id="bonus-pool">$0.00</strong><small>Current weekly pool</small></article>
+        <section class="attention-strip" aria-label="Needs attention">
+          <button class="attention-card" type="button" data-attention="deposits"><span class="attention-icon in">↓</span><div><small>Deposits to confirm</small><strong id="att-deposits">0</strong><em id="att-deposits-sum">$0.00 waiting</em></div></button>
+          <button class="attention-card" type="button" data-attention="cashouts"><span class="attention-icon out">↑</span><div><small>Cash-outs to send</small><strong id="att-cashouts">0</strong><em id="att-cashouts-sum">$0.00 requested</em></div></button>
+          <button class="attention-card" type="button" data-attention="chat"><span class="attention-icon chat">✉</span><div><small>Unread messages</small><strong id="att-unread">0</strong><em id="att-unread-note">All caught up</em></div></button>
+          <div class="attention-card today-card"><span class="attention-icon today">◷</span><div><small>Today</small><strong id="today-net">$0.00</strong><em id="today-note">0 in · 0 out · 0 players</em></div></div>
+        </section>
+
+        <div class="overview-toolbar">
+          <h2>Performance</h2>
+          <label class="range-control light"><span class="sr-only">Range</span><select id="overview-range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select></label>
+        </div>
+        <div class="kpi-grid">
+          <article class="kpi-card hero-stat"><span>Net cash</span><strong id="kpi-net">$0.00</strong><small id="kpi-net-delta" class="delta"></small><em>Cash in minus cash out</em></article>
+          <article class="kpi-card"><span>Cash in</span><strong id="kpi-in">$0.00</strong><small id="kpi-in-delta" class="delta"></small><em>Deposits and admin funding</em></article>
+          <article class="kpi-card"><span>Cash out</span><strong id="kpi-out">$0.00</strong><small id="kpi-out-delta" class="delta"></small><em>Recorded cash-outs</em></article>
+          <article class="kpi-card"><span>Player balances</span><strong id="kpi-liability">$0.00</strong><small id="kpi-liability-note" class="delta neutral"></small><em>Cashable now, excluding bonus</em></article>
+          <article class="kpi-card"><span>Game net</span><strong id="kpi-game">$0.00</strong><small id="kpi-game-delta" class="delta"></small><em>Wagers minus wins and bonuses</em></article>
+          <article class="kpi-card"><span>Players who played</span><strong id="kpi-players">0</strong><small id="kpi-players-delta" class="delta"></small><em id="kpi-players-note">0 rounds</em></article>
         </div>
 
-        <section class="content-section overview-list">
-          <div class="section-heading"><div><p class="eyebrow">PLAYERS</p><h2>Recent accounts</h2></div><button class="text-button" type="button" data-open-tab="players">View all →</button></div>
-          <div id="recent-players" class="mini-list"></div>
-        </section>
+        <div class="overview-columns">
+          <section class="content-section">
+            <div class="section-heading"><div><p class="eyebrow">CASH FLOW</p><h2>Money in and out</h2></div><div class="chart-legend"><span class="cash-in">In</span><span class="cash-out">Out</span></div></div>
+            <div id="cashflow-chart" class="activity-chart cashflow-chart"></div>
+          </section>
+          <section class="content-section">
+            <div class="section-heading"><div><p class="eyebrow">LIVE</p><h2>Recent activity</h2></div></div>
+            <ol id="activity-feed" class="activity-feed"></ol>
+          </section>
+        </div>
       </section>
 
       <section class="tab-panel" data-panel="players" hidden>
@@ -123,7 +142,7 @@
           <div>
             <p class="eyebrow">TESTING ONLY</p>
             <h2>Hard reset everything</h2>
-            <p>Permanently deletes every active and archived player account plus all lifetime totals, payments, ledger entries, game rounds, chats, sessions, and login-attempt data. Only the admin account remains.</p>
+            <p>Permanently deletes every active and archived player account plus all lifetime totals, payments, payment requests, ledger entries, game rounds, chats, sessions, and login-attempt data. Only the admin account remains.</p>
           </div>
           <button id="hard-reset-all" class="button danger-button" type="button">Hard reset everything</button>
         </section>
@@ -156,6 +175,17 @@
       </section>
 
       <section class="tab-panel" data-panel="money" hidden>
+        <section class="content-section requests-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">PLAYER REQUESTS</p><h2>Deposits and cash-outs</h2></div>
+            <div class="segmented" role="tablist" aria-label="Request filter">
+              <button type="button" class="active" data-request-filter="pending">Pending <b id="pending-request-count">0</b></button>
+              <button type="button" data-request-filter="all">History</button>
+            </div>
+          </div>
+          <div id="admin-requests" class="admin-request-list"></div>
+        </section>
+
         <div class="form-grid">
           <form id="credit-player-form" class="content-section money-form">
             <span class="money-icon add">+</span>
@@ -222,6 +252,11 @@
       <div class="admin-chat-layout">
         <section class="chat-inbox" aria-label="Player conversations">
           <label class="chat-search"><span aria-hidden="true">⌕</span><input id="admin-chat-search" type="search" autocomplete="off" placeholder="Search players" aria-label="Search players" /></label>
+          <div class="chat-filter" role="tablist" aria-label="Conversation filter">
+            <button type="button" class="active" data-chat-filter="all">All</button>
+            <button type="button" data-chat-filter="unread">Unread</button>
+            <button type="button" data-chat-filter="requests">Has requests</button>
+          </div>
           <div id="admin-chat-list" class="admin-chat-list" role="list"></div>
         </section>
         <section class="chat-thread" aria-label="Active conversation">
@@ -229,12 +264,20 @@
             <button id="admin-chat-back" class="chat-back-button" type="button" aria-label="Back to conversations">‹</button>
             <span id="admin-chat-avatar" class="chat-thread-avatar">?</span>
             <div><strong id="admin-chat-player-name">Choose a player</strong><small id="admin-chat-player-status">All player conversations are on the left</small></div>
+            <button id="admin-chat-profile" class="mini-button chat-profile-button" type="button" hidden>Profile</button>
           </header>
+          <div id="admin-chat-context" class="chat-context" hidden></div>
           <div id="admin-chat-messages" class="admin-chat-messages" aria-live="polite"></div>
           <div id="admin-chat-image-preview" class="admin-chat-image-preview" hidden>
             <img id="admin-chat-image-preview-photo" alt="Selected attachment preview" />
             <div><b id="admin-chat-image-preview-name">Photo</b><small>Ready to send</small></div>
             <button id="admin-chat-image-remove" type="button" aria-label="Remove selected image">×</button>
+          </div>
+          <div id="admin-chat-canned" class="chat-canned" hidden>
+            <button type="button" data-canned="Payment received, your credits are added. Good luck!">Credits added ✓</button>
+            <button type="button" data-canned="I can't see your payment yet. Could you send a screenshot of it?">Ask for screenshot</button>
+            <button type="button" data-canned="Your cash out has been sent. It may take a few minutes to arrive.">Cash out sent</button>
+            <button type="button" data-canned="Thanks for waiting! Looking into it now.">On it</button>
           </div>
           <form id="admin-chat-form" class="admin-chat-form">
             <input id="admin-chat-image-input" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" disabled />
@@ -244,6 +287,15 @@
           </form>
         </section>
       </div>
+    </aside>
+
+    <button id="player-drawer-backdrop" class="side-panel-backdrop" type="button" aria-label="Close player details" hidden></button>
+    <aside id="player-drawer" class="admin-side-panel player-drawer" aria-labelledby="player-drawer-title" hidden>
+      <header class="side-panel-header">
+        <div class="side-panel-title"><span id="player-drawer-avatar" class="side-panel-mark avatar-mark">?</span><div><p class="eyebrow">PLAYER</p><h2 id="player-drawer-title">Player</h2></div></div>
+        <button id="player-drawer-close" class="icon-button" type="button" aria-label="Close player details">×</button>
+      </header>
+      <div id="player-drawer-body" class="player-drawer-body"></div>
     </aside>
 
     <button id="admin-payment-backdrop" class="side-panel-backdrop" type="button" aria-label="Close payment methods" hidden></button>
@@ -267,6 +319,6 @@
     <p id="chat-image-viewer-title">Chat image</p>
   </dialog>
   <script src="chat-images.js?v=1"></script>
-  <script type="module" src="admin.js?v=10"></script>
+  <script type="module" src="admin.js?v=11"></script>
 </body>
 </html>

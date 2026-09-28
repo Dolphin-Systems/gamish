@@ -11,10 +11,10 @@ let installPrompt;
 let chatTimer;
 
 const pageCopy = {
-  overview: ["Overview", "A quick look at today."],
+  overview: ["Overview", "What needs you now, and how the business is doing."],
   players: ["Players", "Create, freeze, reset, or delete player accounts."],
   analytics: ["Player analytics", "Understand player activity and game performance."],
-  money: ["Money", "Manage available cash and cash-out records."],
+  money: ["Money", "Confirm deposits, send cash-outs, and adjust balances."],
   reports: ["Reports", "Review activity and download a PDF."],
 };
 
@@ -69,14 +69,6 @@ window.addEventListener("hashchange", () => openTab(window.location.hash.slice(1
 
 const statusPill = (status) => `<span class="status-pill ${status}">${status === "suspended" ? "Frozen" : status}</span>`;
 
-const renderRecentPlayers = () => {
-  const node = document.getElementById("recent-players");
-  const recent = players.filter((player) => player.role === "player" && player.status !== "deleted").slice(0, 5);
-  node.innerHTML = recent.map((player) => `
-    <div class="mini-player"><div><b>${player.loginId}</b><small>${date(player.createdAt)}</small></div>${statusPill(player.status)}<strong>${money(player.totalCredits)}</strong></div>
-  `).join("") || "<p class='helper'>No player accounts yet.</p>";
-};
-
 const playerActions = (player) => {
   if (player.status === "deleted") return "<span class='helper'>History retained</span>";
   return `
@@ -96,7 +88,7 @@ const renderPlayers = () => {
   document.getElementById("archived-accounts").hidden = archived.length === 0;
   document.getElementById("players-table").innerHTML = rows.map((player) => `
     <tr>
-      <td data-label="Player"><div class="player-name"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${player.loginId}</b><small>Created ${date(player.createdAt)}</small></div></div></td>
+      <td data-label="Player"><button class="player-name player-link" type="button" data-player-details="${player.id}"><span class="avatar">${player.loginId[0].toUpperCase()}</span><div><b>${escapeHtml(player.loginId)}</b><small>Last login ${date(player.lastLoginAt)}</small></div></button></td>
       <td data-label="Status">${statusPill(player.status)}</td>
       <td data-label="Available" class="money">${money(player.totalCredits)}</td>
       <td data-label="Lifetime in" class="money">${money(player.lifetimeCashInCents)}</td>
@@ -124,17 +116,93 @@ const renderPlayers = () => {
   document.getElementById("cashflow-table").innerHTML = rows.map((player) => `
     <tr><td data-label="Player"><b>${player.loginId}</b></td><td data-label="Available" class="money">${money(player.totalCredits)}</td><td data-label="Cash in" class="money">${money(player.lifetimeCashInCents)}</td><td data-label="Cash out" class="money">${money(player.lifetimeCashOutCents)}</td><td data-label="Net cash" class="money">${money(player.lifetimeCashInCents - player.lifetimeCashOutCents)}</td></tr>
   `).join("") || "<tr><td colspan='5'>No player cash flow yet.</td></tr>";
-  renderRecentPlayers();
+};
+
+// Percentage change against the previous equal-length period, phrased for a quick read.
+const delta = (node, current, previous, { invert = false } = {}) => {
+  node.classList.remove("up", "down", "neutral");
+  if (!previous && !current) { node.textContent = "No activity yet"; node.classList.add("neutral"); return; }
+  if (!previous) { node.textContent = "New this period"; node.classList.add("neutral"); return; }
+  const change = (current - previous) / Math.abs(previous);
+  const good = invert ? change < 0 : change > 0;
+  node.textContent = `${change >= 0 ? "▲" : "▼"} ${Math.abs(change * 100).toFixed(0)}% vs prior ${report.days}d`;
+  node.classList.add(Math.abs(change) < 0.005 ? "neutral" : good ? "up" : "down");
+};
+
+const ACTIVITY_LABELS = {
+  payment_credit: ["Deposit", "in"],
+  admin_credit: ["Admin funding", "in"],
+  bonus_credit: ["Bonus", "bonus"],
+  withdrawal: ["Cash out", "out"],
+  adjustment: ["Balance reset", "neutral"],
+  big_win: ["Big win", "win"],
+};
+
+const renderOverview = () => {
+  const { current, previous, today, liability, attention } = report;
+  document.getElementById("att-deposits").textContent = attention.pendingDeposits;
+  document.getElementById("att-deposits-sum").textContent = `${money(attention.pendingDepositCents)} waiting`;
+  document.getElementById("att-cashouts").textContent = attention.pendingCashouts;
+  document.getElementById("att-cashouts-sum").textContent = `${money(attention.pendingCashoutCents)} requested`;
+  document.getElementById("att-unread").textContent = attention.unreadMessages;
+  document.getElementById("att-unread-note").textContent = attention.unreadMessages
+    ? `from ${attention.unreadConversations} player${attention.unreadConversations === 1 ? "" : "s"}`
+    : "All caught up";
+  document.querySelector('[data-attention="deposits"]').classList.toggle("hot", attention.pendingDeposits > 0);
+  document.querySelector('[data-attention="cashouts"]').classList.toggle("hot", attention.pendingCashouts > 0);
+  document.querySelector('[data-attention="chat"]').classList.toggle("hot", attention.unreadMessages > 0);
+  document.getElementById("today-net").textContent = money(today.netCashCents);
+  document.getElementById("today-note").textContent = `${money(today.cashInCents)} in · ${money(today.cashOutCents)} out · ${today.activePlayers} playing`;
+
+  document.getElementById("kpi-net").textContent = money(current.netCashCents);
+  delta(document.getElementById("kpi-net-delta"), current.netCashCents, previous.netCashCents);
+  document.getElementById("kpi-in").textContent = money(current.cashInCents);
+  delta(document.getElementById("kpi-in-delta"), current.cashInCents, previous.cashInCents);
+  document.getElementById("kpi-out").textContent = money(current.cashOutCents);
+  delta(document.getElementById("kpi-out-delta"), current.cashOutCents, previous.cashOutCents, { invert: true });
+  document.getElementById("kpi-liability").textContent = money(liability.cashableCents);
+  const liabilityNote = document.getElementById("kpi-liability-note");
+  liabilityNote.textContent = `+ ${money(liability.bonusCents)} bonus`;
+  document.getElementById("kpi-game").textContent = money(current.gameNet);
+  delta(document.getElementById("kpi-game-delta"), current.gameNet, previous.gameNet);
+  document.getElementById("kpi-players").textContent = current.activePlayers;
+  delta(document.getElementById("kpi-players-delta"), current.activePlayers, previous.activePlayers);
+  document.getElementById("kpi-players-note").textContent = `${current.rounds.toLocaleString("en-US")} rounds · ${report.summary.activePlayers} accounts`;
+
+  // A continuous run of days (empty ones included) so the shape of the period is visible.
+  const byDate = new Map(report.daily.map((row) => [String(row.date).slice(0, 10), row]));
+  const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: report.timezone });
+  const empty = { cashInCents: 0, cashOutCents: 0, cashNetCents: 0 };
+  const days = Array.from({ length: Math.min(report.days, 14) }, (_, index) => {
+    const key = dayKey.format(new Date(Date.now() - (Math.min(report.days, 14) - 1 - index) * 86_400_000));
+    return { ...empty, ...byDate.get(key), date: `${key}T00:00:00Z` };
+  });
+  const peak = Math.max(1, ...days.flatMap((row) => [row.cashInCents, row.cashOutCents]));
+  const chart = document.getElementById("cashflow-chart");
+  chart.style.setProperty("--days", days.length);
+  chart.innerHTML = days.map((row, index) => `
+    <div class="activity-day${index % 2 ? " alt" : ""}" title="${money(row.cashInCents)} in · ${money(row.cashOutCents)} out">
+      <div class="activity-bars"><i class="cash-in" style="height:${row.cashInCents ? Math.max(3, row.cashInCents / peak * 100) : 0}%"></i><i class="cash-out" style="height:${row.cashOutCents ? Math.max(3, row.cashOutCents / peak * 100) : 0}%"></i></div>
+      <b>${new Date(row.date).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}</b>
+      <small class="${row.cashNetCents < 0 ? "negative" : row.cashNetCents ? "" : "quiet"}">${row.cashNetCents ? `${row.cashNetCents > 0 ? "+" : "−"}${money(Math.abs(row.cashNetCents))}` : "—"}</small>
+    </div>
+  `).join("") || "<p class='chart-empty'>No money movement in this range yet.</p>";
+
+  document.getElementById("activity-feed").innerHTML = report.activity.map((item) => {
+    const [label, tone] = ACTIVITY_LABELS[item.type] || [item.type, "neutral"];
+    const sign = tone === "out" ? "−" : tone === "neutral" ? "" : "+";
+    return `
+      <li class="activity-item ${tone}">
+        <span class="activity-dot"></span>
+        <div><b>${label} · <button class="inline-link" type="button" data-player-name="${escapeHtml(item.loginId)}">${escapeHtml(item.loginId)}</button></b><small>${escapeHtml(item.note)} · ${inboxTime(item.createdAt)}</small></div>
+        <strong>${sign}${money(item.amountCents)}</strong>
+      </li>`;
+  }).join("") || "<li class='activity-empty'>Deposits, cash-outs and big wins will appear here.</li>";
 };
 
 const renderReport = () => {
   if (!report) return;
-  document.getElementById("period-cash-in").textContent = money(report.summary.periodCashInCents);
-  document.getElementById("cash-flow-note").textContent = `${money(report.summary.periodCashOutCents)} out`;
-  document.getElementById("period-game-net").textContent = money(report.summary.periodGameNet);
-  document.getElementById("active-players").textContent = report.summary.activePlayers;
-  document.getElementById("frozen-players").textContent = `${report.summary.frozenPlayers} frozen`;
-  document.getElementById("bonus-pool").textContent = money(report.bonusPool.available);
+  renderOverview();
   document.getElementById("daily-report-title").textContent = `Last ${report.days} days`;
 
   document.getElementById("daily-table").innerHTML = report.daily.map((row) => `
@@ -168,7 +236,7 @@ const renderReport = () => {
     player.rounds || (player.status !== "deleted" && (player.cashInCents || player.cashOutCents))
   );
   document.getElementById("player-analytics-table").innerHTML = rankedPlayers.map((player, index) => `
-    <tr><td data-label="Player"><div class="ranked-player"><span>${index + 1}</span><div><b>${player.loginId}</b><small>Last played ${date(player.lastPlayedAt)}</small></div></div></td><td data-label="Status">${statusPill(player.status)}</td><td data-label="Cash in" class="money">${money(player.cashInCents)}</td><td data-label="Cash out" class="money">${money(player.cashOutCents)}</td><td data-label="Wagered" class="money">${money(player.wagered)}</td><td data-label="Won" class="money">${money(player.won)}</td><td data-label="Game net" class="money">${money(player.gameNet)}</td><td data-label="Rounds">${player.rounds.toLocaleString("en-US")}</td><td data-label="Win rate">${percent(player.winRate)}</td><td data-label="Return">${percent(player.returnRate)}</td></tr>
+    <tr><td data-label="Player"><button class="ranked-player player-link" type="button" data-player-details="${player.id}"><span>${index + 1}</span><div><b>${escapeHtml(player.loginId)}</b><small>Last played ${date(player.lastPlayedAt)}</small></div></button></td><td data-label="Status">${statusPill(player.status)}</td><td data-label="Cash in" class="money">${money(player.cashInCents)}</td><td data-label="Cash out" class="money">${money(player.cashOutCents)}</td><td data-label="Wagered" class="money">${money(player.wagered)}</td><td data-label="Won" class="money">${money(player.won)}</td><td data-label="Game net" class="money">${money(player.gameNet)}</td><td data-label="Rounds">${player.rounds.toLocaleString("en-US")}</td><td data-label="Win rate">${percent(player.winRate)}</td><td data-label="Return">${percent(player.returnRate)}</td></tr>
   `).join("") || "<tr><td colspan='10'>No player activity in this range.</td></tr>";
 };
 
@@ -183,6 +251,9 @@ const chatForm = document.getElementById("admin-chat-form");
 const chatPlayerName = document.getElementById("admin-chat-player-name");
 const chatPlayerStatus = document.getElementById("admin-chat-player-status");
 const chatAvatar = document.getElementById("admin-chat-avatar");
+const chatContext = document.getElementById("admin-chat-context");
+const chatCanned = document.getElementById("admin-chat-canned");
+const chatProfile = document.getElementById("admin-chat-profile");
 const chatImageInput = document.getElementById("admin-chat-image-input");
 const chatImagePreview = document.getElementById("admin-chat-image-preview");
 const chatImagePreviewPhoto = document.getElementById("admin-chat-image-preview-photo");
@@ -191,6 +262,11 @@ const chatAttach = document.getElementById("admin-chat-attach");
 let chatConversations = [];
 let selectedChatPlayerId = "";
 let pendingAdminImage = null;
+let chatFilter = "all";
+let threadMessages = [];
+let threadPlayerId = "";
+let threadSeenUntil = null;
+let summaryTimer;
 chatImages?.setupViewer();
 
 const setPendingAdminImage = (attachment) => {
@@ -207,27 +283,47 @@ const setPendingAdminImage = (attachment) => {
 
 const selectedConversation = () => chatConversations.find((conversation) => conversation.playerId === selectedChatPlayerId);
 
+const setChatBadge = (unread) => {
+  chatBadge.hidden = !unread;
+  chatBadge.textContent = unread > 9 ? "9+" : unread ? String(unread) : "";
+};
+
 const setChatThread = (conversation) => {
   const enabled = Boolean(conversation);
   chatPlayerName.textContent = conversation?.loginId || "Choose a player";
   chatPlayerStatus.textContent = conversation
-    ? `${conversation.status === "suspended" ? "Frozen" : "Active"} account`
+    ? `${conversation.status === "suspended" ? "Frozen" : "Active"} · last login ${conversation.lastLoginAt ? inboxTime(conversation.lastLoginAt) : "never"}`
     : "Choose anyone from the inbox";
   chatAvatar.textContent = conversation?.loginId?.charAt(0).toUpperCase() || "?";
   chatInput.disabled = !enabled;
   chatImageInput.disabled = !enabled;
   chatAttach.disabled = !enabled;
+  chatCanned.hidden = !enabled;
+  chatProfile.hidden = !enabled;
   chatForm.querySelector('button[type="submit"]').disabled = !enabled;
+  // Context an admin needs mid-conversation: balance and anything waiting on them.
+  chatContext.hidden = !enabled;
+  if (enabled) {
+    const waiting = adminRequests.filter((item) => item.playerId === conversation.playerId && item.status === "pending");
+    chatContext.innerHTML = `
+      <span><small>Balance</small><b>${money(conversation.totalCredits)}</b></span>
+      ${waiting.map((item) => `<button class="context-request ${item.kind}" type="button" data-open-request="${item.id}">${item.kind === "deposit" ? "↓ Deposit" : "↑ Cash out"} ${money(item.amountCents)} · ${escapeHtml(item.methodName)}</button>`).join("")}
+      ${waiting.length ? "" : "<span class='context-quiet'>No pending requests</span>"}`;
+  }
 };
 
 const renderChatInbox = () => {
   const query = chatSearch.value.trim().toLowerCase();
-  const conversations = chatConversations.filter((conversation) => conversation.loginId.toLowerCase().includes(query));
+  const conversations = chatConversations.filter((conversation) =>
+    conversation.loginId.toLowerCase().includes(query)
+    && (chatFilter !== "unread" || conversation.unreadCount > 0)
+    && (chatFilter !== "requests" || conversation.pendingRequests > 0));
   chatList.replaceChildren();
   if (!conversations.length) {
     const empty = document.createElement("p");
     empty.className = "chat-inbox-empty";
-    empty.textContent = chatConversations.length ? "No players match that search." : "No player accounts yet.";
+    empty.textContent = !chatConversations.length ? "No player accounts yet."
+      : chatFilter === "unread" ? "No unread messages. Nice work." : chatFilter === "requests" ? "Nobody is waiting on a request." : "No players match that search.";
     chatList.append(empty);
     return;
   }
@@ -240,14 +336,22 @@ const renderChatInbox = () => {
     const meta = document.createElement("span");
     const stamp = document.createElement("time");
     button.type = "button";
-    button.className = `chat-inbox-item${conversation.playerId === selectedChatPlayerId ? " active" : ""}`;
+    button.className = `chat-inbox-item${conversation.playerId === selectedChatPlayerId ? " active" : ""}${conversation.unreadCount ? " unread" : ""}`;
     button.dataset.playerId = conversation.playerId;
     button.setAttribute("role", "listitem");
     avatar.className = `chat-inbox-avatar${conversation.status === "suspended" ? " suspended" : ""}`;
     avatar.textContent = conversation.loginId.charAt(0).toUpperCase();
     copy.className = "chat-inbox-copy";
     name.textContent = conversation.loginId;
-    preview.textContent = conversation.lastMessage || "Start a conversation";
+    if (conversation.pendingRequests) {
+      const flag = document.createElement("i");
+      flag.className = "request-flag";
+      flag.textContent = `${conversation.pendingRequests} request${conversation.pendingRequests === 1 ? "" : "s"}`;
+      name.append(flag);
+    }
+    preview.textContent = conversation.lastMessage
+      ? `${conversation.lastFromPlayer ? "" : "You: "}${conversation.lastMessage}`
+      : "Start a conversation";
     meta.className = "chat-inbox-meta";
     stamp.textContent = inboxTime(conversation.lastMessageAt);
     meta.append(stamp);
@@ -262,16 +366,28 @@ const renderChatInbox = () => {
   }
 };
 
-const renderChat = (messages) => {
+const renderChat = () => {
+  const nearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 80;
   chatMessages.replaceChildren();
-  if (!messages.length) {
+  if (!threadMessages.length) {
     const empty = document.createElement("p");
     empty.className = "admin-chat-empty";
-    empty.textContent = "No messages yet. Start the conversation.";
+    empty.textContent = selectedChatPlayerId ? "No messages yet. Start the conversation." : "Pick a conversation to read it here.";
     chatMessages.append(empty);
     return;
   }
-  for (const message of messages) {
+  const seenTime = threadSeenUntil ? new Date(threadSeenUntil).getTime() : 0;
+  const lastAdmin = [...threadMessages].reverse().find((message) => message.senderRole === "admin");
+  let lastDay = "";
+  for (const message of threadMessages) {
+    const day = new Date(message.createdAt).toDateString();
+    if (day !== lastDay) {
+      const divider = document.createElement("p");
+      divider.className = "chat-day";
+      divider.textContent = day === new Date().toDateString() ? "Today" : date(message.createdAt);
+      chatMessages.append(divider);
+      lastDay = day;
+    }
     const row = document.createElement("div");
     const content = document.createElement("div");
     const bubble = document.createElement("div");
@@ -288,24 +404,34 @@ const renderChat = (messages) => {
       caption.textContent = message.body;
       bubble.append(caption);
     }
-    stamp.textContent = time(message.createdAt);
+    stamp.textContent = new Date(message.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      + (message === lastAdmin ? (new Date(message.createdAt).getTime() <= seenTime ? " · Seen" : " · Sent") : "");
     content.append(bubble, stamp);
     row.append(content);
     chatMessages.append(row);
   }
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  if (nearBottom || threadPlayerId !== selectedChatPlayerId) chatMessages.scrollTop = chatMessages.scrollHeight;
 };
 
 const loadAdminChat = async () => {
   const conversation = selectedConversation();
   setChatThread(conversation);
-  if (!conversation) return renderChat([]);
-  const data = await request(`/api/messages?playerId=${encodeURIComponent(selectedChatPlayerId)}`);
+  if (!conversation) {
+    threadMessages = [];
+    return renderChat();
+  }
+  // Same thread as before: fetch only what is new.
+  const sameThread = threadPlayerId === selectedChatPlayerId && threadMessages.length;
+  const newest = sameThread ? threadMessages.at(-1).createdAt : null;
+  const data = await request(`/api/messages?playerId=${encodeURIComponent(selectedChatPlayerId)}${newest ? `&after=${encodeURIComponent(newest)}` : ""}`);
+  threadMessages = sameThread ? [...threadMessages, ...data.messages.filter((m) => !threadMessages.some((known) => known.id === m.id))] : data.messages;
+  threadSeenUntil = data.seenUntil;
   conversation.unreadCount = 0;
   conversation.status = data.player.status;
   setChatThread(conversation);
   renderChatInbox();
-  renderChat(data.messages);
+  renderChat();
+  threadPlayerId = selectedChatPlayerId;
 };
 
 const refreshChatInbox = async () => {
@@ -316,13 +442,21 @@ const refreshChatInbox = async () => {
   }
   renderChatInbox();
   setChatThread(selectedConversation());
-  const unread = chatConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
-  chatBadge.hidden = unread === 0;
+  setChatBadge(chatConversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0));
 };
 
 const pollAdminChat = async () => {
   await refreshChatInbox();
   await loadAdminChat();
+};
+
+// While chat is closed, a tiny unread count keeps the badge honest.
+const pollChatSummary = async () => {
+  clearTimeout(summaryTimer);
+  if (!dashboard.hidden && chatPanel.hidden && document.visibilityState === "visible") {
+    try { setChatBadge((await request("/api/messages?summary=1")).unreadCount); } catch { /* keep badge */ }
+  }
+  summaryTimer = setTimeout(pollChatSummary, 20_000);
 };
 
 const closeAdminChat = () => {
@@ -333,20 +467,33 @@ const closeAdminChat = () => {
   clearInterval(chatTimer);
 };
 
-document.getElementById("admin-chat-toggle").addEventListener("click", async () => {
+const openAdminChat = async (playerId) => {
   closeAdminPayment();
+  closePlayerDrawer();
   chatPanel.hidden = false;
   chatBackdrop.hidden = false;
   try {
     await refreshChatInbox();
+    if (playerId) {
+      selectedChatPlayerId = playerId;
+      chatPanel.classList.add("conversation-open");
+      renderChatInbox();
+    }
     await loadAdminChat();
     clearInterval(chatTimer);
-    chatTimer = setInterval(() => pollAdminChat().catch(() => {}), 8000);
+    chatTimer = setInterval(() => pollAdminChat().catch(() => {}), 6000);
   } catch (error) { setNotice(error.message, true); }
-});
+};
+
+document.getElementById("admin-chat-toggle").addEventListener("click", () => openAdminChat());
 document.getElementById("admin-chat-close").addEventListener("click", closeAdminChat);
 chatBackdrop.addEventListener("click", closeAdminChat);
 chatSearch.addEventListener("input", renderChatInbox);
+document.querySelectorAll("[data-chat-filter]").forEach((button) => button.addEventListener("click", () => {
+  chatFilter = button.dataset.chatFilter;
+  document.querySelectorAll("[data-chat-filter]").forEach((item) => item.classList.toggle("active", item === button));
+  renderChatInbox();
+}));
 chatList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-player-id]");
   if (!button) return;
@@ -362,6 +509,26 @@ document.getElementById("admin-chat-back").addEventListener("click", () => {
   setPendingAdminImage(null);
   chatSearch.focus();
 });
+chatProfile.addEventListener("click", () => openPlayerDrawer(selectedChatPlayerId));
+chatContext.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-open-request]");
+  if (!button) return;
+  closeAdminChat();
+  openRequest(button.dataset.openRequest);
+});
+chatCanned.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-canned]");
+  if (!button) return;
+  chatInput.value = button.dataset.canned;
+  chatInput.focus();
+});
+
+const sendAdminMessage = async (message, attachment) => {
+  await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: selectedChatPlayerId, message, attachment }) });
+  await loadAdminChat();
+  await refreshChatInbox();
+};
+
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -375,11 +542,9 @@ chatForm.addEventListener("submit", async (event) => {
       type: pendingAdminImage.type,
       name: pendingAdminImage.name,
     } : null;
-    await request("/api/messages", { method: "POST", body: JSON.stringify({ playerId: selectedChatPlayerId, message, attachment }) });
     chatInput.value = "";
     setPendingAdminImage(null);
-    await loadAdminChat();
-    await refreshChatInbox();
+    await sendAdminMessage(message, attachment);
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = !selectedChatPlayerId; }
 });
@@ -400,6 +565,215 @@ chatImageInput.addEventListener("change", async () => {
   }
 });
 document.getElementById("admin-chat-image-remove").addEventListener("click", () => setPendingAdminImage(null));
+
+// ---------- Payment requests ----------
+
+const requestList = document.getElementById("admin-requests");
+let adminRequests = [];
+let requestFilter = "pending";
+
+const requestAge = (value) => {
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1440) return `${Math.round(minutes / 60)} h ago`;
+  return date(value);
+};
+
+const renderRequests = () => {
+  const pending = adminRequests.filter((item) => item.status === "pending");
+  document.getElementById("pending-request-count").textContent = pending.length;
+  const badge = document.getElementById("money-badge");
+  badge.hidden = !pending.length;
+  badge.textContent = pending.length > 9 ? "9+" : String(pending.length);
+  const rows = requestFilter === "pending" ? pending : adminRequests;
+  requestList.innerHTML = rows.map((item) => {
+    const deposit = item.kind === "deposit";
+    const balance = item.playerBalance ? money(item.playerBalance.regularCredits) : "—";
+    const decided = item.status !== "pending";
+    return `
+      <article class="admin-request ${item.kind} ${item.status}" id="request-${item.id}">
+        <div class="request-who">
+          <span class="request-kind">${deposit ? "↓" : "↑"}</span>
+          <div>
+            <b><button class="inline-link" type="button" data-player-details="${item.playerId}">${escapeHtml(item.loginId)}</button> · ${deposit ? "Deposit" : "Cash out"}</b>
+            <small>${deposit ? `Says they sent to <em>${escapeHtml(item.paymentHandle)}</em> on ${escapeHtml(item.methodName)}` : `Send to <em>${escapeHtml(item.paymentHandle)}</em> on ${escapeHtml(item.methodName)}`} · ${requestAge(item.createdAt)}</small>
+            ${item.note ? `<small class="request-player-note">“${escapeHtml(item.note)}”</small>` : ""}
+          </div>
+        </div>
+        <div class="request-amount">
+          <strong>${money(item.amountCents)}</strong>
+          <small>${deposit ? (item.bonusCents && !decided ? `+ ${money(item.bonusCents)} bonus if pool allows` : "") : `Cashable balance ${balance}`}</small>
+        </div>
+        ${decided ? `
+          <div class="request-outcome">
+            <span class="status-pill ${item.status === "approved" ? "" : "deleted"}">${item.status === "approved" ? (deposit ? "Credited" : "Sent") : item.status}</span>
+            <small>${item.status === "approved" && deposit ? `${money(item.creditedCents)}${item.bonusCents ? ` + ${money(item.bonusCents)} bonus` : ""} · ` : ""}${item.decidedAt ? requestAge(item.decidedAt) : ""}${item.adminNote ? ` · “${escapeHtml(item.adminNote)}”` : ""}</small>
+          </div>` : `
+          <div class="request-actions">
+            ${deposit ? `<label class="received-field"><span>Received</span><input type="number" min="0.01" step="0.01" inputmode="decimal" value="${(item.amountCents / 100).toFixed(2)}" data-received="${item.id}" /></label>` : ""}
+            <button class="button primary" type="button" data-request-action="approve" data-id="${item.id}">${deposit ? "Confirm & credit" : "Mark as sent"}</button>
+            <button class="mini-button" type="button" data-request-action="chat" data-player="${item.playerId}">Message</button>
+            <button class="mini-button danger" type="button" data-request-action="decline" data-id="${item.id}">Decline</button>
+          </div>`}
+      </article>`;
+  }).join("") || `<p class="requests-empty">${requestFilter === "pending" ? "You're all caught up. New deposit and cash-out requests land here." : "No requests yet."}</p>`;
+};
+
+const loadRequests = async () => {
+  const data = await request("/api/payment-methods?requests=1");
+  adminRequests = data.requests;
+  renderRequests();
+};
+
+const openRequest = (id) => {
+  requestFilter = "pending";
+  document.querySelectorAll("[data-request-filter]").forEach((button) => button.classList.toggle("active", button.dataset.requestFilter === "pending"));
+  openTab("money");
+  renderRequests();
+  setTimeout(() => {
+    const card = document.getElementById(`request-${id}`);
+    card?.scrollIntoView({ behavior: "smooth", block: "center" });
+    card?.classList.add("flash");
+  }, 120);
+};
+
+document.querySelectorAll("[data-request-filter]").forEach((button) => button.addEventListener("click", () => {
+  requestFilter = button.dataset.requestFilter;
+  document.querySelectorAll("[data-request-filter]").forEach((item) => item.classList.toggle("active", item === button));
+  renderRequests();
+}));
+
+requestList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-request-action]");
+  if (!button) return;
+  const action = button.dataset.requestAction;
+  if (action === "chat") return openAdminChat(button.dataset.player);
+  const item = adminRequests.find((candidate) => candidate.id === button.dataset.id);
+  if (!item) return;
+  let body;
+  if (action === "approve") {
+    const received = item.kind === "deposit" ? requestList.querySelector(`[data-received="${item.id}"]`)?.value : null;
+    const amountCents = received ? dollarsToCents(received) : item.amountCents;
+    const prompt = item.kind === "deposit"
+      ? `Credit ${money(amountCents)} to ${item.loginId}? Only confirm once the money is in your ${item.methodName} account.`
+      : `Confirm you sent ${money(item.amountCents)} to ${item.paymentHandle} on ${item.methodName}? This debits ${item.loginId}'s balance.`;
+    if (!window.confirm(prompt)) return;
+    body = { action: "request_approve", id: item.id, amountCents: item.kind === "deposit" ? amountCents : undefined };
+  } else {
+    const note = window.prompt(`Reason for declining ${item.loginId}'s ${item.kind === "deposit" ? "deposit" : "cash out"} (shown to the player):`, item.kind === "deposit" ? "Payment not received" : "");
+    if (note === null) return;
+    body = { action: "request_decline", id: item.id, note };
+  }
+  button.disabled = true;
+  try {
+    await request("/api/payment-methods", { method: "POST", body: JSON.stringify(body) });
+    setNotice(action === "approve" ? (item.kind === "deposit" ? `${item.loginId} credited.` : `Cash out to ${item.loginId} recorded.`) : "Request declined.");
+    await refresh();
+  } catch (error) {
+    setNotice(error.message, true);
+    button.disabled = false;
+  }
+});
+
+document.querySelectorAll("[data-attention]").forEach((card) => card.addEventListener("click", () => {
+  if (card.dataset.attention === "chat") return openAdminChat();
+  const kind = card.dataset.attention === "deposits" ? "deposit" : "cashout";
+  const first = adminRequests.find((item) => item.status === "pending" && item.kind === kind);
+  if (first) openRequest(first.id);
+  else openTab("money");
+}));
+
+// ---------- Player detail drawer ----------
+
+const drawer = document.getElementById("player-drawer");
+const drawerBackdrop = document.getElementById("player-drawer-backdrop");
+const drawerBody = document.getElementById("player-drawer-body");
+let drawerPlayerId = "";
+
+const LEDGER_LABELS = { payment_credit: "Deposit", admin_credit: "Admin funding", bonus_credit: "Bonus", withdrawal: "Cash out", adjustment: "Balance reset" };
+
+const closePlayerDrawer = () => {
+  drawer.hidden = true;
+  drawerBackdrop.hidden = true;
+  drawerPlayerId = "";
+};
+
+const openPlayerDrawer = async (playerId, { quiet = false } = {}) => {
+  if (!playerId) return;
+  if (!quiet) {
+    closeAdminChat();
+    closeAdminPayment();
+    drawerBody.innerHTML = "<p class='helper'>Loading player…</p>";
+  }
+  drawerPlayerId = playerId;
+  drawer.hidden = false;
+  drawerBackdrop.hidden = false;
+  try {
+    const data = await request(`/api/admin/players?playerId=${encodeURIComponent(playerId)}`);
+    if (drawerPlayerId !== playerId) return;
+    const { player, stats, ledger, requests } = data;
+    const summary = players.find((candidate) => candidate.id === playerId) || {};
+    const cashIn = summary.lifetimeCashInCents || 0;
+    const cashOut = summary.lifetimeCashOutCents || 0;
+    document.getElementById("player-drawer-title").textContent = player.loginId;
+    document.getElementById("player-drawer-avatar").textContent = player.loginId.charAt(0).toUpperCase();
+    drawerBody.innerHTML = `
+      <div class="drawer-status">${statusPill(player.status)}<small>Joined ${date(player.createdAt)} · last login ${player.lastLoginAt ? inboxTime(player.lastLoginAt) : "never"}</small></div>
+      <div class="drawer-balance">
+        <div><small>Cashable</small><strong>${money(player.regularCredits)}</strong></div>
+        <div><small>Bonus</small><strong>${money(player.bonusCredits)}</strong></div>
+      </div>
+      <div class="drawer-stats">
+        <div><small>Lifetime in</small><b>${money(cashIn)}</b></div>
+        <div><small>Lifetime out</small><b>${money(cashOut)}</b></div>
+        <div><small>Net from player</small><b class="${cashIn - cashOut < 0 ? "negative" : ""}">${money(cashIn - cashOut)}</b></div>
+        <div><small>Rounds</small><b>${stats.rounds.toLocaleString("en-US")}</b></div>
+        <div><small>Wagered / won</small><b>${money(stats.wagered)} / ${money(stats.won)}</b></div>
+        <div><small>Last played</small><b>${stats.lastPlayedAt ? inboxTime(stats.lastPlayedAt) : "Never"}</b></div>
+      </div>
+      ${player.status === "deleted" ? "" : `
+      <div class="drawer-actions">
+        <button class="button primary" type="button" data-drawer-action="chat">Message</button>
+        <button class="button dark" type="button" data-drawer-action="fund">Add money</button>
+        <button class="mini-button" type="button" data-drawer-action="cashout">Record cash out</button>
+      </div>`}
+      <h3>Requests</h3>
+      <ul class="drawer-list">${requests.map((item) => `
+        <li><span class="dot ${item.kind}"></span><div><b>${item.kind === "deposit" ? "Deposit" : "Cash out"} · ${escapeHtml(item.methodName)}</b><small>${inboxTime(item.createdAt)} · ${{ pending: "Waiting on you", approved: item.kind === "deposit" ? "Credited" : "Sent", declined: "Declined", cancelled: "Cancelled by player" }[item.status]}</small></div><strong>${money(item.amountCents)}</strong></li>`).join("") || "<li class='empty'>No requests yet.</li>"}</ul>
+      <h3>Money history</h3>
+      <ul class="drawer-list">${ledger.map((entry) => `
+        <li><span class="dot ${entry.amountCents < 0 ? "cashout" : "deposit"}"></span><div><b>${LEDGER_LABELS[entry.type] || entry.type}</b><small>${inboxTime(entry.createdAt)}${entry.note ? ` · ${escapeHtml(entry.note)}` : ""}</small></div><strong>${entry.amountCents < 0 ? "−" : "+"}${money(Math.abs(entry.amountCents))}</strong></li>`).join("") || "<li class='empty'>No deposits or cash-outs yet.</li>"}</ul>`;
+  } catch (error) {
+    drawerBody.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
+  }
+};
+
+drawerBody.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-drawer-action]");
+  if (!button) return;
+  const playerId = drawerPlayerId;
+  const action = button.dataset.drawerAction;
+  if (action === "chat") return openAdminChat(playerId);
+  closePlayerDrawer();
+  openTab("money");
+  const select = document.getElementById(action === "fund" ? "credit-player-id" : "cashout-player-id");
+  select.value = playerId;
+  const amount = document.getElementById(action === "fund" ? "credit-amount" : "cashout-amount");
+  amount.closest("form").scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(() => amount.focus(), 350);
+});
+document.getElementById("player-drawer-close").addEventListener("click", closePlayerDrawer);
+drawerBackdrop.addEventListener("click", closePlayerDrawer);
+
+// Any player name across the dashboard opens their details.
+document.addEventListener("click", (event) => {
+  const byId = event.target.closest("[data-player-details]");
+  const byName = event.target.closest("[data-player-name]");
+  if (!byId && !byName) return;
+  const id = byId?.dataset.playerDetails || players.find((player) => player.loginId === byName.dataset.playerName)?.id;
+  if (id) openPlayerDrawer(id);
+});
 
 const paymentPanel = document.getElementById("admin-payment-panel");
 const paymentBackdrop = document.getElementById("admin-payment-backdrop");
@@ -453,6 +827,7 @@ const closeAdminPayment = () => {
 
 document.getElementById("admin-payment-toggle").addEventListener("click", async () => {
   closeAdminChat();
+  closePlayerDrawer();
   paymentPanel.hidden = false;
   paymentBackdrop.hidden = false;
   try { await loadPaymentMethods(); }
@@ -506,12 +881,13 @@ paymentMethodList.addEventListener("click", async (event) => {
 
 const refresh = async () => {
   const days = Number(document.getElementById("report-range").value);
-  const [playerData, reportData] = await Promise.all([request("/api/admin/players"), request(`/api/admin/reports?days=${days}`)]);
+  const [playerData, reportData] = await Promise.all([request("/api/admin/players"), request(`/api/admin/reports?days=${days}`), loadRequests()]);
   players = playerData.players;
   report = reportData;
   renderPlayers();
   renderReport();
-  refreshChatInbox().catch(() => {});
+  setChatBadge(report.attention.unreadMessages);
+  if (drawerPlayerId) openPlayerDrawer(drawerPlayerId, { quiet: true });
 };
 
 const showDashboard = async (admin) => {
@@ -521,6 +897,11 @@ const showDashboard = async (admin) => {
   dashboard.hidden = false;
   openTab(window.location.hash.slice(1), false);
   await refresh();
+  pollChatSummary();
+  // Keep the queue and numbers fresh while the dashboard is open.
+  setInterval(() => {
+    if (document.visibilityState === "visible") refresh().catch(() => {});
+  }, 60_000);
 };
 
 document.getElementById("admin-login-form").addEventListener("submit", async (event) => {
@@ -646,18 +1027,14 @@ document.getElementById("hard-reset-all").addEventListener("click", async (event
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }
 });
-document.getElementById("report-range").addEventListener("change", async (event) => {
-  const days = Number(event.target.value);
-  document.getElementById("analytics-range").value = String(days);
+// The three range pickers stay in sync; any of them reloads the whole dashboard.
+const RANGE_SELECTS = ["overview-range", "report-range", "analytics-range"].map((id) => document.getElementById(id));
+RANGE_SELECTS.forEach((select) => select.addEventListener("change", async () => {
+  const days = Number(select.value);
+  RANGE_SELECTS.forEach((other) => { other.value = String(days); });
   document.getElementById("download-pdf").href = `/api/admin/report-pdf?days=${days}`;
   try { await refresh(); } catch (error) { setNotice(error.message, true); }
-});
-document.getElementById("analytics-range").addEventListener("change", async (event) => {
-  const days = Number(event.target.value);
-  document.getElementById("report-range").value = String(days);
-  document.getElementById("download-pdf").href = `/api/admin/report-pdf?days=${days}`;
-  try { await refresh(); } catch (error) { setNotice(error.message, true); }
-});
+}));
 document.getElementById("refresh-admin").addEventListener("click", () => refresh().then(() => setNotice("Dashboard refreshed.")).catch((error) => setNotice(error.message, true)));
 document.getElementById("admin-logout").addEventListener("click", async () => {
   await request("/api/auth/logout", { method: "POST", body: "{}" }).catch(() => {});
