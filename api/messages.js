@@ -68,13 +68,31 @@ export default async function handler(req, res) {
       return await serveMessageImage({ req, res, sql, account, id: imageId });
     }
 
+    // Cheap unread counter for badges; polled while chat is closed and never marks anything read.
+    if (req.method === "GET" && url.searchParams.get("summary")) {
+      const [row] = account.role === "admin"
+        ? await sql`
+            SELECT COUNT(*)::INTEGER AS unread, COUNT(DISTINCT m.player_id)::INTEGER AS conversations
+            FROM support_messages m JOIN players p ON p.id = m.player_id
+            WHERE m.sender_id = m.player_id AND m.read_at IS NULL AND p.deleted_at IS NULL
+          `
+        : await sql`
+            SELECT COUNT(*)::INTEGER AS unread, 1 AS conversations
+            FROM support_messages
+            WHERE player_id = ${account.id} AND sender_id <> ${account.id} AND read_at IS NULL
+          `;
+      return json(res, 200, { unreadCount: row.unread, unreadConversations: row.unread ? row.conversations : 0 });
+    }
+
     if (req.method === "GET" && account.role === "admin" && !url.searchParams.get("playerId")) {
       const rows = await sql`
         SELECT
-          p.id, p.login_id, p.status,
+          p.id, p.login_id, p.status, p.regular_credits, p.bonus_credits, p.last_login_at,
           MAX(m.created_at) AS last_message_at,
           COUNT(m.id) FILTER (WHERE m.sender_id = p.id AND m.read_at IS NULL) AS unread_count,
-          (ARRAY_AGG(m.body ORDER BY m.created_at DESC) FILTER (WHERE m.id IS NOT NULL))[1] AS last_message
+          (ARRAY_AGG(m.body ORDER BY m.created_at DESC) FILTER (WHERE m.id IS NOT NULL))[1] AS last_message,
+          (ARRAY_AGG(m.sender_id = p.id ORDER BY m.created_at DESC) FILTER (WHERE m.id IS NOT NULL))[1] AS last_from_player,
+          (SELECT COUNT(*) FROM payment_requests r WHERE r.player_id = p.id AND r.status = 'pending') AS pending_requests
         FROM players p
         LEFT JOIN support_messages m ON m.player_id = p.id
         WHERE p.role = 'player' AND p.deleted_at IS NULL
@@ -88,7 +106,11 @@ export default async function handler(req, res) {
           status: row.status,
           lastMessage: row.last_message || "",
           lastMessageAt: row.last_message_at,
+          lastFromPlayer: Boolean(row.last_from_player),
           unreadCount: Number(row.unread_count),
+          pendingRequests: Number(row.pending_requests),
+          totalCredits: Number(row.regular_credits) + Number(row.bonus_credits),
+          lastLoginAt: row.last_login_at,
         })),
       });
     }
@@ -141,19 +163,42 @@ export default async function handler(req, res) {
       SET read_at = NOW()
       WHERE player_id = ${player.id} AND sender_id <> ${account.id} AND read_at IS NULL
     `;
-    const messages = await sql`
-      SELECT
-        m.id, m.player_id, m.sender_id, m.body, m.attachment_type, m.attachment_name,
-        m.created_at, m.read_at, sender.role AS sender_role
-      FROM support_messages m
-      JOIN players sender ON sender.id = m.sender_id
-      WHERE m.player_id = ${player.id}
-      ORDER BY m.created_at ASC
-      LIMIT 200
+    // Polls pass the newest timestamp they hold and receive only what is new.
+    const after = url.searchParams.get("after");
+    const afterTime = after && !Number.isNaN(Date.parse(after)) ? new Date(after).toISOString() : null;
+    const messages = afterTime
+      ? await sql`
+          SELECT
+            m.id, m.player_id, m.sender_id, m.body, m.attachment_type, m.attachment_name,
+            m.created_at, m.read_at, sender.role AS sender_role
+          FROM support_messages m
+          JOIN players sender ON sender.id = m.sender_id
+          WHERE m.player_id = ${player.id} AND m.created_at > ${afterTime}
+          ORDER BY m.created_at ASC
+          LIMIT 200
+        `
+      : await sql`
+          SELECT * FROM (
+            SELECT
+              m.id, m.player_id, m.sender_id, m.body, m.attachment_type, m.attachment_name,
+              m.created_at, m.read_at, sender.role AS sender_role
+            FROM support_messages m
+            JOIN players sender ON sender.id = m.sender_id
+            WHERE m.player_id = ${player.id}
+            ORDER BY m.created_at DESC
+            LIMIT 200
+          ) latest ORDER BY created_at ASC
+        `;
+    // Read receipts: everything this account sent up to this time has been seen by the other side.
+    const [seen] = await sql`
+      SELECT MAX(created_at) AS seen_until
+      FROM support_messages
+      WHERE player_id = ${player.id} AND sender_id = ${account.id} AND read_at IS NOT NULL
     `;
     return json(res, 200, {
       player: { id: player.id, loginId: player.login_id, status: player.status },
       messages: messages.map(normalizeMessage),
+      seenUntil: seen?.seen_until || null,
     });
   } catch (error) {
     return handleApiError(res, error);

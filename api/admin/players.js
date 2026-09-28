@@ -2,6 +2,7 @@ import { getSessionPlayer, publicPlayer } from "../../lib/auth.js";
 import { ensureSchema, getSql } from "../../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { creditPlayer, getWeeklyBonusPool, resetPlayerBalance } from "../../lib/ledger.js";
+import { serializeRequest } from "../../lib/payment-requests.js";
 import { hashPin, normalizeLoginId, randomUUID, validateLoginId, validatePin } from "../../lib/security.js";
 
 const MAX_CREDIT = 1_000_000;
@@ -13,6 +14,48 @@ export default async function handler(req, res) {
     const admin = await getSessionPlayer(req, { role: "admin" });
     await ensureSchema();
     const sql = getSql();
+
+    // One player's recent history for the admin detail drawer.
+    const detailId = req.method === "GET" ? new URL(req.url, "http://localhost").searchParams.get("playerId") : null;
+    if (detailId) {
+      const [player] = await sql`SELECT * FROM players WHERE id = ${detailId} AND role = 'player'`;
+      if (!player) throw new HttpError(404, "Player not found", "player_not_found");
+      const [stats] = await sql`
+        SELECT
+          COUNT(*) AS rounds,
+          COUNT(*) FILTER (WHERE payout > 0) AS winning_rounds,
+          COALESCE(SUM(bet), 0) AS wagered,
+          COALESCE(SUM(payout), 0) AS won,
+          MAX(created_at) AS last_played_at
+        FROM game_rounds WHERE player_id = ${detailId}
+      `;
+      const ledger = await sql`
+        SELECT entry_type, regular_delta, bonus_delta, cash_cents, reference, created_at
+        FROM ledger_entries
+        WHERE player_id = ${detailId} AND entry_type NOT IN ('game_bet', 'game_win')
+        ORDER BY created_at DESC LIMIT 25
+      `;
+      const requests = await sql`
+        SELECT * FROM payment_requests WHERE player_id = ${detailId} ORDER BY created_at DESC LIMIT 10
+      `;
+      return json(res, 200, {
+        player: { ...publicPlayer(player), createdAt: player.created_at, lastLoginAt: player.last_login_at },
+        stats: {
+          rounds: Number(stats.rounds),
+          winningRounds: Number(stats.winning_rounds),
+          wagered: Number(stats.wagered),
+          won: Number(stats.won),
+          lastPlayedAt: stats.last_played_at,
+        },
+        ledger: ledger.map((row) => ({
+          type: row.entry_type,
+          amountCents: row.entry_type === "withdrawal" ? -Math.abs(Number(row.cash_cents)) : Number(row.regular_delta) + Number(row.bonus_delta),
+          note: row.reference || "",
+          createdAt: row.created_at,
+        })),
+        requests: requests.map(serializeRequest),
+      });
+    }
 
     if (req.method === "GET") {
       const rows = await sql`
@@ -157,7 +200,8 @@ export default async function handler(req, res) {
       }
       const adminAccounts = await sql`SELECT id, login_id FROM players WHERE role = 'admin' ORDER BY login_id ASC`;
 
-      const [paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, playerAccounts] = await sql.transaction([
+      const [paymentRequests, paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, playerAccounts] = await sql.transaction([
+        sql`DELETE FROM payment_requests RETURNING id`,
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
         sql`DELETE FROM game_rounds RETURNING id`,
@@ -171,6 +215,7 @@ export default async function handler(req, res) {
         ok: true,
         preservedAdminAccounts: adminAccounts.map((account) => account.login_id),
         deleted: {
+          paymentRequests: paymentRequests.length,
           paymentEvents: paymentEvents.length,
           messages: messages.length,
           gameRounds: rounds.length,

@@ -1,6 +1,10 @@
 import { getSessionPlayer } from "../lib/auth.js";
 import { ensureSchema, getSql } from "../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../lib/http.js";
+import {
+  approvePaymentRequest, cancelPaymentRequest, createPaymentRequest, declinePaymentRequest,
+  listAdminRequests, listPlayerRequests,
+} from "../lib/payment-requests.js";
 import { randomUUID } from "../lib/security.js";
 
 const clean = (value) => String(value || "").trim().replace(/\s+/g, " ");
@@ -27,6 +31,13 @@ export default async function handler(req, res) {
     await ensureSchema();
     const sql = getSql();
 
+    // Deposit and cash-out requests share this function to stay within the plan's function limit.
+    if (req.method === "GET" && new URL(req.url, "http://localhost").searchParams.get("requests")) {
+      const status = new URL(req.url, "http://localhost").searchParams.get("status");
+      const requests = account.role === "admin" ? await listAdminRequests({ status }) : await listPlayerRequests(account.id);
+      return json(res, 200, { requests });
+    }
+
     if (req.method === "GET") {
       if (account.role === "admin") {
         return json(res, 200, { methods: (await readAll(sql)).map(serialize) });
@@ -40,9 +51,22 @@ export default async function handler(req, res) {
       return json(res, 200, { methods: rows.map(serialize) });
     }
 
-    if (account.role !== "admin") throw new HttpError(403, "Admin access required", "forbidden");
     requireBrowserAction(req);
     const body = await readJson(req);
+
+    if (body.action === "request_create" && account.role === "player") {
+      return json(res, 201, { request: await createPaymentRequest(account, body) });
+    }
+    if (body.action === "request_cancel" && account.role === "player") {
+      return json(res, 200, { request: await cancelPaymentRequest(account, body.id) });
+    }
+    if (account.role !== "admin") throw new HttpError(403, "Admin access required", "forbidden");
+    if (body.action === "request_approve") {
+      return json(res, 200, await approvePaymentRequest(account, body.id, { amountCents: body.amountCents, note: body.note }));
+    }
+    if (body.action === "request_decline") {
+      return json(res, 200, { request: await declinePaymentRequest(account, body.id, body.note) });
+    }
 
     if (body.action === "create") {
       const methodName = clean(body.methodName);
