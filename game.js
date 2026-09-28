@@ -3,6 +3,61 @@
 
   const WIDTH = 768;
   const HEIGHT = 1536;
+  // Scenes are laid out on a 768×1536 design area. On phones the canvas takes the screen's exact
+  // aspect ratio and each camera centres the design area inside the safe area, so background art
+  // fills the whole screen instead of leaving letterbox bars.
+  const MAX_HEIGHT = 2100;
+  const BLEED = 700;
+  const NAV_CLEARANCE = 58; // CSS px taken by the sound/wallet/chat bar below the safe area.
+  const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0 };
+
+  const readSafeInsets = () => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
+    document.body.append(probe);
+    const style = getComputedStyle(probe);
+    const insets = { top: parseFloat(style.paddingTop) || 0, bottom: parseFloat(style.paddingBottom) || 0 };
+    probe.remove();
+    return insets;
+  };
+
+  // Size the canvas to the phone's exact aspect ratio so it fills the screen with no bars.
+  // Tall phones gain height; short phones gain width and a strip under the utility bar.
+  const measureView = () => {
+    const shell = document.getElementById("game-shell");
+    const cssWidth = shell?.clientWidth || window.innerWidth;
+    const cssHeight = shell?.clientHeight || window.innerHeight;
+    if (!cssWidth || !cssHeight || window.innerWidth >= 820) return { width: WIDTH, height: HEIGHT, left: 0, top: 0 };
+    const insets = readSafeInsets();
+    const widthScale = cssWidth / WIDTH;
+    const tallHeight = WIDTH * cssHeight / cssWidth;
+    if (tallHeight >= HEIGHT + (insets.top + insets.bottom) / widthScale) {
+      const height = Math.min(Math.round(tallHeight), MAX_HEIGHT);
+      const safeTop = insets.top / widthScale;
+      const safeBottom = insets.bottom / widthScale;
+      return { width: WIDTH, height, left: 0, top: Math.round(safeTop + (height - HEIGHT - safeTop - safeBottom) / 2) };
+    }
+    const reserveTop = insets.top + NAV_CLEARANCE;
+    const scale = Math.min(widthScale, (cssHeight - reserveTop - insets.bottom) / HEIGHT);
+    const width = Math.round(cssWidth / scale);
+    const height = Math.round(cssHeight / scale);
+    const spare = height - HEIGHT - (reserveTop + insets.bottom) / scale;
+    return { width, height, left: Math.round((width - WIDTH) / 2), top: Math.round(reserveTop / scale + spare / 2) };
+  };
+
+  const placeBackground = (image) => {
+    const source = image.texture.getSourceImage();
+    image.setPosition(VIEW.width / 2 - VIEW.left, VIEW.height / 2 - VIEW.top);
+    image.setScale(Math.max(VIEW.width / source.width, VIEW.height / source.height));
+  };
+
+  const applyView = (scene) => {
+    const camera = scene.cameras.main;
+    camera.setSize(VIEW.width, VIEW.height);
+    camera.setScroll(-VIEW.left, -VIEW.top);
+    scene.backgrounds?.forEach(placeBackground);
+  };
+
   const DISPLAY_FONT = '"Cinzel Decorative", Georgia, serif';
   const BODY_FONT = '"DM Sans", Arial, sans-serif';
   const COLORS = {
@@ -54,9 +109,9 @@
 
   const fitBackground = (scene, key) => {
     const image = scene.add.image(WIDTH / 2, HEIGHT / 2, key);
-    const source = scene.textures.get(key).getSourceImage();
-    const coverScale = Math.max(WIDTH / source.width, HEIGHT / source.height);
-    image.setScale(coverScale);
+    if (!scene.backgrounds || !scene.backgrounds[0]?.active) scene.backgrounds = [];
+    scene.backgrounds.push(image);
+    applyView(scene);
     return image;
   };
 
@@ -65,7 +120,7 @@
       const radius = Phaser.Math.Between(2, 6);
       const ember = scene.add.circle(
         Phaser.Math.Between(20, WIDTH - 20),
-        Phaser.Math.Between(100, HEIGHT + 120),
+        Phaser.Math.Between(100, HEIGHT + 220),
         radius,
         Phaser.Utils.Array.GetRandom(palette),
         Phaser.Math.FloatBetween(0.18, 0.62)
@@ -73,7 +128,7 @@
       ember.setBlendMode(Phaser.BlendModes.ADD);
       scene.tweens.add({
         targets: ember,
-        y: -60,
+        y: -260,
         x: ember.x + Phaser.Math.Between(-80, 80),
         alpha: 0,
         scale: Phaser.Math.FloatBetween(0.2, 0.7),
@@ -81,7 +136,7 @@
         delay: Phaser.Math.Between(0, 6000),
         repeat: -1,
         onRepeat: () => {
-          ember.setPosition(Phaser.Math.Between(20, WIDTH - 20), HEIGHT + Phaser.Math.Between(20, 160));
+          ember.setPosition(Phaser.Math.Between(20, WIDTH - 20), HEIGHT + Phaser.Math.Between(120, 300));
           ember.setAlpha(Phaser.Math.FloatBetween(0.18, 0.62));
         },
       });
@@ -89,17 +144,21 @@
   };
 
   const addVignette = (scene, alpha = 0.45) => {
-    scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x07040b, alpha).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x07040b, alpha).setBlendMode(Phaser.BlendModes.MULTIPLY);
     addEdgeShade(scene);
   };
 
   // Soft top and bottom fades keep header and footer text readable without hard bands.
   const addEdgeShade = (scene, top = 0.7, bottom = 0.75) => {
     const shade = scene.add.graphics();
+    shade.fillStyle(0x07040b, top);
+    shade.fillRect(-BLEED, -BLEED, WIDTH + BLEED * 2, BLEED);
     shade.fillGradientStyle(0x07040b, 0x07040b, 0x07040b, 0x07040b, top, top, 0, 0);
-    shade.fillRect(0, 0, WIDTH, 240);
+    shade.fillRect(-BLEED, 0, WIDTH + BLEED * 2, 240);
     shade.fillGradientStyle(0x07040b, 0x07040b, 0x07040b, 0x07040b, 0, 0, bottom, bottom);
-    shade.fillRect(0, HEIGHT - 300, WIDTH, 300);
+    shade.fillRect(-BLEED, HEIGHT - 300, WIDTH + BLEED * 2, 300);
+    shade.fillStyle(0x07040b, bottom);
+    shade.fillRect(-BLEED, HEIGHT, WIDTH + BLEED * 2, BLEED);
     return shade;
   };
 
@@ -270,6 +329,7 @@
     }
 
     preload() {
+      applyView(this);
       const track = addOrnatePanel(this, WIDTH / 2, HEIGHT / 2 + 40, 420, 18, {
         fill: 0x4b2a38, fillAlpha: 0.65, stroke: COLORS.gold, strokeAlpha: 0.2, lineWidth: 1, bend: 7, anchors: false,
       });
@@ -321,7 +381,7 @@
     create() {
       setStatus("Phoenix Ruby welcome. Review how to play, then enter the Phoenix Realm.");
       fitBackground(this, "phoenix-realm-v2");
-      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x08040b, 0.5);
+      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x08040b, 0.5);
       addVignette(this, 0.2);
       addAtmosphere(this, 38, [0xff6a18, 0xffca68, 0xe23435]);
 
@@ -537,7 +597,7 @@
       if (this.modal) return;
       setStatus(`${game.title} preview. This game portal is coming soon.`);
       const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
-      const blocker = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x060309, 0.84).setInteractive();
+      const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
       const glow = this.add.circle(0, -122, 178, game.accent, 0.14);
       const panel = addOrnatePanel(this, 0, 0, 596, 704, {
         fill: 0x110a15, fillAlpha: 0.98, stroke: game.accent, strokeAlpha: 0.88, lineWidth: 3, bend: 44,
@@ -656,7 +716,7 @@
       setStatus("Phoenix Ruby. Swipe down on the reels or tap Spin. Match three on the center line to win.");
 
       fitBackground(this, "phoenix-gameplay-v3");
-      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x07030a, 0.42);
+      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x07030a, 0.42);
       addEdgeShade(this, 0.6, 0.85);
       addAtmosphere(this, 22, this.theme.particles);
       addTopBar(this, { title: "PHOENIX RUBY", back: () => this.returnToHall() });
@@ -1218,7 +1278,7 @@
 
     showBigWin(payout, multiplier) {
       const overlay = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(120).setAlpha(0);
-      const shade = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x050207, 0.86).setInteractive();
+      const shade = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x050207, 0.86).setInteractive();
       const glow = this.add.circle(0, -80, 260, 0xff8c18, 0.2).setBlendMode(Phaser.BlendModes.ADD);
       const panel = addPill(this, 0, 120, 600, 340, { fill: 0x160911, fillAlpha: 0.97, strokeAlpha: 0.95, lineWidth: 4, bend: 48, anchors: true });
       const phoenix = this.add.image(0, -150, "phoenix-symbols-v2", "symbol-8").setDisplaySize(300, 300);
@@ -1435,7 +1495,7 @@
       if (this.overlay || this.phase !== "idle") return;
       window.GamishAudio?.play("tap");
       const sheet = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(120).setAlpha(0);
-      const shade = this.add.rectangle(0, 0, WIDTH, HEIGHT, 0x050207, 0.78).setInteractive();
+      const shade = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x050207, 0.78).setInteractive();
       const panel = addPill(this, 0, 0, 640, 640, { fill: 0x120913, fillAlpha: 0.98, strokeAlpha: 0.85, lineWidth: 3, bend: 44, anchors: true });
       const title = this.add.text(0, -262, "HOW TO WIN", {
         fontFamily: DISPLAY_FONT, fontSize: "32px", color: "#fff0bd", stroke: "#52150c", strokeThickness: 6,
@@ -1530,7 +1590,26 @@
       setStatus("Unable to load the game engine. Please refresh and try again.");
       return;
     }
-    new Phaser.Game(config);
+    Object.assign(VIEW, measureView());
+    config.width = VIEW.width;
+    config.height = VIEW.height;
+    config.scale.width = VIEW.width;
+    config.scale.height = VIEW.height;
+    const game = new Phaser.Game(config);
+
+    let resizeTimer;
+    const refit = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        const next = measureView();
+        if (["width", "height", "left", "top"].every((key) => next[key] === VIEW[key])) return;
+        Object.assign(VIEW, next);
+        game.scale.setGameSize(VIEW.width, VIEW.height);
+        game.scene.getScenes(true).forEach(applyView);
+      }, 120);
+    };
+    window.addEventListener("resize", refit);
+    window.visualViewport?.addEventListener("resize", refit);
   };
 
   if (document.fonts?.ready) document.fonts.ready.then(start);
