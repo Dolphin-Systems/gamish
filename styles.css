@@ -1139,7 +1139,8 @@ noscript {
 @media (max-width: 819px) {
   .arcade-view #game-shell {
     height: 100dvh;
-    padding: max(env(safe-area-inset-top), 6px) 0 max(env(safe-area-inset-bottom), 6px);
+    /* The canvas runs edge to edge; game.js keeps content inside the safe area. */
+    padding: 0;
   }
 
   .arcade-view #game-shell canvas {
