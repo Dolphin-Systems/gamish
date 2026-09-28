@@ -1035,6 +1035,12 @@
 
     update(_time, delta) {
       const step = Math.min(delta, 50);
+      // Safety net: nothing may keep spinning once a round is over.
+      if (this.phase === "idle") {
+        this.reels?.forEach((reel) => {
+          if (reel.state !== "stopped" && reel.state !== "idle") this.stopReel(reel, this.currentMarks());
+        });
+      }
       this.reels?.forEach((reel) => {
         if (reel.state !== "spinning") return;
         const wrapAt = REEL.centerY + REEL.pitch * 2.5;
@@ -1059,7 +1065,11 @@
 
     startReels() {
       this.reels.forEach((reel, column) => {
-        this.tweens.killTweensOf(reel.images);
+        // Mark every reel as moving right away. Left as "stopped" from the previous round, a
+        // reel still winding up would be skipped by a fast stop and then spin forever.
+        reel.state = "starting";
+        reel.speed = 0;
+        this.tweens.killTweensOf([reel, ...reel.images]);
         reel.images.forEach((image, slot) => image.setY(REEL.centerY + (slot - 2) * REEL.pitch).setDisplaySize(REEL.size, REEL.size));
         // A short upward wind-up, then the strip drops into a blur.
         this.tweens.add({
@@ -1069,6 +1079,7 @@
           delay: column * 70,
           ease: "Sine.Out",
           onComplete: () => {
+            if (reel.state !== "starting") return; // Already landed by a quick stop.
             reel.state = "spinning";
             reel.speed = REEL.speed * 0.45;
             reel.images.forEach((image) => image.setDisplaySize(REEL.size * 0.9, REEL.size * 1.22).setAlpha(0.88));
@@ -1099,11 +1110,8 @@
 
     stopReel(reel, marks) {
       if (reel.state === "stopped") return;
-      if (reel.state !== "spinning") {
-        // Still winding up: wait for the strip to start moving.
-        this.stopEvents.push(this.time.delayedCall(60, () => this.stopReel(reel, marks)));
-        return;
-      }
+      // Lands the reel whether it is winding up or at full speed.
+      this.tweens.killTweensOf([reel, ...reel.images]);
       reel.state = "stopped";
       reel.speed = 0;
       const { column } = reel;
@@ -1126,7 +1134,8 @@
       window.GamishAudio?.play("reel-stop");
       buzz(12);
       this.cameras.main.shake(70, 0.0018);
-      if (this.reels.every((item) => item.state === "stopped")) {
+      if (this.phase === "spinning" && !this.finishQueued && this.reels.every((item) => item.state === "stopped")) {
+        this.finishQueued = true;
         this.rollTimer?.remove(false);
         this.time.delayedCall(360, () => this.finishSpin());
       }
@@ -1164,6 +1173,7 @@
 
       this.phase = "spinning";
       this.quickStop = false;
+      this.finishQueued = false;
       this.pendingRound = null;
       if (this.autoLeft > 0) this.autoLeft -= 1;
       this.refreshAuto();
@@ -1208,6 +1218,7 @@
 
     finishSpin() {
       const round = this.pendingRound;
+      if (!round) return;
       this.pendingRound = null;
       this.spinLabel.setText("SPIN");
       this.ringTween.timeScale = 1;
