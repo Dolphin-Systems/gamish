@@ -53,3 +53,17 @@ Phoenix Ruby is the first complete playable game and uses virtual credits with n
 - `assets/moon-fox.webp` — Moon Fox cabinet art.
 
 The imagery was generated as original project artwork and compressed to WebP for mobile delivery.
+
+## Landscape PWA
+
+The player app is landscape-only. The manifest declares `"orientation": "landscape"`, Android installs lock to it, and a phone held upright shows a "Turn your phone sideways" prompt.
+
+- **Stage:** every scene is laid out on a 1536×720 landscape stage. The canvas takes the screen's exact aspect ratio. The camera centres the stage inside the safe area, clear of the notch on either side and of the home bar, and background art fills the rest. Nothing is letterboxed.
+- **Sharpness:** on high-density screens the game renders at up to 1.6× (within a 3.4-megapixel budget), and text is rasterised at that scale.
+- **Lobby:** a top bar with the balance pill (opens the wallet), chat, sound and profile. Category chips filter the catalogue. A featured Phoenix Ruby card leads a two-row tile strip that scrolls sideways.
+- **Scrolling:** drags track the finger 1:1 (no pointer smoothing) and fling with momentum. The strip rubber-bands at the ends. Touching a gliding strip stops it without opening a game, and a drag never counts as a tap.
+- **Phoenix Ruby:** balance, last win, the gem collection, payouts and "How to win" on the left. Reels in the centre. Bet, SPIN and AUTO on the right, under the thumb.
+- **Intro:** plays once per session, and a tap anywhere enters the lobby.
+- **Touch:** the canvas sets `touch-action: none`, so the browser never holds a touch back for scrolling or zooming.
+- **Icon bar:** the page's floating icon bar is hidden in-game, because the lobby and game have their own buttons. It shows on the Wallet and Chat pages, which use two-column landscape layouts.
+

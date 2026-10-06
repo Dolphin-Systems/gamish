@@ -1,49 +1,56 @@
 (() => {
   "use strict";
 
-  const WIDTH = 768;
-  const HEIGHT = 1536;
-  // Scenes are laid out on a 768×1536 design area. On phones the canvas takes the screen's exact
-  // aspect ratio and each camera centres the design area inside the safe area, so background art
-  // fills the whole screen instead of leaving letterbox bars.
-  const MAX_HEIGHT = 2100;
+  // Every scene is laid out on a 1536×720 landscape stage. The canvas takes the screen's exact
+  // aspect ratio and each camera centres the stage inside the safe area (clear of the notch and
+  // home bar), so background art fills the whole screen instead of leaving letterbox bars.
+  const WIDTH = 1536;
+  const HEIGHT = 720;
   const BLEED = 700;
-  const NAV_CLEARANCE = 58; // CSS px taken by the sound/wallet/chat bar below the safe area.
-  const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0 };
+  const MAX_CANVAS_PIXELS = 3_400_000;
+  const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
 
   const readSafeInsets = () => {
     const probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)";
+    probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;"
+      + "padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
     document.body.append(probe);
     const style = getComputedStyle(probe);
-    const insets = { top: parseFloat(style.paddingTop) || 0, bottom: parseFloat(style.paddingBottom) || 0 };
+    const read = (side) => parseFloat(style[`padding${side}`]) || 0;
+    const insets = { top: read("Top"), right: read("Right"), bottom: read("Bottom"), left: read("Left") };
     probe.remove();
     return insets;
   };
 
-  // Size the canvas to the phone's exact aspect ratio so it fills the screen with no bars.
-  // Tall phones gain height; short phones gain width and a strip under the utility bar.
   const measureView = () => {
     const shell = document.getElementById("game-shell");
     const cssWidth = shell?.clientWidth || window.innerWidth;
     const cssHeight = shell?.clientHeight || window.innerHeight;
-    if (!cssWidth || !cssHeight || window.innerWidth >= 820) return { width: WIDTH, height: HEIGHT, left: 0, top: 0 };
+    if (!cssWidth || !cssHeight) return { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
     const insets = readSafeInsets();
-    const widthScale = cssWidth / WIDTH;
-    const tallHeight = WIDTH * cssHeight / cssWidth;
-    if (tallHeight >= HEIGHT + (insets.top + insets.bottom) / widthScale) {
-      const height = Math.min(Math.round(tallHeight), MAX_HEIGHT);
-      const safeTop = insets.top / widthScale;
-      const safeBottom = insets.bottom / widthScale;
-      return { width: WIDTH, height, left: 0, top: Math.round(safeTop + (height - HEIGHT - safeTop - safeBottom) / 2) };
-    }
-    const reserveTop = insets.top + NAV_CLEARANCE;
-    const scale = Math.min(widthScale, (cssHeight - reserveTop - insets.bottom) / HEIGHT);
+    const safeWidth = Math.max(1, cssWidth - insets.left - insets.right);
+    const safeHeight = Math.max(1, cssHeight - insets.top - insets.bottom);
+    const scale = Math.min(safeWidth / WIDTH, safeHeight / HEIGHT); // CSS px per stage unit
     const width = Math.round(cssWidth / scale);
     const height = Math.round(cssHeight / scale);
-    const spare = height - HEIGHT - (reserveTop + insets.bottom) / scale;
-    return { width, height, left: Math.round((width - WIDTH) / 2), top: Math.round(reserveTop / scale + spare / 2) };
+    // Render closer to the screen's real pixel density so text and art stay sharp on
+    // high-density phones, within a pixel budget that keeps the frame rate smooth.
+    const density = Math.min(window.devicePixelRatio || 1, 3);
+    let zoom = Phaser.Math.Clamp((cssWidth * density) / width, 1, 1.6);
+    if (width * height * zoom * zoom > MAX_CANVAS_PIXELS) zoom = Math.max(1, Math.sqrt(MAX_CANVAS_PIXELS / (width * height)));
+    zoom = Math.floor(zoom * 4) / 4;
+    return {
+      width,
+      height,
+      left: Math.round((insets.left + (safeWidth - WIDTH * scale) / 2) / scale),
+      top: Math.round((insets.top + (safeHeight - HEIGHT * scale) / 2) / scale),
+      zoom,
+    };
   };
+
+  // The stage's visible extent in stage coordinates (wider or taller than the stage itself).
+  const visibleLeft = () => -VIEW.left;
+  const visibleRight = () => VIEW.width - VIEW.left;
 
   const placeBackground = (image) => {
     const source = image.texture.getSourceImage();
@@ -53,8 +60,9 @@
 
   const applyView = (scene) => {
     const camera = scene.cameras.main;
-    camera.setSize(VIEW.width, VIEW.height);
-    camera.setScroll(-VIEW.left, -VIEW.top);
+    camera.setSize(Math.round(VIEW.width * VIEW.zoom), Math.round(VIEW.height * VIEW.zoom));
+    camera.setZoom(VIEW.zoom);
+    camera.centerOn(VIEW.width / 2 - VIEW.left, VIEW.height / 2 - VIEW.top);
     scene.backgrounds?.forEach(placeBackground);
   };
 
@@ -185,9 +193,70 @@
   const addEdgeShade = (scene, top = 0.7, bottom = 0.75) => {
     const span = WIDTH + BLEED * 2;
     scene.add.rectangle(WIDTH / 2, -BLEED / 2, span, BLEED, 0x07040b, top);
-    addGradient(scene, -BLEED, 0, span, 240, [[0, `rgba(7,4,11,${top})`], [1, "rgba(7,4,11,0)"]], `fade-down:${top}`);
-    addGradient(scene, -BLEED, HEIGHT - 300, span, 300, [[0, "rgba(7,4,11,0)"], [1, `rgba(7,4,11,${bottom})`]], `fade-up:${bottom}`);
+    addGradient(scene, -BLEED, 0, span, 140, [[0, `rgba(7,4,11,${top})`], [1, "rgba(7,4,11,0)"]], `fade-down:${top}`);
+    addGradient(scene, -BLEED, HEIGHT - 170, span, 170, [[0, "rgba(7,4,11,0)"], [1, `rgba(7,4,11,${bottom})`]], `fade-up:${bottom}`);
     scene.add.rectangle(WIDTH / 2, HEIGHT + BLEED / 2, span, BLEED, 0x07040b, bottom);
+  };
+
+  // Small circular icon buttons (sound, wallet, chat, profile). Icons are baked once into textures.
+  const ICON_DRAWERS = {
+    profile: (g) => {
+      g.lineStyle(2.4, COLORS.ivory, 0.96).strokeCircle(24, 19, 5.5);
+      g.fillStyle(COLORS.ivory, 0.96).fillEllipse(24, 34, 22, 11);
+    },
+    payments: (g) => {
+      g.lineStyle(2.4, COLORS.ivory, 0.96).strokeRoundedRect(13, 16, 22, 17, 4).strokeRoundedRect(27, 21, 11, 8, 3);
+      g.fillStyle(COLORS.ivory, 1).fillCircle(30, 25, 1.6);
+    },
+    chat: (g) => {
+      g.lineStyle(2.4, COLORS.ivory, 0.96).strokeRoundedRect(13, 15, 22, 17, 5);
+      g.beginPath().moveTo(19, 32).lineTo(15, 36).lineTo(16, 29).strokePath();
+      [20, 24, 28].forEach((x) => g.fillStyle(COLORS.ivory, 0.95).fillCircle(x, 24, 1.4));
+    },
+    sound: (g) => {
+      g.fillStyle(COLORS.ivory, 0.96).fillPoints([
+        new Phaser.Geom.Point(13, 20), new Phaser.Geom.Point(18, 20), new Phaser.Geom.Point(24, 14),
+        new Phaser.Geom.Point(24, 34), new Phaser.Geom.Point(18, 28), new Phaser.Geom.Point(13, 28),
+      ], true);
+      g.lineStyle(2.2, COLORS.ivory, 0.96);
+      g.beginPath().arc(26, 24, 5, -0.9, 0.9).strokePath();
+      g.beginPath().arc(26, 24, 10, -0.9, 0.9).strokePath();
+    },
+    muted: (g) => {
+      g.fillStyle(COLORS.ivory, 0.6).fillPoints([
+        new Phaser.Geom.Point(13, 20), new Phaser.Geom.Point(18, 20), new Phaser.Geom.Point(24, 14),
+        new Phaser.Geom.Point(24, 34), new Phaser.Geom.Point(18, 28), new Phaser.Geom.Point(13, 28),
+      ], true);
+      g.lineStyle(2.4, 0xff8a6b, 1).lineBetween(28, 19, 37, 29).lineBetween(37, 19, 28, 29);
+    },
+  };
+
+  const addIconButton = (scene, x, y, kind, onTap, { label = "" } = {}) => {
+    const iconKey = (name) => bakeGraphics(scene, `icon:${name}`, 48, 48, ICON_DRAWERS[name]);
+    const button = scene.add.container(x, y);
+    const disk = scene.add.circle(0, 0, 30, 0x1d101b, 0.94).setStrokeStyle(1.5, COLORS.gold, 0.66);
+    const icon = scene.add.image(0, 0, iconKey(kind));
+    button.add([disk, icon]).setSize(76, 76).setInteractive({ useHandCursor: true });
+    button.setData("label", label);
+    button.setIcon = (name) => icon.setTexture(iconKey(name));
+    button.on("pointerdown", () => pressFeedback(scene, button, 0.88));
+    button.on("pointerup", () => {
+      window.GamishAudio?.play("nav");
+      if (label) setStatus(label);
+      onTap(button);
+    });
+    return button;
+  };
+
+  const addSoundButton = (scene, x, y) => {
+    const audio = window.GamishAudio;
+    const button = addIconButton(scene, x, y, audio?.isEnabled() ? "sound" : "muted", () => {
+      audio?.toggle();
+    }, { label: "Sound" });
+    const sync = () => button.setIcon(audio?.isEnabled() ? "sound" : "muted");
+    window.addEventListener("gamish:soundchange", sync);
+    scene.events.once("shutdown", () => window.removeEventListener("gamish:soundchange", sync));
+    return button;
   };
 
   const traceCubic = (graphics, start, controlA, controlB, end, steps = 12) => {
@@ -482,7 +551,13 @@
     create() {
       const launch = () => {
         window.removeEventListener("gamish:authenticated", launch);
-        this.scene.start("Landing");
+        // The cinematic intro plays once per session; later sign-ins go straight to the lobby.
+        let seen = false;
+        try {
+          seen = window.sessionStorage.getItem("gamish777-intro") === "seen";
+          window.sessionStorage.setItem("gamish777-intro", "seen");
+        } catch { /* storage may be unavailable */ }
+        this.scene.start(seen ? "BrandLoader" : "Landing");
       };
       if (window.GamishAccount?.player) launch();
       else window.addEventListener("gamish:authenticated", launch, { once: true });
@@ -509,48 +584,52 @@
         this.tweens.add({
           targets: art,
           alpha: { from: 0, to: 0.45 },
-          scale: scale * 1.12,
-          duration: 2500,
-          delay: index * 2350,
+          scale: scale * 1.1,
+          duration: 1500,
+          delay: index * 1600,
           yoyo: true,
-          hold: 900,
+          hold: 500,
           ease: "Sine.InOut",
         });
         return art;
       });
-      const aura = this.add.circle(WIDTH / 2, 585, 260, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
-      const ring = this.add.circle(WIDTH / 2, 585, 202, 0x120812, 0.08).setStrokeStyle(2, COLORS.gold, 0.55);
+      const aura = this.add.circle(WIDTH / 2, 330, 250, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
+      const ring = this.add.circle(WIDTH / 2, 330, 196, 0x120812, 0.08).setStrokeStyle(2, COLORS.gold, 0.55);
       this.tweens.add({ targets: aura, scale: { from: 0.8, to: 1.25 }, alpha: { from: 0.06, to: 0.18 }, duration: 2200, yoyo: true, repeat: -1, ease: "Sine.InOut" });
       this.tweens.add({ targets: ring, angle: 360, duration: 18000, repeat: -1 });
-      this.add.text(WIDTH / 2, 490, "GAMISH777", {
+      this.add.text(WIDTH / 2, 300, "GAMISH777", {
         fontFamily: DISPLAY_FONT, fontSize: "52px", color: "#fff0c0", stroke: "#621b0a", strokeThickness: 8,
         shadow: { offsetY: 7, color: "#000000", blur: 18, fill: true },
       }).setOrigin(0.5).setDepth(5);
-      this.add.text(WIDTH / 2, 560, "A WORLD OF GAMES", {
+      this.add.text(WIDTH / 2, 368, "A WORLD OF GAMES", {
         fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#ffe0a4", letterSpacing: 8,
       }).setOrigin(0.5).setDepth(5);
-      addRule(this, 635, 470).setDepth(5);
-      this.add.text(WIDTH / 2, 1090, "SPIN  ✦  PLAY  ✦  DISCOVER", {
+      addRule(this, 420, 470).setDepth(5);
+      this.add.text(WIDTH / 2, 640, "TAP ANYWHERE TO ENTER", {
         fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#fff0c0", letterSpacing: 5,
       }).setOrigin(0.5).setDepth(5);
 
-      const skip = this.add.container(672, 100).setDepth(10);
+      const skip = this.add.container(visibleRight() - 90, 70).setDepth(10);
       skip.add([
         this.add.circle(0, 0, 44, 0x170b16, 0.72).setStrokeStyle(2, COLORS.gold, 0.64),
         this.add.text(0, 0, "SKIP  ›", { fontFamily: BODY_FONT, fontSize: "13px", fontStyle: "700", color: "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
       ]);
       skip.setSize(94, 94).setInteractive({ useHandCursor: true });
       skip.on("pointerup", () => this.openLoader());
+      this.input.once("pointerup", () => this.openLoader());
       this.cameras.main.fadeIn(400, 7, 4, 11);
-      this.time.delayedCall(11000, () => this.openLoader());
+      this.time.delayedCall(7600, () => this.openLoader());
       this.events.once("shutdown", () => {
         slides.forEach((slide) => this.tweens.killTweensOf(slide));
         this.time.removeAllEvents();
       });
+      this.leaving = false;
       this.openLoader = () => {
         if (this.leaving) return;
         this.leaving = true;
-        this.scene.start("BrandLoader");
+        window.GamishAudio?.play("nav");
+        this.cameras.main.fadeOut(220, 7, 4, 11);
+        this.time.delayedCall(220, () => this.scene.start("BrandLoader"));
       };
       void backdrop;
       void shade;
@@ -567,27 +646,40 @@
       fitBackground(this, "landing-bg").setTint(0x57424e);
       this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x08050b, 0.78);
       addVignette(this, 0.25);
-      const crest = this.add.image(WIDTH / 2, 610, "phoenix-symbols-v2", "symbol-8").setDisplaySize(155, 155);
-      const halo = this.add.circle(WIDTH / 2, 610, 100, COLORS.ember, 0.1).setBlendMode(Phaser.BlendModes.ADD);
-      const orbit = this.add.circle(WIDTH / 2, 610, 115, 0x000000, 0).setStrokeStyle(3, COLORS.gold, 0.8);
-      this.tweens.add({ targets: crest, y: 598, duration: 900, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+      const crest = this.add.image(WIDTH / 2, 250, "phoenix-symbols-v2", "symbol-8").setDisplaySize(155, 155);
+      const halo = this.add.circle(WIDTH / 2, 250, 100, COLORS.ember, 0.1).setBlendMode(Phaser.BlendModes.ADD);
+      const orbit = this.add.circle(WIDTH / 2, 250, 115, 0x000000, 0).setStrokeStyle(3, COLORS.gold, 0.8);
+      this.tweens.add({ targets: crest, y: 238, duration: 900, yoyo: true, repeat: -1, ease: "Sine.InOut" });
       this.tweens.add({ targets: halo, scale: { from: 0.9, to: 1.15 }, alpha: { from: 0.08, to: 0.24 }, duration: 900, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: orbit, angle: 360, duration: 3600, repeat: -1 });
-      this.add.text(WIDTH / 2, 790, "GAMISH777", {
+      this.add.text(WIDTH / 2, 420, "GAMISH777", {
         fontFamily: DISPLAY_FONT, fontSize: "43px", color: "#fff0c0", stroke: "#621b0a", strokeThickness: 7,
       }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 850, "PREPARING YOUR LOBBY", {
+      this.add.text(WIDTH / 2, 478, "PREPARING YOUR LOBBY", {
         fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#f4c98e", letterSpacing: 5,
       }).setOrigin(0.5);
-      const track = addOrnatePanel(this, WIDTH / 2, 930, 420, 18, {
+      const track = addOrnatePanel(this, WIDTH / 2, 548, 420, 18, {
         fill: 0x4b2a38, fillAlpha: 0.65, stroke: COLORS.gold, strokeAlpha: 0.3, lineWidth: 1, bend: 7, anchors: false,
       });
       track.setAlpha(0.45);
-      const bar = this.add.rectangle(WIDTH / 2 - 206, 930, 4, 8, COLORS.ember).setOrigin(0, 0.5);
-      this.tweens.add({ targets: bar, width: 408, duration: 1050, ease: "Sine.InOut" });
-      this.time.delayedCall(1200, () => this.scene.start("GameZone"));
+      const bar = this.add.rectangle(WIDTH / 2 - 206, 548, 4, 8, COLORS.ember).setOrigin(0, 0.5);
+      this.tweens.add({ targets: bar, width: 408, duration: 750, ease: "Sine.InOut" });
+      this.time.delayedCall(850, () => this.scene.start("GameZone"));
     }
   }
+
+  // Lobby geometry on the landscape stage.
+  const LOBBY = {
+    barY: 64,
+    chipsY: 140,
+    top: 180,
+    bottom: 690,
+    rows: [312, 560],
+    tile: 228,
+    colStep: 246,
+    margin: 70,
+    featuredWidth: 470,
+  };
 
   class GameZoneScene extends Phaser.Scene {
     constructor() {
@@ -596,285 +688,450 @@
     }
 
     create() {
-      this.catalogCards = [];
-      this.catalogScroll = 0;
-      this.catalogDrag = null;
-      this.hallContent = this.add.container(0, 0);
-      const hallMask = this.make.graphics({ x: 0, y: 0, add: false });
-      hallMask.fillStyle(0xffffff, 1).fillRect(0, 225, WIDTH, HEIGHT - 300);
-      this.hallContent.setMask(hallMask.createGeometryMask());
-      setStatus("Gamish777 game hall. Browse games or open your profile, chat, or payments.");
+      this.modal = null;
+      this.cards = [];
+      this.scrollX = 0;
+      this.velocity = 0;
+      this.drag = null;
+      this.suppressTap = false;
+      this.category = GAME_CATEGORIES[0];
+      setStatus("Gamish777 game lobby. Swipe through games, pick a category, or open your wallet and chat.");
       this.cameras.main.setBackgroundColor("#0b0710");
-      this.add.circle(140, 610, 300, 0x942c26, 0.06).setBlendMode(Phaser.BlendModes.ADD);
-      this.add.circle(654, 1010, 370, 0x3b2069, 0.075).setBlendMode(Phaser.BlendModes.ADD);
-      addAtmosphere(this, 18, [0xffad42, 0x6ee7ea, 0xd994ff]);
+      applyView(this);
+      this.add.circle(260, 420, 340, 0x942c26, 0.07).setBlendMode(Phaser.BlendModes.ADD);
+      this.add.circle(1250, 520, 380, 0x3b2069, 0.08).setBlendMode(Phaser.BlendModes.ADD);
+      addAtmosphere(this, 14, [0xffad42, 0x6ee7ea, 0xd994ff]);
 
-      this.add.text(350, 126, "GAMISH777", {
-        fontFamily: DISPLAY_FONT,
-        fontSize: "36px",
-        color: "#fff1c6",
-        shadow: { offsetY: 5, color: "#000000", blur: 16, fill: true },
-      }).setOrigin(0.5);
+      this.content = this.add.container(0, 0);
+      this.createTopBar();
+      this.createCategoryChips();
+      this.createScrollIndicator();
+      this.renderCatalog();
 
-      this.addMenuAction(548, "profile", "Player profile", () => this.openProfile());
-      this.addMenuAction(626, "payments", "Payments", () => this.openAppView("payments"));
-      this.addMenuAction(704, "chat", "Chat with support", () => this.openAppView("messages"));
+      this.input.on("pointerdown", (pointer) => this.onPointerDown(pointer));
+      this.input.on("pointermove", (pointer) => this.onPointerMove(pointer));
+      this.input.on("pointerup", (pointer) => this.onPointerUp(pointer));
+      this.input.on("pointerupoutside", (pointer) => this.onPointerUp(pointer));
+      this.input.on("gameout", () => this.onPointerUp());
+      this.input.on("wheel", (pointer, objects, deltaX, deltaY) => {
+        if (this.modal) return;
+        this.velocity = 0;
+        this.setScroll(this.scrollX + (Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY), true);
+      });
+      this.input.keyboard?.on("keydown-ESC", () => (this.modal ? this.closeModal() : this.glideTo(0)));
+      this.input.keyboard?.on("keydown-RIGHT", () => this.glideTo(this.scrollX + LOBBY.colStep * 3));
+      this.input.keyboard?.on("keydown-LEFT", () => this.glideTo(this.scrollX - LOBBY.colStep * 3));
 
-      this.addFeaturedPhoenix(370);
-      const allGamesHeading = this.add.text(48, 505, "ALL GAMES", {
-        fontFamily: BODY_FONT,
-        fontSize: "24px",
-        fontStyle: "700",
-        color: "#e6c17f",
-        letterSpacing: 3,
-      }).setOrigin(0, 0.5);
-      const catalogCount = this.add.text(716, 505, `${GAME_CATEGORIES[0].games.length} GAMES`, {
-        fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#cdb6ad", letterSpacing: 1,
-      }).setOrigin(1, 0.5);
-      this.hallContent.add([allGamesHeading, catalogCount]);
-      this.renderGameCards(GAME_CATEGORIES[0].games);
-
-      this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY) => {
-        if (pointer.y >= 225 && this.catalogMaxScroll > 0) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
-      });
-      this.input.on("pointerdown", (pointer) => {
-        if (pointer.y >= 225 && this.catalogMaxScroll > 0) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
-      });
-      this.input.on("pointermove", (pointer) => {
-        if (!this.catalogDrag || !pointer.isDown) return;
-        const delta = this.catalogDrag.y - pointer.y;
-        if (Math.abs(delta) > 8) {
-          this.catalogDrag.moved = true;
-          this.catalogDragMoved = true;
-        }
-        if (this.catalogDrag.moved) this.setCatalogScroll(this.catalogDrag.scroll + delta);
-      });
-      this.input.on("pointerup", () => {
-        const moved = this.catalogDrag?.moved;
-        this.catalogDrag = null;
-        if (moved) this.time.delayedCall(80, () => { this.catalogDragMoved = false; });
-      });
-
-      this.input.keyboard?.on("keydown-ESC", () => {
-        if (this.modal) this.closeModal(); else this.setCatalogScroll(0);
-      });
-      this.cameras.main.fadeIn(550, 9, 5, 12);
+      this.walletListener = () => this.refreshBalance();
+      window.addEventListener("gamish:wallet", this.walletListener);
+      this.events.on("viewchange", () => this.measureScroll());
+      this.events.once("shutdown", () => window.removeEventListener("gamish:wallet", this.walletListener));
+      this.cameras.main.fadeIn(360, 9, 5, 12);
     }
 
-    addMenuAction(x, kind, label, action) {
-      const button = this.add.container(x, 126);
-      const glow = this.add.circle(0, 0, 34, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
-      const disk = this.add.circle(0, 0, 27, 0x1d101b, 0.94).setStrokeStyle(1.5, COLORS.gold, 0.64);
-      const icon = this.add.graphics().lineStyle(2.3, COLORS.ivory, 0.96);
-      if (kind === "profile") {
-        icon.strokeCircle(0, -5, 5);
-        icon.fillStyle(COLORS.ivory, 0.96).fillEllipse(0, 10, 21, 11);
-      } else if (kind === "payments") {
-        icon.strokeRoundedRect(-11, -8, 22, 17, 4);
-        icon.strokeRoundedRect(3, -3, 11, 8, 3);
-        icon.fillStyle(COLORS.ivory, 1).fillCircle(6, 1, 1.5);
-      } else {
-        icon.strokeRoundedRect(-11, -9, 22, 17, 5);
-        icon.beginPath().moveTo(-5, 8).lineTo(-9, 12).lineTo(-8, 5).strokePath();
-        [-4, 0, 4].forEach((dotX) => icon.fillStyle(COLORS.ivory, 0.95).fillCircle(dotX, 0, 1.25));
-      }
-      button.add([glow, disk, icon]).setSize(72, 72).setInteractive({ useHandCursor: true });
-      button.setData("label", label);
-      button.on("pointerup", () => {
+    // ---------- Header ----------
+
+    createTopBar() {
+      const left = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
+      this.add.text(left, LOBBY.barY, "GAMISH777", {
+        fontFamily: DISPLAY_FONT, fontSize: "34px", color: "#fff1c6",
+        shadow: { offsetY: 5, color: "#000000", blur: 16, fill: true },
+      }).setOrigin(0, 0.5);
+
+      const right = Math.min(visibleRight() - LOBBY.margin, WIDTH - LOBBY.margin) - 30;
+      addIconButton(this, right, LOBBY.barY, "profile", () => this.openProfile(), { label: "Player profile" });
+      addSoundButton(this, right - 78, LOBBY.barY);
+      addIconButton(this, right - 156, LOBBY.barY, "chat", () => this.openAppView("messages"), { label: "Chat with support" });
+
+      // Balance pill doubles as the way into the wallet.
+      const pill = this.add.container(right - 330, LOBBY.barY);
+      const plate = addSoftPanel(this, 0, 0, 236, 62, { fill: 0x1d101b, alpha: 0.94, radius: 31 });
+      const ring = this.add.graphics().lineStyle(1.5, COLORS.gold, 0.6).strokeRoundedRect(-118, -31, 236, 62, 31);
+      this.balanceText = this.add.text(-96, 0, "$0.00", {
+        fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#fff0c0",
+      }).setOrigin(0, 0.5);
+      const add = this.add.circle(86, 0, 21, COLORS.ember, 1);
+      const plus = this.add.text(86, -2, "+", { fontFamily: BODY_FONT, fontSize: "30px", fontStyle: "700", color: "#2a0d06" }).setOrigin(0.5);
+      pill.add([plate, ring, this.balanceText, add, plus]).setSize(236, 70).setInteractive({ useHandCursor: true });
+      pill.on("pointerdown", () => pressFeedback(this, pill, 0.95));
+      pill.on("pointerup", () => {
         window.GamishAudio?.play("nav");
-        setStatus(label);
+        this.openAppView("payments");
+      });
+      this.refreshBalance();
+    }
+
+    refreshBalance() {
+      const cents = Number(window.GamishAccount?.player?.totalCredits || 0);
+      this.balanceText?.setText(new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100));
+    }
+
+    createCategoryChips() {
+      this.chips = [];
+      let x = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
+      GAME_CATEGORIES.forEach((category) => {
+        // Letter and number icons read like counts ("7 SLOTS"), so only symbol icons lead a label.
+        const label = /^[A-Za-z0-9]+$/.test(category.icon) ? category.name.toUpperCase() : `${category.icon}  ${category.name.toUpperCase()}`;
+        const text = this.add.text(0, 0, label, {
+          fontFamily: BODY_FONT, fontSize: "17px", fontStyle: "700", color: "#e9d3bd", letterSpacing: 1,
+        }).setOrigin(0.5);
+        const width = Math.ceil(text.width) + 40;
+        const chip = this.add.container(x + width / 2, LOBBY.chipsY);
+        const plate = addSoftPanel(this, 0, 0, width, 46, { fill: 0x1b0f1c, alpha: 0.9, radius: 23 });
+        const active = addSoftPanel(this, 0, 0, width, 46, { fill: category.accent, alpha: 0.95, radius: 23 }).setAlpha(0);
+        chip.add([plate, active, text]).setSize(width, 56).setInteractive({ useHandCursor: true });
+        chip.on("pointerdown", () => pressFeedback(this, chip, 0.94));
+        chip.on("pointerup", () => this.selectCategory(category));
+        this.chips.push({ category, chip, active, text });
+        x += width + 12;
+      });
+      this.refreshChips();
+    }
+
+    refreshChips() {
+      this.chips.forEach(({ category, active, text }) => {
+        const on = category === this.category;
+        this.tweens.add({ targets: active, alpha: on ? 1 : 0, duration: 140 });
+        text.setColor(on ? "#1d0b06" : "#e9d3bd");
+      });
+    }
+
+    selectCategory(category) {
+      if (category === this.category) {
+        this.glideTo(0);
+        return;
+      }
+      window.GamishAudio?.play("chip");
+      this.category = category;
+      this.refreshChips();
+      this.renderCatalog(true);
+      setStatus(`${category.name}: ${category.games.length} games.`);
+    }
+
+    // ---------- Catalog ----------
+
+    renderCatalog(animate = false) {
+      this.cards.forEach((card) => destroyWithTweens(this, card));
+      this.cards = [];
+      this.content.removeAll(true);
+      this.velocity = 0;
+      this.scrollX = 0;
+
+      const showFeatured = this.category === GAME_CATEGORIES[0] || this.category.name === "Slots";
+      let x = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
+      if (showFeatured) {
+        this.addFeatured(x + LOBBY.featuredWidth / 2);
+        x += LOBBY.featuredWidth + 30;
+      }
+      const games = this.category.games.filter((game) => !(showFeatured && game.playable));
+      games.forEach((game, index) => {
+        const column = Math.floor(index / 2);
+        const cx = x + LOBBY.tile / 2 + column * LOBBY.colStep;
+        const cy = LOBBY.rows[index % 2];
+        const card = this.addGameCard(game, cx, cy);
+        if (animate) {
+          card.setAlpha(0).setY(cy + 18);
+          this.tweens.add({ targets: card, alpha: 1, y: cy, duration: 220, delay: Math.min(column, 6) * 28, ease: "Cubic.Out" });
+        }
+      });
+      const columns = Math.ceil(games.length / 2);
+      this.contentRight = x + Math.max(0, columns) * LOBBY.colStep - (LOBBY.colStep - LOBBY.tile) + LOBBY.margin;
+      this.measureScroll();
+      this.applyScroll();
+    }
+
+    addFeatured(cx) {
+      const height = LOBBY.rows[1] - LOBBY.rows[0] + LOBBY.tile;
+      const cy = (LOBBY.rows[0] + LOBBY.rows[1]) / 2;
+      const card = this.add.container(cx, cy);
+      const glow = this.add.circle(0, 0, 300, COLORS.ember, 0.07).setBlendMode(Phaser.BlendModes.ADD);
+      const plate = addSoftPanel(this, 0, 0, LOBBY.featuredWidth, height, { fill: 0x1a0d1a, alpha: 0.94, radius: 40 });
+      const art = this.add.image(0, -60, "phoenix");
+      art.setScale(Math.max((LOBBY.featuredWidth - 24) / art.width, (height - 150) / art.height));
+      art.setCrop(
+        (art.width - (LOBBY.featuredWidth - 24) / art.scaleX) / 2,
+        (art.height - (height - 150) / art.scaleY) / 2,
+        (LOBBY.featuredWidth - 24) / art.scaleX,
+        (height - 150) / art.scaleY,
+      );
+      const shade = addGradient(this, -LOBBY.featuredWidth / 2 + 12, height / 2 - 230, LOBBY.featuredWidth - 24, 140,
+        [[0, "rgba(26,13,26,0)"], [1, "rgba(26,13,26,1)"]], "featured-shade");
+      const badge = addSoftPanel(this, -LOBBY.featuredWidth / 2 + 100, -height / 2 + 40, 150, 38, { fill: COLORS.ember, alpha: 1, radius: 19 });
+      const badgeText = this.add.text(-LOBBY.featuredWidth / 2 + 100, -height / 2 + 40, "★ FEATURED", {
+        fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#2a0d06", letterSpacing: 1,
+      }).setOrigin(0.5);
+      const title = this.add.text(-LOBBY.featuredWidth / 2 + 30, height / 2 - 86, "PHOENIX RUBY", {
+        fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2",
+        shadow: { offsetY: 3, color: "#000000", blur: 10, fill: true },
+      }).setOrigin(0, 0.5);
+      const meta = this.add.text(-LOBBY.featuredWidth / 2 + 30, height / 2 - 46, "3-reel slot  ·  wins up to 3×", {
+        fontFamily: BODY_FONT, fontSize: "17px", color: "#d9c0b4",
+      }).setOrigin(0, 0.5);
+      const play = addSoftPanel(this, LOBBY.featuredWidth / 2 - 92, height / 2 - 64, 140, 60, { fill: COLORS.ember, alpha: 1, radius: 30 });
+      const playText = this.add.text(LOBBY.featuredWidth / 2 - 92, height / 2 - 66, "PLAY ›", {
+        fontFamily: BODY_FONT, fontSize: "22px", fontStyle: "700", color: "#2a0d06",
+      }).setOrigin(0.5);
+      card.add([glow, plate, art, shade, badge, badgeText, title, meta, play, playText]);
+      this.tweens.add({ targets: glow, alpha: { from: 0.04, to: 0.12 }, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+      this.makeTappable(card, LOBBY.featuredWidth, height, () => this.launchPhoenix());
+      this.content.add(card);
+      this.cards.push(card);
+    }
+
+    addGameCard(game, cx, cy) {
+      const card = this.add.container(cx, cy);
+      const halo = this.add.circle(0, 0, LOBBY.tile * 0.58, game.accent, 0.05).setBlendMode(Phaser.BlendModes.ADD);
+      const art = game.art
+        ? this.add.image(0, 0, "gamish-game-icons", game.art)
+        : this.add.image(0, 0, "phoenix");
+      art.setDisplaySize(LOBBY.tile, LOBBY.tile);
+      card.add([halo, art]);
+      if (game.playable) {
+        const tag = addSoftPanel(this, 0, LOBBY.tile / 2 - 6, 120, 34, { fill: COLORS.ember, alpha: 1, radius: 17 });
+        const tagText = this.add.text(0, LOBBY.tile / 2 - 7, "PLAY ›", { fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#2a0d06" }).setOrigin(0.5);
+        card.add([tag, tagText]);
+      }
+      this.makeTappable(card, LOBBY.tile, LOBBY.tile, () => (game.playable ? this.launchPhoenix() : this.openGameModal(game)));
+      this.content.add(card);
+      this.cards.push(card);
+      return card;
+    }
+
+    // Press in on touch, fire on release only if the finger didn't scroll or stop a glide.
+    makeTappable(card, width, height, action) {
+      card.setSize(width, height).setInteractive({ useHandCursor: true });
+      card.on("pointerdown", () => {
+        if (this.suppressTap || this.modal) return;
+        this.tweens.killTweensOf(card);
+        this.tweens.add({ targets: card, scale: 0.95, duration: 90, ease: "Quad.Out" });
+      });
+      const release = () => {
+        this.tweens.killTweensOf(card);
+        this.tweens.add({ targets: card, scale: 1, duration: 160, ease: "Back.Out" });
+      };
+      card.on("pointerout", release);
+      card.on("pointerup", () => {
+        release();
+        if (this.suppressTap || this.modal) return;
+        window.GamishAudio?.play("tap");
         action();
       });
-      button.on("pointerover", () => this.tweens.add({ targets: button, scale: 1.08, duration: 110 }));
-      button.on("pointerout", () => this.tweens.add({ targets: button, scale: 1, duration: 120 }));
-      return button;
     }
+
+    createScrollIndicator() {
+      const cx = WIDTH / 2;
+      this.trackWidth = 220;
+      this.add.rectangle(cx, 706, this.trackWidth, 4, 0xffffff, 0.08).setOrigin(0.5);
+      this.thumb = this.add.rectangle(cx - this.trackWidth / 2, 706, 60, 4, COLORS.gold, 0.7).setOrigin(0, 0.5);
+    }
+
+    // ---------- Scrolling with momentum ----------
+
+    measureScroll() {
+      const viewWidth = visibleRight() - Math.max(visibleLeft(), 0);
+      this.maxScroll = Math.max(0, this.contentRight - Math.max(visibleLeft(), 0) - viewWidth);
+      this.scrollX = Phaser.Math.Clamp(this.scrollX, 0, this.maxScroll);
+      const share = this.maxScroll ? viewWidth / (viewWidth + this.maxScroll) : 1;
+      this.thumb.width = Math.max(36, this.trackWidth * share);
+      this.thumb.setVisible(this.maxScroll > 0);
+    }
+
+    applyScroll() {
+      this.content.x = -this.scrollX;
+      if (this.maxScroll > 0) {
+        const progress = Phaser.Math.Clamp(this.scrollX / this.maxScroll, 0, 1);
+        this.thumb.x = WIDTH / 2 - this.trackWidth / 2 + progress * (this.trackWidth - this.thumb.width);
+      }
+    }
+
+    setScroll(value, clamp = false) {
+      this.scrollX = clamp ? Phaser.Math.Clamp(value, 0, this.maxScroll) : value;
+      this.applyScroll();
+    }
+
+    glideTo(target) {
+      this.velocity = 0;
+      const to = Phaser.Math.Clamp(target, 0, this.maxScroll);
+      this.tweens.add({ targets: this, scrollX: to, duration: 380, ease: "Cubic.Out", onUpdate: () => this.applyScroll() });
+    }
+
+    // Stage coordinates straight from the raw pointer: Phaser only refreshes pointer.worldX/Y
+    // while hit-testing objects, which lags a fast swipe.
+    stagePoint(pointer) {
+      return this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    }
+
+    inCatalog(pointer) {
+      const { y } = this.stagePoint(pointer);
+      return y >= LOBBY.top - 20 && y <= LOBBY.bottom + 20;
+    }
+
+    onPointerDown(pointer) {
+      if (this.modal || !this.inCatalog(pointer)) {
+        this.drag = null;
+        return;
+      }
+      this.tweens.killTweensOf(this);
+      // Touching a gliding strip just catches it; that touch must not also open a game.
+      this.suppressTap = Math.abs(this.velocity) > 0.08;
+      this.velocity = 0;
+      const { x } = this.stagePoint(pointer);
+      this.drag = { x, start: this.scrollX, moved: false, samples: [{ x, t: pointer.downTime || performance.now() }] };
+    }
+
+    onPointerMove(pointer) {
+      const drag = this.drag;
+      if (!drag || !pointer.isDown) return;
+      // Scroll moves the content, not the camera, so stage x is stable while dragging.
+      const { x } = this.stagePoint(pointer);
+      const dx = x - drag.x;
+      if (!drag.moved && Math.abs(dx) > 10) {
+        drag.moved = true;
+        this.suppressTap = true;
+        this.cards.forEach((card) => { if (card.scale !== 1) { this.tweens.killTweensOf(card); card.setScale(1); } });
+      }
+      if (!drag.moved) return;
+      let target = drag.start - dx;
+      // Rubber-band past either end instead of stopping dead.
+      if (target < 0) target *= 0.35;
+      else if (target > this.maxScroll) target = this.maxScroll + (target - this.maxScroll) * 0.35;
+      this.setScroll(target);
+      // Event timestamps, not processing time, so the fling speed matches the finger.
+      const now = pointer.moveTime || performance.now();
+      drag.samples.push({ x, t: now });
+      while (drag.samples.length > 2 && now - drag.samples[0].t > 110) drag.samples.shift();
+    }
+
+    onPointerUp(pointer) {
+      const drag = this.drag;
+      this.drag = null;
+      if (!drag?.moved) return;
+      const first = drag.samples[0];
+      const last = drag.samples[drag.samples.length - 1];
+      const elapsed = Math.max(1, last.t - first.t);
+      this.velocity = Phaser.Math.Clamp(-(last.x - first.x) / elapsed, -4.5, 4.5);
+      const liftedAt = pointer?.upTime || last.t;
+      if (liftedAt - last.t > 100) this.velocity = 0; // the finger stopped before lifting: no fling
+    }
+
+    update(_time, delta) {
+      if (this.drag?.moved || this.modal) return;
+      const dt = Math.min(delta, 48);
+      const outside = this.scrollX < 0 || this.scrollX > this.maxScroll;
+      if (Math.abs(this.velocity) > 0.015) {
+        this.scrollX += this.velocity * dt;
+        this.velocity *= Math.pow(outside ? 0.7 : 0.955, dt / 16.7);
+      } else {
+        this.velocity = 0;
+      }
+      if (this.scrollX < 0) this.scrollX = this.scrollX > -0.5 ? 0 : this.scrollX * (1 - Math.min(1, dt * 0.014));
+      else if (this.scrollX > this.maxScroll) {
+        const over = this.scrollX - this.maxScroll;
+        this.scrollX = over < 0.5 ? this.maxScroll : this.maxScroll + over * (1 - Math.min(1, dt * 0.014));
+      }
+      if (Math.abs(this.velocity) > 0 || outside) this.applyScroll();
+    }
+
+    // ---------- Navigation and dialogs ----------
 
     openAppView(name) {
       window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: name }));
     }
 
-    openProfile() {
+    launchPhoenix() {
+      if (this.leaving) return;
+      this.leaving = true;
+      window.GamishAudio?.play("flame-burst");
+      this.cameras.main.fadeOut(260, 12, 4, 10);
+      this.time.delayedCall(260, () => {
+        this.leaving = false;
+        this.scene.start("PhoenixGame");
+      });
+    }
+
+    openDialog({ width, height, accent = COLORS.ember, build, actions }) {
       if (this.modal) return;
-      const player = window.GamishAccount?.player || {};
-      const balance = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
-        .format(Number(player.totalCredits || 0) / 100);
+      this.velocity = 0;
       const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
       const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
-      const panel = addSoftPanel(this, 0, 0, 570, 500, { fill: 0x130b18, alpha: 0.98, radius: 44 });
-      const avatar = this.add.circle(0, -135, 44, 0x44202a, 0.96).setStrokeStyle(2, COLORS.gold, 0.75);
-      const initial = this.add.text(0, -135, String(player.loginId || "P").charAt(0).toUpperCase(), {
-        fontFamily: DISPLAY_FONT, fontSize: "36px", color: "#fff0c0",
-      }).setOrigin(0.5);
-      const heading = this.add.text(0, -62, "PLAYER PROFILE", {
-        fontFamily: DISPLAY_FONT, fontSize: "25px", color: "#fff0c2",
-      }).setOrigin(0.5);
-      const idLabel = this.add.text(0, 6, "PLAYER ID", {
-        fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3,
-      }).setOrigin(0.5);
-      const id = this.add.text(0, 42, player.loginId || "—", {
-        fontFamily: BODY_FONT, fontSize: "27px", fontStyle: "700", color: "#fff0c0",
-      }).setOrigin(0.5);
-      const walletLabel = this.add.text(0, 93, "AVAILABLE BALANCE", {
-        fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3,
-      }).setOrigin(0.5);
-      const wallet = this.add.text(0, 128, balance, {
-        fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#ffd381",
-      }).setOrigin(0.5);
-      modal.add([blocker, panel, avatar, initial, heading, idLabel, id, walletLabel, wallet]);
-      const close = this.add.container(WIDTH / 2, HEIGHT / 2 + 190).setDepth(101);
-      close.add([
-        addSoftPanel(this, 0, 0, 330, 64, { fill: COLORS.ember, alpha: 0.2, radius: 28 }),
-        this.add.text(0, 0, "BACK TO GAME HALL", { fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
-      ]);
-      close.setSize(350, 74).setInteractive({ useHandCursor: true });
-      close.on("pointerup", () => this.closeModal());
-      modal.setScale(0.92).setAlpha(0);
-      this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 220, ease: "Back.Out" });
-      this.modal = { modal, close };
+      blocker.on("pointerup", () => this.closeModal());
+      const glow = this.add.circle(0, -height / 2 + 120, 170, accent, 0.12).setBlendMode(Phaser.BlendModes.ADD);
+      const panel = addSoftPanel(this, 0, 0, width, height, { fill: 0x130b18, alpha: 0.98, radius: 40 });
+      const shield = this.add.zone(0, 0, width, height).setInteractive(); // taps on the card don't close it
+      modal.add([blocker, glow, panel, shield, ...build()]);
+      const buttonWidth = Math.min(300, (width - 80 - (actions.length - 1) * 16) / actions.length);
+      actions.forEach(({ label, primary, onTap }, index) => {
+        const x = (index - (actions.length - 1) / 2) * (buttonWidth + 16);
+        const button = this.add.container(x, height / 2 - 62);
+        button.add([
+          addSoftPanel(this, 0, 0, buttonWidth, 62, { fill: primary ? accent : 0x2a1828, alpha: primary ? 1 : 0.96, radius: 31 }),
+          this.add.text(0, -1, label, { fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: primary ? "#1d0b06" : "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
+        ]);
+        button.setSize(buttonWidth, 70).setInteractive({ useHandCursor: true });
+        button.on("pointerdown", () => pressFeedback(this, button, 0.95));
+        button.on("pointerup", () => onTap());
+        modal.add(button);
+      });
+      modal.setScale(0.94).setAlpha(0);
+      this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 200, ease: "Back.Out" });
+      this.modal = { modal };
     }
 
-    addFeaturedPhoenix(y) {
-      const featured = this.add.container(WIDTH / 2, y);
-      const glow = this.add.circle(0, 0, 350, COLORS.ember, 0.07).setBlendMode(Phaser.BlendModes.ADD);
-      const plate = addSoftPanel(this, 0, 0, 696, 176, {
-        fill: 0x1a0d1a, alpha: 0.92, radius: 38,
+    openProfile() {
+      const player = window.GamishAccount?.player || {};
+      const money = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents || 0) / 100);
+      this.openDialog({
+        width: 620,
+        height: 470,
+        build: () => [
+          this.add.circle(0, -150, 46, 0x44202a, 0.96).setStrokeStyle(2, COLORS.gold, 0.75),
+          this.add.text(0, -150, String(player.loginId || "P").charAt(0).toUpperCase(), { fontFamily: DISPLAY_FONT, fontSize: "38px", color: "#fff0c0" }).setOrigin(0.5),
+          this.add.text(0, -78, player.loginId || "Player", { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2" }).setOrigin(0.5),
+          this.add.text(-140, -10, "BALANCE", { fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0.5),
+          this.add.text(-140, 28, money(player.totalCredits), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#ffd381" }).setOrigin(0.5),
+          this.add.text(140, -10, "CASHABLE", { fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0.5),
+          this.add.text(140, 28, money(player.regularCredits), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c0" }).setOrigin(0.5),
+          this.add.text(0, 84, "Bonus cash can be played but not cashed out.", { fontFamily: BODY_FONT, fontSize: "16px", color: "#a8939d" }).setOrigin(0.5),
+        ],
+        actions: [
+          { label: "SIGN OUT", onTap: () => document.getElementById("logout-button")?.click() },
+          { label: "WALLET", primary: true, onTap: () => { this.closeModal(); this.openAppView("payments"); } },
+        ],
       });
-      const art = this.add.image(-222, 0, "phoenix").setDisplaySize(236, 166).setTint(0xffd7a0);
-      const title = this.add.text(-66, -18, "PHOENIX RUBY", {
-        fontFamily: DISPLAY_FONT, fontSize: "24px", color: "#fff0c2",
-        shadow: { offsetY: 3, color: "#000000", blur: 10, fill: true },
-      });
-      const play = this.add.text(258, 0, "PLAY  ›", {
-        fontFamily: BODY_FONT, fontSize: "22px", fontStyle: "700", color: "#ffc96b", letterSpacing: 1,
-      }).setOrigin(0.5);
-      featured.add([glow, plate, art, title, play]).setSize(696, 184).setInteractive({ useHandCursor: true });
-      featured.on("pointerup", () => {
-        if (!this.catalogDragMoved) this.launchPhoenix();
-      });
-      featured.on("pointerover", () => this.tweens.add({ targets: featured, scale: 1.015, duration: 120 }));
-      featured.on("pointerout", () => this.tweens.add({ targets: featured, scale: 1, duration: 120 }));
-      this.hallContent.add(featured);
-    }
-
-    renderGameCards(games) {
-      this.catalogCards.forEach((card) => card.container.destroy(true));
-      this.catalogCards = [];
-      const columns = [198, 570];
-      const rowStep = 276;
-      const cardHeight = 246;
-      const firstY = 655;
-      games.forEach((game, index) => {
-        const position = { x: columns[index % 2], y: firstY + Math.floor(index / 2) * rowStep };
-        const card = this.add.container(position.x, position.y);
-        const halo = this.add.circle(0, 0, 132, game.accent, 0.055).setBlendMode(Phaser.BlendModes.ADD);
-        let art;
-        if (game.art) {
-          art = this.add.image(0, -14, "gamish-game-icons", game.art).setDisplaySize(212, 212);
-        } else {
-          art = this.add.image(0, -14, "phoenix").setDisplaySize(212, 212);
-        }
-        card.add([halo, art]);
-        if (game.playable) {
-          const state = this.add.text(0, 108, "PHOENIX RUBY  ·  PLAY  ›", {
-            fontFamily: BODY_FONT, fontSize: "17px", fontStyle: "700", color: "#ffc96b", letterSpacing: 0.6,
-          }).setOrigin(0.5);
-          card.add(state);
-        }
-        card.setSize(338, cardHeight + 8).setInteractive({ useHandCursor: true });
-        card.on("pointerdown", () => {
-          if (!this.catalogDragMoved) window.GamishAudio?.play("tap");
-        });
-        card.on("pointerup", () => {
-          if (this.catalogDragMoved) return;
-          if (game.playable) this.launchPhoenix();
-          else this.openGameModal(game);
-        });
-        card.on("pointerover", () => {
-          if (!this.catalogDrag) this.tweens.add({ targets: card, scale: 1.025, duration: 120 });
-        });
-        card.on("pointerout", () => this.tweens.add({ targets: card, scale: 1, duration: 120 }));
-        this.hallContent.add(card);
-        this.catalogCards.push({ container: card, x: position.x, y: position.y });
-      });
-      const rowCount = Math.ceil(games.length / 2);
-      const contentBottom = firstY + Math.max(0, rowCount - 1) * rowStep + cardHeight / 2 + 4;
-      this.catalogMaxScroll = Math.max(0, contentBottom - (HEIGHT - 110));
-      this.catalogDragMoved = false;
-    }
-
-    setCatalogScroll(value) {
-      this.catalogScroll = Phaser.Math.Clamp(value, 0, this.catalogMaxScroll || 0);
-      this.hallContent.y = -this.catalogScroll;
-    }
-
-    launchPhoenix() {
-      window.GamishAudio?.play("flame-burst");
-      this.cameras.main.fadeOut(320, 12, 4, 10);
-      this.time.delayedCall(320, () => this.scene.start("PhoenixGame"));
     }
 
     openGameModal(game) {
-      if (this.modal) return;
-      setStatus(`${game.title} game preview opened.`);
-      const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
-      const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
-      const glow = this.add.circle(0, -100, 160, game.accent, 0.14);
-      const panel = addSoftPanel(this, 0, 0, 570, 610, {
-        fill: 0x130b18, alpha: 0.98, radius: 44,
+      setStatus(`${game.title} preview. This game isn't playable yet.`);
+      this.openDialog({
+        width: 760,
+        height: 420,
+        accent: game.accent,
+        build: () => [
+          (game.art ? this.add.image(-210, -40, "gamish-game-icons", game.art) : this.add.image(-210, -40, "phoenix")).setDisplaySize(230, 230),
+          this.add.text(-60, -110, game.category.toUpperCase(), { fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0, 0.5),
+          this.add.text(-60, -60, game.title.toUpperCase(), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2", wordWrap: { width: 380 } }).setOrigin(0, 0.5),
+          this.add.text(-60, 10, "Coming to Gamish777 soon.\nPhoenix Ruby is ready to play now.", { fontFamily: BODY_FONT, fontSize: "19px", color: "#cbb8bf", lineSpacing: 8 }).setOrigin(0, 0.5),
+        ],
+        actions: [
+          { label: "CLOSE", onTap: () => this.closeModal() },
+          { label: "PLAY PHOENIX RUBY", primary: true, onTap: () => { this.closeModal(); this.launchPhoenix(); } },
+        ],
       });
-      const iconPlate = this.add.circle(0, -120, 92, game.accent, 0.14);
-      const icon = this.add.text(0, -120, game.icon, {
-        fontFamily: BODY_FONT, fontSize: "82px", fontStyle: "700", color: "#fff0c0",
-      }).setOrigin(0.5);
-      const title = this.add.text(0, 18, game.title.toUpperCase(), {
-        fontFamily: DISPLAY_FONT,
-        fontSize: "26px",
-        color: "#fff0c2",
-        shadow: { offsetY: 4, color: "#000000", blur: 12, fill: true },
-      }).setOrigin(0.5);
-      const copy = this.add.text(0, 84, `${game.category.toUpperCase()}  •  GAME PREVIEW\nThis game is not playable yet.`, {
-        fontFamily: BODY_FONT,
-        fontSize: "21px",
-        color: "#cbb8bf",
-        align: "center",
-        lineSpacing: 8,
-      }).setOrigin(0.5);
-      modal.add([blocker, glow, panel, iconPlate, icon, title, copy]);
-      const closeLabel = "BACK TO GAME HALL";
-      const close = this.add.container(WIDTH / 2, HEIGHT / 2 + 226).setDepth(101);
-      close.add([
-        addSoftPanel(this, 0, 0, 360, 70, { fill: game.accent, alpha: 0.2, radius: 30 }),
-        this.add.text(0, 0, closeLabel, { fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
-      ]);
-      close.setSize(370, 78).setInteractive({ useHandCursor: true });
-      close.on("pointerup", () => this.closeModal());
-      modal.setScale(0.9).setAlpha(0);
-      this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 240, ease: "Back.Out" });
-      this.tweens.add({ targets: glow, scale: 1.18, alpha: 0.3, duration: 1300, yoyo: true, repeat: -1 });
-      this.modal = { modal, close };
     }
 
     closeModal() {
       if (!this.modal) return;
-      const { modal, close } = this.modal;
+      const { modal } = this.modal;
       this.modal = null;
+      this.suppressTap = true; // the closing tap must not fall through onto a game tile
+      this.time.delayedCall(60, () => { this.suppressTap = false; });
       this.tweens.add({
-        targets: [modal, close],
-        alpha: 0,
-        scale: 0.94,
-        duration: 180,
+        targets: modal, alpha: 0, scale: 0.96, duration: 150,
         onComplete: () => {
           destroyWithTweens(this, modal);
-          destroyWithTweens(this, close);
-          setStatus("Browsing all games on Gamish777.");
+          setStatus(`Browsing ${this.category.name.toLowerCase()} on Gamish777.`);
         },
       });
-    }
-
-    returnToLanding() {
-      if (this.modal) this.closeModal();
-      else this.setCatalogScroll(0);
     }
   }
 
@@ -888,14 +1145,15 @@
 
   // Reel window geometry, measured from the transparent cells of phoenix-reel-frame-v3.
   const REEL = {
-    frameY: 560,
+    frameX: 768,
+    frameY: 372,
     frameScaleX: 0.475,
     frameScaleY: 0.53,
-    xs: [157, 384, 612],
+    xs: [541, 768, 996],
     widths: [210, 204, 210],
-    top: 373,
-    bottom: 716,
-    centerY: 545,
+    top: 185,
+    bottom: 528,
+    centerY: 357,
     pitch: 150,
     size: 142,
     minSpinMs: 850,
@@ -903,6 +1161,8 @@
     quickGapMs: 80,
     speed: 2.6,
   };
+  // Landscape columns: info on the left, controls on the right under the thumb.
+  const SIDE = { left: 222, right: 1316, width: 360 };
   const AUTO_SPINS = 10;
   const SPIN_PRESS_GAP_MS = 140;
   const SPIN_TIMEOUT_MS = 15000;
@@ -976,9 +1236,13 @@
       this.createControls();
       this.createPaytable();
 
-      this.add.text(WIDTH / 2, 1478, "VIRTUAL CREDITS  •  NO CASH VALUE", {
+      this.add.text(REEL.frameX, 700, "VIRTUAL CREDITS  •  NO CASH VALUE", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#c4a486", letterSpacing: 3,
       }).setOrigin(0.5);
+      addIconButton(this, SIDE.right + 150, 64, "payments", () => {
+        window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: "payments" }));
+      }, { label: "Wallet" });
+      addSoundButton(this, SIDE.right + 72, 64);
 
       this.refreshCollection(false);
       this.refreshHud();
@@ -1007,30 +1271,30 @@
     // ---------- Layout ----------
 
     createHud() {
-      addPill(this, WIDTH / 2, 200, 704, 104, { fillAlpha: 0.9, strokeAlpha: 0.55, bend: 30, anchors: true });
-      this.add.rectangle(WIDTH / 2, 200, 2, 60, COLORS.gold, 0.28);
+      const left = SIDE.left - SIDE.width / 2;
+      const right = SIDE.left + SIDE.width / 2;
+      addPill(this, SIDE.left, 186, SIDE.width, 104, { fillAlpha: 0.9, strokeAlpha: 0.55, bend: 30, anchors: true });
+      this.add.rectangle(SIDE.left, 186, 2, 60, COLORS.gold, 0.28);
 
-      const balance = this.add.container(0, 0);
-      const balanceLabel = this.add.text(70, 170, "BALANCE  ↻", {
+      this.add.text(left + 24, 156, "BALANCE  ↻", {
         fontFamily: BODY_FONT, fontSize: "13px", fontStyle: "700", color: "#c9a987", letterSpacing: 3,
       });
-      this.creditText = this.add.text(70, 190, "0", {
-        fontFamily: DISPLAY_FONT, fontSize: "36px", color: "#fff0c0", stroke: "#4e1a0b", strokeThickness: 4,
+      this.creditText = this.add.text(left + 24, 176, "0", {
+        fontFamily: DISPLAY_FONT, fontSize: "34px", color: "#fff0c0", stroke: "#4e1a0b", strokeThickness: 4,
       });
-      balance.add([balanceLabel, this.creditText]);
-      const balanceZone = this.add.zone(206, 200, 330, 100).setInteractive({ useHandCursor: true });
+      const balanceZone = this.add.zone(SIDE.left - SIDE.width / 4, 186, SIDE.width / 2, 100).setInteractive({ useHandCursor: true });
       balanceZone.on("pointerup", () => this.refreshAccountWallet());
 
-      this.add.text(698, 170, "LAST WIN", {
+      this.add.text(right - 24, 156, "LAST WIN", {
         fontFamily: BODY_FONT, fontSize: "13px", fontStyle: "700", color: "#c9a987", letterSpacing: 3,
       }).setOrigin(1, 0);
-      this.winText = this.add.text(698, 190, "0", {
-        fontFamily: DISPLAY_FONT, fontSize: "36px", color: "#ffd66e", stroke: "#4e1a0b", strokeThickness: 4,
+      this.winText = this.add.text(right - 24, 176, "0", {
+        fontFamily: DISPLAY_FONT, fontSize: "34px", color: "#ffd66e", stroke: "#4e1a0b", strokeThickness: 4,
       }).setOrigin(1, 0);
     }
 
     createMachine() {
-      this.aura = this.add.ellipse(WIDTH / 2, REEL.centerY, 820, 560, this.theme.accent, 0.16)
+      this.aura = this.add.ellipse(REEL.frameX, REEL.centerY, 820, 560, this.theme.accent, 0.16)
         .setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: this.aura, alpha: { from: 0.1, to: 0.24 }, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.InOut" });
 
@@ -1062,21 +1326,21 @@
       });
 
       // Shadow at the top and bottom of each reel window gives the strips depth.
-      addGradient(this, 80, REEL.top, 610, 70, [[0, "rgba(7,3,10,0.85)"], [1, "rgba(7,3,10,0)"]], "reel-shade-top");
-      addGradient(this, 80, REEL.bottom - 70, 610, 70, [[0, "rgba(7,3,10,0)"], [1, "rgba(7,3,10,0.85)"]], "reel-shade-bottom");
+      addGradient(this, rowLeft, REEL.top, rowWidth, 70, [[0, "rgba(7,3,10,0.85)"], [1, "rgba(7,3,10,0)"]], "reel-shade-top");
+      addGradient(this, rowLeft, REEL.bottom - 70, rowWidth, 70, [[0, "rgba(7,3,10,0)"], [1, "rgba(7,3,10,0.85)"]], "reel-shade-bottom");
 
       this.winLine = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       this.drawWinLine(this.theme.accent);
 
-      this.add.image(WIDTH / 2, REEL.frameY, "phoenix-reel-frame-v3").setScale(REEL.frameScaleX, REEL.frameScaleY);
+      this.add.image(REEL.frameX, REEL.frameY, "phoenix-reel-frame-v3").setScale(REEL.frameScaleX, REEL.frameScaleY);
 
-      this.resultText = this.add.text(WIDTH / 2, 852, "", {
+      this.resultText = this.add.text(REEL.frameX, 664, "", {
         fontFamily: BODY_FONT, fontSize: "17px", fontStyle: "700", color: "#ffe2a6", letterSpacing: 3,
         stroke: "#140710", strokeThickness: 4,
       }).setOrigin(0.5);
       this.setMessage("SWIPE DOWN TO SPIN", "#ffe2a6");
 
-      const zone = this.add.zone(WIDTH / 2, REEL.centerY, 660, REEL.bottom - REEL.top).setInteractive();
+      const zone = this.add.zone(REEL.frameX, REEL.centerY, 660, REEL.bottom - REEL.top).setInteractive();
       zone.on("pointerdown", (pointer) => { this.swipeStart = { y: pointer.y, time: this.time.now }; });
       zone.on("pointerup", (pointer) => {
         const start = this.swipeStart;
@@ -1090,44 +1354,48 @@
     }
 
     createCollection() {
-      this.collectionPanel = addPill(this, WIDTH / 2, 936, 690, 108, { fillAlpha: 0.9, strokeAlpha: 0.45, bend: 28 });
-      this.collectionIcon = this.add.image(96, 936, "phoenix-symbols-v2", "symbol-8").setDisplaySize(82, 82);
-      this.tweens.add({ targets: this.collectionIcon, y: 930, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-      this.add.text(150, 896, "EMBER COLLECTION", {
+      const left = SIDE.left - SIDE.width / 2;
+      this.collectionPanel = addPill(this, SIDE.left, 336, SIDE.width, 140, { fillAlpha: 0.9, strokeAlpha: 0.45, bend: 28 });
+      this.collectionIcon = this.add.image(left + 58, 346, "phoenix-symbols-v2", "symbol-8").setDisplaySize(78, 78);
+      this.tweens.add({ targets: this.collectionIcon, y: 340, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+      this.add.text(left + 24, 282, "COLLECTION", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#e8b872", letterSpacing: 3,
       });
-      this.collectionText = this.add.text(704, 896, "0 / 10", {
+      this.collectionText = this.add.text(left + SIDE.width - 24, 282, "0 / 10", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#e8c792", letterSpacing: 2,
       }).setOrigin(1, 0);
       this.gems = Array.from({ length: COLLECTION_GOAL }, (_, index) => {
-        const x = 170 + index * 54;
-        const socket = this.add.circle(x, 951, 19, 0x2a1426, 0.95).setStrokeStyle(2, 0x6b3a4c, 0.8);
-        const gem = this.add.image(x, 951, "phoenix-symbols-v2", "symbol-1").setDisplaySize(40, 40).setAlpha(0);
-        return { x, y: 951, socket, gem };
+        const x = left + 132 + (index % 5) * 46;
+        const y = 330 + Math.floor(index / 5) * 42;
+        const socket = this.add.circle(x, y, 17, 0x2a1426, 0.95).setStrokeStyle(2, 0x6b3a4c, 0.8);
+        const gem = this.add.image(x, y, "phoenix-symbols-v2", "symbol-1").setDisplaySize(36, 36).setAlpha(0);
+        return { x, y, socket, gem };
       });
     }
 
     createControls() {
       // Bet stepper
-      addPill(this, 138, 1150, 222, 104, { fillAlpha: 0.92, strokeAlpha: 0.5 });
-      this.add.text(138, 1114, "BET", {
+      const cx = SIDE.right;
+      addPill(this, cx, 182, 300, 100, { fillAlpha: 0.92, strokeAlpha: 0.5 });
+      this.add.text(cx, 148, "BET", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#c9a987", letterSpacing: 4,
       }).setOrigin(0.5);
-      this.betText = this.add.text(138, 1160, "10", {
+      this.betHome = { x: cx, y: 192 };
+      this.betText = this.add.text(cx, 192, "10", {
         fontFamily: DISPLAY_FONT, fontSize: "32px", color: "#fff0c0",
       }).setOrigin(0.5);
-      this.betDown = this.makeRoundButton(62, 1160, 30, "−", () => this.stepBet(-1));
-      this.betUp = this.makeRoundButton(214, 1160, 30, "+", () => this.stepBet(1));
+      this.betDown = this.makeRoundButton(cx - 100, 192, 30, "−", () => this.stepBet(-1));
+      this.betUp = this.makeRoundButton(cx + 100, 192, 30, "+", () => this.stepBet(1));
 
       // Auto spin
-      this.autoPanel = addPill(this, 630, 1150, 222, 104, { fillAlpha: 0.92, strokeAlpha: 0.5 });
-      this.autoTitle = this.add.text(630, 1132, "AUTO", {
+      this.autoPanel = addPill(this, cx, 590, 300, 100, { fillAlpha: 0.92, strokeAlpha: 0.5 });
+      this.autoTitle = this.add.text(cx, 572, "AUTO", {
         fontFamily: DISPLAY_FONT, fontSize: "24px", color: "#fff0c0",
       }).setOrigin(0.5);
-      this.autoSub = this.add.text(630, 1170, `${AUTO_SPINS} SPINS`, {
+      this.autoSub = this.add.text(cx, 610, `${AUTO_SPINS} SPINS`, {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#c9a987", letterSpacing: 3,
       }).setOrigin(0.5);
-      const autoZone = this.add.zone(630, 1150, 222, 104).setInteractive({ useHandCursor: true });
+      const autoZone = this.add.zone(cx, 590, 300, 100).setInteractive({ useHandCursor: true });
       autoZone.on("pointerdown", () => {
         pressFeedback(this, this.autoTitle, 0.9);
         pressFeedback(this, this.autoSub, 0.9);
@@ -1135,7 +1403,7 @@
       autoZone.on("pointerup", () => this.toggleAuto());
 
       // Spin
-      const spin = this.add.container(WIDTH / 2, 1150);
+      const spin = this.add.container(cx, 388);
       this.spinHalo = this.add.circle(0, 0, 124, this.theme.accent, 0.18).setBlendMode(Phaser.BlendModes.ADD);
       const ringKey = bakeGraphics(this, "spin-ring", 232, 232, (ring) => {
         ring.lineStyle(5, COLORS.gold, 0.9);
@@ -1167,21 +1435,25 @@
 
     createPaytable() {
       const entries = [
-        { x: 214, frame: "symbol-1", label: "× 1.5", color: "#ff7d8c" },
-        { x: 554, frame: "symbol-0", label: "× 3", color: "#ffd66e" },
+        { x: SIDE.left - 92, frame: "symbol-1", label: "×1.5", color: "#ff7d8c" },
+        { x: SIDE.left + 92, frame: "symbol-0", label: "×3", color: "#ffd66e" },
       ];
       entries.forEach(({ x, frame, label, color }) => {
-        const chip = this.add.container(x, 1318);
-        const plate = addPill(this, 0, 0, 300, 84, { fillAlpha: 0.82, strokeAlpha: 0.32 });
-        const icons = [-92, -54, -16].map((offset) => this.add.image(offset, 0, "phoenix-symbols-v2", frame).setDisplaySize(50, 50));
-        const text = this.add.text(78, 0, label, {
-          fontFamily: DISPLAY_FONT, fontSize: "28px", color, stroke: "#3b0d06", strokeThickness: 4,
+        const chip = this.add.container(x, 482);
+        const plate = addPill(this, 0, 0, 176, 74, { fillAlpha: 0.82, strokeAlpha: 0.32 });
+        const icons = [-58, -32, -6].map((offset) => this.add.image(offset, 0, "phoenix-symbols-v2", frame).setDisplaySize(34, 34));
+        const text = this.add.text(48, 0, label, {
+          fontFamily: DISPLAY_FONT, fontSize: "24px", color, stroke: "#3b0d06", strokeThickness: 4,
         }).setOrigin(0.5);
         chip.add([plate, ...icons, text]);
-        chip.setSize(300, 84).setInteractive({ useHandCursor: true });
+        chip.setSize(176, 74).setInteractive({ useHandCursor: true });
+        chip.on("pointerdown", () => pressFeedback(this, chip, 0.95));
         chip.on("pointerup", () => this.showRules());
       });
-      const rules = this.add.container(702, 1403);
+      this.add.text(SIDE.left - SIDE.width / 2 + 78, 572, "HOW TO WIN", {
+        fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#e8c792", letterSpacing: 3,
+      }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true }).on("pointerup", () => this.showRules());
+      const rules = this.add.container(SIDE.left - SIDE.width / 2 + 44, 572);
       const rulesHalo = this.add.circle(0, 0, 31, COLORS.ember, 0.12).setBlendMode(Phaser.BlendModes.ADD);
       const rulesPlate = this.add.circle(0, 0, 24, 0x160b16, 0.96).setStrokeStyle(2, COLORS.gold, 0.72);
       const rulesIcon = this.add.text(0, -1, "?", {
@@ -1549,8 +1821,8 @@
           ease: "Quad.Out",
           onComplete: () => this.tweens.add({
             targets: coin,
-            x: 130,
-            y: 212,
+            x: this.creditText.x + 50,
+            y: this.creditText.y + 22,
             scale: coin.scale * 0.45,
             angle: Phaser.Math.Between(180, 540),
             duration: 460,
@@ -1570,19 +1842,19 @@
       const overlay = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(120).setAlpha(0);
       const shade = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x050207, 0.86).setInteractive();
       const glow = this.add.circle(0, -80, 260, 0xff8c18, 0.2).setBlendMode(Phaser.BlendModes.ADD);
-      const panel = addPill(this, 0, 120, 600, 340, { fill: 0x160911, fillAlpha: 0.97, strokeAlpha: 0.95, lineWidth: 4, bend: 48, anchors: true });
-      const phoenix = this.add.image(0, -150, "phoenix-symbols-v2", "symbol-8").setDisplaySize(300, 300);
-      const heading = this.add.text(0, 40, "BIG WIN", {
+      const panel = addPill(this, 0, 110, 620, 320, { fill: 0x160911, fillAlpha: 0.97, strokeAlpha: 0.95, lineWidth: 4, bend: 48, anchors: true });
+      const phoenix = this.add.image(0, -180, "phoenix-symbols-v2", "symbol-8").setDisplaySize(250, 250);
+      const heading = this.add.text(0, 34, "BIG WIN", {
         fontFamily: DISPLAY_FONT, fontSize: "64px", color: "#fff0a8", stroke: "#8b1c08", strokeThickness: 10,
         shadow: { offsetY: 8, color: "#000000", blur: 18, fill: true },
       }).setOrigin(0.5);
-      const amount = this.add.text(0, 130, "+0", {
+      const amount = this.add.text(0, 116, "+0", {
         fontFamily: DISPLAY_FONT, fontSize: "58px", color: "#ffd461", stroke: "#6c1608", strokeThickness: 8,
       }).setOrigin(0.5);
-      const caption = this.add.text(0, 196, `${multiplier}× YOUR BET  •  VIRTUAL CREDITS`, {
+      const caption = this.add.text(0, 176, `${multiplier}× YOUR BET  •  VIRTUAL CREDITS`, {
         fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#f2c989", letterSpacing: 4,
       }).setOrigin(0.5);
-      const hint = this.add.text(0, 250, "TAP TO COLLECT", {
+      const hint = this.add.text(0, 226, "TAP TO COLLECT", {
         fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#fff0c8", letterSpacing: 5,
       }).setOrigin(0.5);
       overlay.add([shade, glow, panel, phoenix, heading, amount, caption, hint]);
@@ -1609,7 +1881,7 @@
 
       this.tweens.add({ targets: overlay, alpha: 1, scale: { from: 0.88, to: 1 }, duration: 300, ease: "Back.Out" });
       this.tweens.add({ targets: glow, scale: { from: 0.85, to: 1.25 }, alpha: { from: 0.14, to: 0.36 }, duration: 700, yoyo: true, repeat: -1 });
-      this.tweens.add({ targets: phoenix, y: -170, duration: 900, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+      this.tweens.add({ targets: phoenix, y: -196, duration: 900, yoyo: true, repeat: -1, ease: "Sine.InOut" });
       this.tweens.add({ targets: hint, alpha: { from: 1, to: 0.35 }, duration: 600, yoyo: true, repeat: -1 });
       window.GamishAudio?.play("flame-burst");
 
@@ -1743,15 +2015,15 @@
       const next = PHOENIX_BETS[Phaser.Math.Clamp(index + direction, 0, PHOENIX_BETS.length - 1)];
       if (next === this.bet) {
         this.tweens.killTweensOf(this.betText);
-        this.betText.setPosition(138, 1160).setScale(1);
-        this.tweens.add({ targets: this.betText, x: 138 + direction * 6, duration: 50, yoyo: true, repeat: 1 });
+        this.betText.setPosition(this.betHome.x, this.betHome.y).setScale(1);
+        this.tweens.add({ targets: this.betText, x: this.betHome.x + direction * 6, duration: 50, yoyo: true, repeat: 1 });
         return;
       }
       this.bet = next;
       window.GamishAudio?.play("chip");
       buzz(6);
       this.tweens.killTweensOf(this.betText);
-      this.betText.setPosition(138, 1160);
+      this.betText.setPosition(this.betHome.x, this.betHome.y);
       this.tweens.add({ targets: this.betText, scale: { from: 1.3, to: 1 }, duration: 260, ease: "Back.Out" });
       this.refreshHud();
       setStatus(`Bet set to ${next} virtual credits.`);
@@ -1793,22 +2065,22 @@
       window.GamishAudio?.play("tap");
       const sheet = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(120).setAlpha(0);
       const shade = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x050207, 0.78).setInteractive();
-      const panel = addPill(this, 0, 0, 640, 640, { fill: 0x120913, fillAlpha: 0.98, strokeAlpha: 0.85, lineWidth: 3, bend: 44, anchors: true });
-      const title = this.add.text(0, -262, "HOW TO WIN", {
+      const panel = addPill(this, 0, 0, 760, 560, { fill: 0x120913, fillAlpha: 0.98, strokeAlpha: 0.85, lineWidth: 3, bend: 44, anchors: true });
+      const title = this.add.text(0, -228, "HOW TO WIN", {
         fontFamily: DISPLAY_FONT, fontSize: "32px", color: "#fff0bd", stroke: "#52150c", strokeThickness: 6,
       }).setOrigin(0.5);
       const items = HOW_TO_PLAY.flatMap(([frame, heading, copy, color], index) => {
-        const y = -150 + index * 130;
+        const y = -128 + index * 112;
         return [
-          this.add.image(-230, y, "phoenix-symbols-v2", frame).setDisplaySize(96, 96),
-          this.add.text(-160, y - 30, heading, { fontFamily: BODY_FONT, fontSize: "18px", fontStyle: "700", color, letterSpacing: 2 }),
-          this.add.text(-160, y + 2, copy, { fontFamily: BODY_FONT, fontSize: "16px", color: "#cdb8bd", lineSpacing: 4 }),
+          this.add.image(-280, y, "phoenix-symbols-v2", frame).setDisplaySize(90, 90),
+          this.add.text(-210, y - 30, heading, { fontFamily: BODY_FONT, fontSize: "18px", fontStyle: "700", color, letterSpacing: 2 }),
+          this.add.text(-210, y + 2, copy, { fontFamily: BODY_FONT, fontSize: "16px", color: "#cdb8bd", lineSpacing: 4 }),
         ];
       });
-      const tip = this.add.text(0, 222, "Swipe down on the reels to spin.\nTap the reels to stop them early.", {
+      const tip = this.add.text(0, 196, "Swipe down on the reels to spin.  Tap the reels to stop them early.", {
         fontFamily: BODY_FONT, fontSize: "15px", color: "#b79da4", align: "center", lineSpacing: 6,
       }).setOrigin(0.5);
-      const hint = this.add.text(0, 282, "TAP ANYWHERE TO CLOSE", {
+      const hint = this.add.text(0, 238, "TAP ANYWHERE TO CLOSE", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#e0bb82", letterSpacing: 4,
       }).setOrigin(0.5);
       sheet.add([shade, panel, title, ...items, tip, hint]);
@@ -1881,7 +2153,8 @@
     },
     input: {
       activePointers: 3,
-      smoothFactor: 0.2,
+      // No pointer smoothing: drags track the finger 1:1 instead of trailing behind it.
+      smoothFactor: 0,
     },
     scene: [BootScene, WaitForPlayerScene, LandingScene, BrandLoaderScene, GameZoneScene, PhoenixGameScene],
     callbacks: {
@@ -1898,10 +2171,19 @@
       return;
     }
     Object.assign(VIEW, measureView());
-    config.width = VIEW.width;
-    config.height = VIEW.height;
-    config.scale.width = VIEW.width;
-    config.scale.height = VIEW.height;
+    const renderWidth = () => Math.round(VIEW.width * VIEW.zoom);
+    const renderHeight = () => Math.round(VIEW.height * VIEW.zoom);
+    config.width = renderWidth();
+    config.height = renderHeight();
+    config.scale.width = renderWidth();
+    config.scale.height = renderHeight();
+
+    // Text is rasterised at the render zoom so it stays crisp when the camera scales it up.
+    const textFactory = Phaser.GameObjects.GameObjectFactory.prototype.text;
+    Phaser.GameObjects.GameObjectFactory.prototype.text = function text(x, y, value, style = {}) {
+      return textFactory.call(this, x, y, value, { resolution: Math.max(1, VIEW.zoom), ...style });
+    };
+
     const game = new Phaser.Game(config);
     window.addEventListener("gamish:signedout", () => game.scene.start("WaitForPlayer"));
 
@@ -1910,14 +2192,18 @@
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
         const next = measureView();
-        if (["width", "height", "left", "top"].every((key) => next[key] === VIEW[key])) return;
+        if (["width", "height", "left", "top", "zoom"].every((key) => next[key] === VIEW[key])) return;
         Object.assign(VIEW, next);
-        game.scale.setGameSize(VIEW.width, VIEW.height);
-        game.scene.getScenes(true).forEach(applyView);
+        game.scale.setGameSize(renderWidth(), renderHeight());
+        game.scene.getScenes(true).forEach((scene) => {
+          applyView(scene);
+          scene.events.emit("viewchange");
+        });
       }, 120);
     };
     window.addEventListener("resize", refit);
     window.visualViewport?.addEventListener("resize", refit);
+    window.addEventListener("orientationchange", refit);
 
     // Stop drawing while the wallet or messages page covers the game; resume where it left off.
     window.addEventListener("gamish:view", (event) => {

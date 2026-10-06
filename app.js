@@ -158,6 +158,7 @@
       else item.removeAttribute("aria-current");
     });
     currentView = name;
+    document.body.dataset.view = name;
     window.dispatchEvent(new CustomEvent("gamish:view", { detail: name }));
   };
 
@@ -732,4 +733,11 @@
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") pollSummary();
   });
+
+  // Installed on Android, the app can hold landscape itself; elsewhere the rotate prompt guides it.
+  const lockLandscape = () => {
+    try { window.screen?.orientation?.lock?.("landscape")?.catch?.(() => {}); } catch { /* not supported */ }
+  };
+  lockLandscape();
+  window.addEventListener("pointerdown", lockLandscape, { once: true });
 })();
