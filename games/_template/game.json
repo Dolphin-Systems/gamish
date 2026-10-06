@@ -1,0 +1,10 @@
+{
+  "id": "template",
+  "title": "Template Game",
+  "category": "Quick Games",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "description": "Describe the game in one line for the lobby.",
+  "accent": "#ff9c47"
+}

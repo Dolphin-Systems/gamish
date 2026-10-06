@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Lucky Wheel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=DM+Sans:wght@500;700;800&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- The platform's back button sits in the top-left corner; this layout keeps it clear. -->
+  <main class="table">
+    <section class="wheel-zone">
+      <div class="pointer" aria-hidden="true"></div>
+      <canvas id="wheel" aria-label="Lucky wheel"></canvas>
+      <button id="spin" class="hub" type="button" aria-label="Spin the wheel"><span>SPIN</span></button>
+    </section>
+
+    <aside class="panel">
+      <header>
+        <h1>Lucky Wheel</h1>
+        <p class="tagline">Up to <b>10×</b> your bet</p>
+      </header>
+      <div class="balance"><small>Balance</small><strong id="balance">—</strong></div>
+      <div class="bet">
+        <small>Bet</small>
+        <div id="bets" class="bets" role="group" aria-label="Bet"></div>
+      </div>
+      <p id="message" class="message" aria-live="polite">Tap SPIN to play</p>
+      <div class="history" aria-label="Recent results"><small>Last spins</small><ol id="history"></ol></div>
+      <p id="preview" class="preview" hidden>Preview · practice credits</p>
+    </aside>
+  </main>
+  <canvas id="fx" class="fx" aria-hidden="true"></canvas>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="wheel.js"></script>
+</body>
+</html>

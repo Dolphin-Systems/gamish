@@ -85,3 +85,12 @@ Copy `.env.example` for local development and supply:
 - `PAYMENT_WEBHOOK_SECRET`
 
 Run `npm run db:migrate` to create the schema, `npm test` for the game-math tests, and `vercel dev` for the complete local app.
+
+## Games platform
+
+Games live in `games/<id>/` (see `games/README.md`). The server's central math is
+`lib/game-models.js` (models, RTP rules, crypto RNG), fed by `lib/games.generated.js`, which
+`npm run games` generates from every `games/*/math.json`. `POST /api/game/spin` with
+`{ gameId, bet, target? }` plays a round for any game (no `gameId` means Phoenix Ruby), and
+`{ gameId, action: "event", name, data }` records what a game reports (`game_events`). Rounds
+are stored with their `game_id` and `outcome`.

@@ -1,0 +1,9 @@
+{
+  "model": "weighted",
+  "bets": [10, 20, 40],
+  "outcomes": [
+    { "id": "miss", "weight": 18, "multiplier": 0 },
+    { "id": "rubies", "weight": 8, "multiplier": 1.5 },
+    { "id": "sevens", "weight": 4, "multiplier": 3 }
+  ]
+}
