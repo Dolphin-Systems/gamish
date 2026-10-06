@@ -129,4 +129,8 @@ static lobby; games added in code later appear automatically, switched **off**.
   Live/Paused switch writes the same field.
 * Admin API: `GET /api/admin/reports?view=games`; `POST /api/admin/reports` with `action` =
   `game_update` (name, category, enabled) | `game_logo` (data URL or null) | `game_add` |
-  `game_delete` (coming-soon tiles only) | `game_order` (ids).
+  `game_delete` (coming-soon tiles only; needs `confirmId` = the id) | `game_restore` |
+  `game_order` (ids).
+* Deleting moves a game to the trash (`deleted_at`): it leaves the lobby at once and is
+  switched off, can be restored for 24 hours, and is then removed for good (purged on the next
+  admin read). Its id stays reserved while it is in the trash.

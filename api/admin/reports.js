@@ -1,6 +1,6 @@
 import { getSessionPlayer } from "../../lib/auth.js";
 import { controlRoom, saveGameSettings } from "../../lib/game-control.js";
-import { addGame, adminGames, CATEGORIES, deleteGame, reorderGames, setGameLogo, updateGame } from "../../lib/game-registry.js";
+import { addGame, adminGames, CATEGORIES, deleteGame, reorderGames, restoreGame, setGameLogo, trashedGames, TRASH_HOURS, updateGame } from "../../lib/game-registry.js";
 import { addCapital, getHouse, houseLedger, setStartingBank, takeProfit } from "../../lib/house.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { getAdminReport } from "../../lib/reports.js";
@@ -10,6 +10,8 @@ const nerdState = async () => {
   return { house, ledger: await houseLedger(15), games: await controlRoom(house.balanceCents) };
 };
 
+const gamesState = async () => ({ games: await adminGames(), trash: await trashedGames(), categories: CATEGORIES, trashHours: TRASH_HOURS });
+
 // Reports, and the Nerd page's game math and house bank controls (GET ?view=nerd, POST),
 // sharing one function to stay within the deployment's function limit.
 export default async function handler(req, res) {
@@ -18,7 +20,7 @@ export default async function handler(req, res) {
     const admin = await getSessionPlayer(req, { role: "admin" });
     if (req.method === "GET") {
       if (req.query?.view === "nerd") return json(res, 200, await nerdState());
-      if (req.query?.view === "games") return json(res, 200, { games: await adminGames(), categories: CATEGORIES });
+      if (req.query?.view === "games") return json(res, 200, await gamesState());
       const requestedDays = Number(req.query?.days || 30);
       const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
       return json(res, 200, await getAdminReport({ days }));
@@ -31,12 +33,13 @@ export default async function handler(req, res) {
       game_update: () => updateGame(String(body.id || ""), body),
       game_logo: () => setGameLogo(String(body.id || ""), body.logo ?? null),
       game_add: () => addGame(body),
-      game_delete: () => deleteGame(String(body.id || "")),
+      game_delete: () => deleteGame(String(body.id || ""), body.confirmId),
+      game_restore: () => restoreGame(String(body.id || "")),
       game_order: () => reorderGames(body.ids),
     };
     if (gameActions[body.action]) {
       await gameActions[body.action]();
-      return json(res, 200, { games: await adminGames(), categories: CATEGORIES });
+      return json(res, 200, await gamesState());
     }
     switch (body.action) {
       case "game_settings":
