@@ -18,6 +18,7 @@
 }
 
 * { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+svg { display: block; flex: none; }
 html { touch-action: manipulation; }
 [hidden] { display: none !important; }
 body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #fff; color: var(--ink); }
@@ -29,7 +30,7 @@ img, svg { -webkit-user-drag: none; }
 
 .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: var(--ink); }
 .login-card { width: min(100%, 390px); padding: 36px; border-radius: 30px; background: #fff; }
-.brand-mark { display: inline-block; width: 44px; height: 44px; border-radius: 15px; object-fit: cover; }
+.brand-mark { display: block; flex: none; width: 44px; height: 44px; aspect-ratio: 1; border-radius: 14px; object-fit: contain; object-position: center; }
 .login-card h1 { margin: 5px 0 28px; font-size: clamp(30px, 6vw, 42px); letter-spacing: -0.05em; }
 .eyebrow { margin: 22px 0 0; color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .16em; }
 label { display: grid; gap: 8px; color: #3f4541; font-size: 12px; font-weight: 800; }
@@ -38,7 +39,7 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .login-card label + label { margin-top: 16px; }
 .form-error { min-height: 18px; margin: 12px 0 0; color: var(--danger); font-size: 12px; text-align: center; }
 
-.button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border: 0; border-radius: 14px; color: var(--ink); cursor: pointer; font-weight: 900; text-decoration: none; }
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border: 0; border-radius: 14px; color: var(--ink); cursor: pointer; font-weight: 900; line-height: 1.15; text-align: center; text-decoration: none; }
 .button.primary { background: var(--green); color: #06150b; }
 .button.primary:hover { background: #13dc64; }
 .button.dark { background: var(--ink); color: #fff; }
@@ -50,11 +51,13 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 28px; color: #fff; text-decoration: none; font-size: 18px; }
 .tab-nav { display: grid; gap: 6px; }
 .tab-button, .side-action { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 48px; padding: 0 14px; border: 0; border-radius: 14px; background: transparent; color: #9ca29e; cursor: pointer; text-align: left; text-decoration: none; font-weight: 800; }
-.tab-button .tab-icon, .side-action span { display: grid; flex: none; place-items: center; width: 24px; height: 24px; }
-.tab-button .tab-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab-button .tab-icon, .side-action span { display: grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 9px; line-height: 1; text-align: center; }
+.tab-button .tab-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .16s ease; }
 .tab-button .tab-label { width: auto; }
 .tab-button.active { background: #202320; color: #fff; }
-.tab-button.active .tab-icon { color: var(--green); }
+.tab-button.active .tab-icon { background: rgba(0, 200, 83, .1); color: var(--green); }
+.tab-button:active .tab-icon svg { transform: scale(.92); }
+.side-action span { background: #202320; color: #b7c1ba; font-size: 17px; font-weight: 700; }
 .side-action:hover { background: #202320; color: #fff; }
 @media (hover: hover) { .tab-button:hover { background: #202320; color: #fff; } }
 .sidebar-footer { display: grid; gap: 4px; margin-top: auto; padding-top: 20px; border-top: 1px solid #292d29; }
@@ -66,8 +69,9 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .page-description { margin: 10px 0 0; color: var(--muted); }
 .topbar-actions { display: flex; align-items: center; gap: 9px; }
 .identity { max-width: 150px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 800; text-overflow: ellipsis; }
-.icon-button { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--ink); cursor: pointer; font-size: 18px; text-decoration: none; }
-.icon-button:hover { border-color: var(--green); background: var(--green-soft); }
+.icon-button { display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--ink); cursor: pointer; font-size: 18px; line-height: 1; text-align: center; text-decoration: none; transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease, box-shadow .16s ease; }
+.icon-button:hover { border-color: var(--green); background: var(--green-soft); box-shadow: 0 4px 12px rgba(0, 200, 83, .12); }
+.icon-button:active { transform: scale(.94); }
 .icon-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .chat-toggle { position: relative; }
 .chat-toggle i { position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: var(--green); }
@@ -135,7 +139,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .money-form h2 { margin-bottom: 24px; font-size: 28px; }
 .money-form label + label { margin-top: 15px; }
 .money-form .button { margin-top: 20px; }
-.money-icon { float: right; display: grid; place-items: center; width: 52px; height: 52px; margin-left: auto; border-radius: 18px; font-size: 27px; font-weight: 500; }
+.money-icon { float: right; display: grid; place-items: center; width: 52px; height: 52px; margin-left: auto; border-radius: 18px; font-size: 27px; font-weight: 500; line-height: 1; text-align: center; }
 .money-icon.add { background: var(--green); }
 .money-icon.out { background: var(--ink); color: #fff; }
 .helper { margin: 14px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
@@ -232,7 +236,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .admin-chat-image-preview small { margin-top: 3px; color: var(--muted); font-size: 9px; }
 .admin-chat-image-preview button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 11px; background: #fff; cursor: pointer; font-size: 18px; }
 .admin-chat-form { display: grid; grid-template-columns: 44px 1fr 52px; gap: 9px; padding: 12px; border-top: 1px solid var(--line); background: #fff; }
-.admin-chat-attach { width: 44px; height: 52px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 21px; }
+.admin-chat-attach { display: grid; place-items: center; width: 44px; height: 52px; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 21px; line-height: 1; text-align: center; }
 .admin-chat-attach:disabled { color: #aab0ac; cursor: default; }
 .admin-chat-form input { min-height: 52px; border-radius: 17px; }
 .admin-chat-form .button { min-width: 52px; min-height: 52px; padding: 0; border-radius: 17px; font-size: 20px; }
@@ -353,7 +357,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .attention-card strong { font-size: 28px; letter-spacing: -.04em; line-height: 1.1; }
 .attention-card em { overflow: hidden; color: var(--muted); font-size: 11px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .today-card small, .today-card em { color: #aeb5b0; }
-.attention-icon { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 15px; background: var(--surface); font-size: 19px; font-weight: 900; }
+.attention-icon { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 15px; background: var(--surface); font-size: 19px; font-weight: 800; line-height: 1; text-align: center; }
 .attention-icon.in { background: var(--green-soft); color: var(--green-dark); }
 .attention-icon.out { background: #fff0e8; color: #d2461c; }
 .attention-icon.chat { background: #eef2ff; color: #3b56d9; }
@@ -657,7 +661,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .game-row.off .name-input { color: var(--muted); }
 .games-list.no-order .gr-order { visibility: hidden; }
 .gr-order { display: grid; gap: 2px; }
-.order-button { width: 30px; height: 22px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--muted); cursor: pointer; font-size: 9px; }
+.order-button { display: grid; place-items: center; width: 30px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--muted); cursor: pointer; font-size: 9px; line-height: 1; text-align: center; }
 .order-button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); }
 .order-button:disabled { opacity: .3; cursor: default; }
 .gr-logo { display: grid; justify-items: start; gap: 2px; }
