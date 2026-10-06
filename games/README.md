@@ -36,7 +36,8 @@ own tile in its category, using `cover` art if it has one.
 ```
 games/<id>/
   game.json     public manifest (lobby listing)
-  math.json     the odds — read by the server only through the generated catalogue
+  math.json     the odds — private: compiled into lib/games.generated.js for the server and
+                never served by the live site (vercel.json redirects it)
   index.html    entry page; loads /platform/gamish-sdk.js
   …             any scripts, styles, images, sounds the game needs (relative paths)
 ```
@@ -111,7 +112,7 @@ const session = await Gamish.connect();
 // session.game    { id, title, version }
 // session.player  { loginId }
 // session.wallet  { totalCredits, regularCredits, bonusCredits }
-// session.math    { model, bets, rtp, outcomes: [{ id, multiplier }] | targets: [...] }  (no weights)
+// session.math    { model, bets, outcomes: [{ id, multiplier }] | targets: [...] }  (no weights, no RTP)
 // session.preview true when opened on its own
 
 const round = await Gamish.play({ bet: 10 });            // weighted
