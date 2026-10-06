@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Classic 777</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@800;900&family=Oswald:wght@500;700&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- The platform draws the back button in the top-left corner: keep that area free. -->
+  <div class="glow" aria-hidden="true"></div>
+  <main class="app" id="app">
+    <section class="cabinet">
+      <img class="logo" src="img/logo.webp" alt="Classic 777" />
+      <div class="machine" id="machine">
+        <div class="bulbs" aria-hidden="true"></div>
+        <div class="window" id="window">
+          <div class="reel" data-reel="0"><div class="strip"></div></div>
+          <div class="reel" data-reel="1"><div class="strip"></div></div>
+          <div class="reel" data-reel="2"><div class="strip"></div></div>
+          <div class="payline" aria-hidden="true"><i></i><i></i></div>
+          <div class="shade" aria-hidden="true"></div>
+        </div>
+      </div>
+      <p class="message" id="message" role="status">Set your bet and press SPIN</p>
+    </section>
+
+    <aside class="panel">
+      <div class="meter">
+        <span class="label">Balance</span>
+        <strong id="balance">—</strong>
+      </div>
+      <div class="meter win">
+        <span class="label">Win</span>
+        <strong id="win">0</strong>
+      </div>
+      <div class="bet">
+        <span class="label">Bet</span>
+        <div class="stepper">
+          <button id="betDown" type="button" aria-label="Lower bet">−</button>
+          <output id="betValue">10</output>
+          <button id="betUp" type="button" aria-label="Raise bet">+</button>
+        </div>
+      </div>
+      <button id="spin" class="spin" type="button">SPIN</button>
+      <div class="row">
+        <button id="auto" class="pill" type="button">AUTO</button>
+        <button id="pays" class="pill" type="button">PAYS</button>
+        <button id="sound" class="pill icon" type="button" aria-label="Sound on">♪</button>
+      </div>
+    </aside>
+  </main>
+
+  <div class="banner" id="banner" aria-hidden="true">
+    <span class="banner-title" id="bannerTitle">BIG WIN</span>
+    <span class="banner-amount" id="bannerAmount">0</span>
+  </div>
+  <canvas id="fx" class="fx" aria-hidden="true"></canvas>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-card" role="dialog" aria-label="Paytable">
+      <h2>Paytable</h2>
+      <p class="sheet-note">Three matching symbols on the centre line pay the bet × the multiplier. WILD stands in for any fruit, bell or BAR.</p>
+      <ul class="paytable" id="paytable"></ul>
+      <button id="closeSheet" class="pill" type="button">CLOSE</button>
+    </div>
+  </div>
+
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

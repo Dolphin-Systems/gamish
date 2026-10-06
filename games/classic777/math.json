@@ -1,0 +1,18 @@
+{
+  "model": "weighted",
+  "bets": [10, 20, 50, 100, 200],
+  "outcomes": [
+    { "id": "miss",   "weight": 1321, "multiplier": 0 },
+    { "id": "lemon",  "weight": 200,  "multiplier": 1 },
+    { "id": "plum",   "weight": 160,  "multiplier": 1.5 },
+    { "id": "orange", "weight": 120,  "multiplier": 2 },
+    { "id": "cherry", "weight": 80,   "multiplier": 3 },
+    { "id": "melon",  "weight": 55,   "multiplier": 4 },
+    { "id": "bell",   "weight": 30,   "multiplier": 6 },
+    { "id": "bar2",   "weight": 16,   "multiplier": 10 },
+    { "id": "bar3",   "weight": 10,   "multiplier": 15 },
+    { "id": "star",   "weight": 5,    "multiplier": 20 },
+    { "id": "wild",   "weight": 2,    "multiplier": 30 },
+    { "id": "seven",  "weight": 1,    "multiplier": 50 }
+  ]
+}

@@ -1,6 +1,77 @@
 {
   "games": [
     {
+      "id": "classic777",
+      "title": "Classic 777",
+      "category": "Slots",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/classic777/index.html",
+      "cover": "/games/classic777/cover.webp",
+      "description": "A golden three-reel classic: line up three red 7s for 50× your bet.",
+      "accent": "#ffc14f",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100,
+          200
+        ],
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "lemon",
+            "multiplier": 1
+          },
+          {
+            "id": "plum",
+            "multiplier": 1.5
+          },
+          {
+            "id": "orange",
+            "multiplier": 2
+          },
+          {
+            "id": "cherry",
+            "multiplier": 3
+          },
+          {
+            "id": "melon",
+            "multiplier": 4
+          },
+          {
+            "id": "bell",
+            "multiplier": 6
+          },
+          {
+            "id": "bar2",
+            "multiplier": 10
+          },
+          {
+            "id": "bar3",
+            "multiplier": 15
+          },
+          {
+            "id": "star",
+            "multiplier": 20
+          },
+          {
+            "id": "wild",
+            "multiplier": 30
+          },
+          {
+            "id": "seven",
+            "multiplier": 50
+          }
+        ]
+      }
+    },
+    {
       "id": "lucky-wheel",
       "title": "Lucky Wheel",
       "category": "Table Games",
