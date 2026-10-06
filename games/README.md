@@ -88,6 +88,12 @@ The server draws a point with `P(point ≥ target) = rtp / target`. The round re
 `outcome: "win" | "lose"`, the `multiplier` (the target, or 0), and `value` (the point,
 e.g. where the rocket crashed) to animate.
 
+**Live control.** The admin's Nerd page (Core settings → Nerd) can retune any game at any time
+without touching its files: a target RTP, a max single win, a daily payout limit, and pause.
+The engine reshapes the table each round to match (weighted games need at least one 0×
+outcome for this), so a game must always present the `outcome` the server returns rather than
+assume fixed odds. Wins are also paid only up to what the house bank holds.
+
 **Rules enforced on every build and every round** (`lib/game-models.js`):
 return to player between 50% and 97%; whole-number weights; multipliers 0–500 in steps of
 0.01; bets are whole credits from 1 to 10,000; targets above 1 and at most 100. A game that

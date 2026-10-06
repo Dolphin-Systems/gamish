@@ -1,12 +1,12 @@
 import { getSessionPlayer, publicPlayer } from "../../lib/auth.js";
 import { ensureSchema, getSql } from "../../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
-import { creditPlayer, getWeeklyBonusPool, resetPlayerBalance } from "../../lib/ledger.js";
+import { bonusBudget, grantBonus } from "../../lib/house.js";
+import { creditPlayer, resetPlayerBalance } from "../../lib/ledger.js";
 import { serializeRequest } from "../../lib/payment-requests.js";
 import { hashPin, normalizeLoginId, randomUUID, validateLoginId, validatePin } from "../../lib/security.js";
 
 const MAX_CREDIT = 1_000_000;
-const formatMoney = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
 export default async function handler(req, res) {
   try {
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
           lifetimeCashInCents: Number(row.lifetime_cash_in_cents),
           lifetimeCashOutCents: Number(row.lifetime_cash_out_cents),
         })),
-        bonusPool: await getWeeklyBonusPool(),
+        bonusPool: await bonusBudget(),
       });
     }
 
@@ -115,11 +115,14 @@ export default async function handler(req, res) {
       if (!Number.isInteger(amount) || amount < 1 || amount > MAX_CREDIT) {
         throw new HttpError(400, "Amount must be from $0.01 to $10,000.00", "invalid_amount");
       }
-      if (balanceType === "bonus") {
-        const pool = await getWeeklyBonusPool();
-        if (amount > pool.available) throw new HttpError(409, `Only ${formatMoney(pool.available)} in bonus cash is currently available`, "bonus_pool_exceeded");
-      }
-      const result = await creditPlayer({
+      // Bonus cash is paid out of the house bank's profit (grantBonus refuses more than that).
+      const result = balanceType === "bonus" ? await grantBonus({
+        playerId: body.playerId,
+        amount,
+        reference: String(body.reason || "Admin bonus").slice(0, 120),
+        createdBy: admin.id,
+        idempotencyKey: `admin:${randomUUID()}`,
+      }) : await creditPlayer({
         playerId: body.playerId,
         regular: balanceType === "regular" ? amount : 0,
         bonus: balanceType === "bonus" ? amount : 0,

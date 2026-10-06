@@ -16,6 +16,7 @@ const pageCopy = {
   analytics: ["Player analytics", "Understand player activity and game performance."],
   money: ["Money", "Confirm deposits, send cash-outs, and adjust balances."],
   reports: ["Reports", "Review activity and download a PDF."],
+  nerd: ["Nerd", "Game math, RTP and the house bank."],
 };
 
 const request = async (url, options = {}) => {
@@ -57,6 +58,7 @@ const setNotice = (message, error = false) => {
 
 const openTab = (name, updateHash = true) => {
   const tab = pageCopy[name] ? name : "overview";
+  if (tab === "nerd") loadNerd();
   document.querySelectorAll("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
   document.querySelectorAll("[data-tab]").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   [pageTitle.textContent, pageDescription.textContent] = pageCopy[tab];
@@ -1069,3 +1071,179 @@ if ("serviceWorker" in navigator) {
 }
 
 request("/api/auth/me").then(({ player }) => showDashboard(player)).catch(() => {});
+
+
+// ---------- Nerd: central game math and the house bank ----------
+const nerdGames = document.getElementById("nerd-games");
+const bankFigures = document.getElementById("bank-figures");
+const bankControls = document.getElementById("bank-controls");
+const bankLedger = document.getElementById("bank-ledger");
+let nerd = null;
+const pct = (value, digits = 2) => (value === null || value === undefined ? "—" : `${(Number(value) * 100).toFixed(digits)}%`);
+const LEDGER_KINDS = { start: "Starting bank", capital: "Capital added", withdraw: "Profit taken", bonus: "Bonus paid" };
+
+const renderBank = () => {
+  const { house } = nerd;
+  const profit = house.profitCents;
+  bankFigures.innerHTML = [
+    ["Bank balance", money(house.balanceCents), "What games can pay out"],
+    ["Capital", money(house.capitalCents), "What you put in"],
+    ["Profit", `${profit < 0 ? "−" : ""}${money(Math.abs(profit))}`, profit < 0 ? "Players are ahead; earning it back" : "Earned above capital", profit < 0 ? "negative" : "positive"],
+    ["Bonus budget", money(Math.max(0, profit)), "Bonuses can spend this"],
+    ["Bonuses paid", money(house.bonusesPaidCents), "From profit"],
+    ["Profit taken", money(house.withdrawnCents), "Moved out of the bank"],
+  ].map(([label, value, note, tone = ""]) => `<div class="bank-figure ${tone}"><small>${label}</small><strong>${value}</strong><span>${note}</span></div>`).join("");
+  bankControls.innerHTML = house.fresh ? `
+      <form class="bank-form" data-bank="house_start">
+        <span class="bank-form-title">Starting bank</span>
+        <div class="bank-options">${house.startOptionsCents.map((cents) => `<button type="button" class="chip-option${cents === house.capitalCents ? " on" : ""}" data-start="${cents}">${money(cents).replace(".00", "")}</button>`).join("")}</div>
+        <label class="money-input"><span>$</span><input name="amount" inputmode="decimal" value="${house.capitalCents / 100}" aria-label="Starting bank in dollars" /></label>
+        <button class="button primary" type="submit">Set starting bank</button>
+        <small class="helper">Default ${money(house.defaultStartCents).replace(".00", "")}. You can pick it until the first game is played; after that, add capital.</small>
+      </form>` : `
+      <form class="bank-form" data-bank="house_capital">
+        <span class="bank-form-title">Add capital</span>
+        <label class="money-input"><span>$</span><input name="amount" inputmode="decimal" placeholder="500" aria-label="Capital to add in dollars" /></label>
+        <button class="button dark" type="submit">Add to bank</button>
+      </form>
+      <form class="bank-form" data-bank="house_withdraw">
+        <span class="bank-form-title">Take profit</span>
+        <label class="money-input"><span>$</span><input name="amount" inputmode="decimal" placeholder="${Math.max(0, profit) / 100}" aria-label="Profit to take in dollars" /></label>
+        <button class="button dark" type="submit" ${profit <= 0 ? "disabled" : ""}>Take profit</button>
+        <small class="helper">Up to ${money(Math.max(0, profit))}. Capital always stays in the bank.</small>
+      </form>`;
+  bankLedger.innerHTML = nerd.ledger.map((entry) => `
+    <tr><td data-label="When">${date(entry.createdAt)}</td><td data-label="What">${LEDGER_KINDS[entry.kind] || entry.kind}${entry.reference ? `<small class="cell-note">${escapeHtml(entry.reference)}</small>` : ""}</td>
+    <td data-label="Amount" class="money ${entry.amountCents < 0 ? "negative" : ""}">${entry.amountCents < 0 ? "−" : "+"}${money(Math.abs(entry.amountCents))}</td>
+    <td data-label="Bank after" class="money">${money(entry.balanceAfterCents)}</td><td data-label="By">${escapeHtml(entry.by || "—")}</td></tr>`).join("")
+    || "<tr><td colspan='5' class='empty-cell'>No bank changes yet.</td></tr>";
+};
+
+const gameRow = (game) => {
+  const { settings, live, day, all } = game;
+  const target = settings.rtp ?? game.baseRtp;
+  const usage = Math.min(1.2, live.usage);
+  const throttled = live.throttle < 1;
+  return `
+    <form class="nerd-game${settings.enabled ? "" : " paused"}" data-game="${game.id}">
+      <div class="ng-id">
+        <b>${escapeHtml(game.title)}</b>
+        <code>${game.id}</code>
+        <span class="ng-tags"><i>${game.runtime}</i><i>${game.model}</i><i>bets ${game.bets.join(" / ")}</i><i>max ${game.maxMultiplier}×</i></span>
+        <label class="switch"><input type="checkbox" name="enabled" ${settings.enabled ? "checked" : ""} /><span>${settings.enabled ? "Live" : "Paused"}</span></label>
+      </div>
+
+      <div class="ng-rtp">
+        <div class="ng-label"><span>Target RTP</span><output name="rtpOut">${pct(target)}</output></div>
+        <input type="range" name="rtp" min="${game.minRtp}" max="${game.maxRtp}" step="0.0025" value="${target}" aria-label="Target RTP for ${escapeHtml(game.title)}" />
+        <div class="ng-scale"><span>${pct(game.minRtp, 0)}</span><button type="button" class="link-reset" data-reset-rtp="${game.baseRtp}">Reset to game's ${pct(game.baseRtp)}</button><span>${pct(game.maxRtp, 0)}</span></div>
+        <dl class="ng-figures">
+          <div><dt>Now</dt><dd class="${throttled ? "warn" : ""}">${pct(live.effectiveRtp)}</dd></div>
+          <div><dt>Throttle</dt><dd class="${throttled ? "warn" : ""}">${throttled ? `×${live.throttle.toFixed(2)}` : "off"}</dd></div>
+          <div><dt>Seen 24h</dt><dd>${pct(day.observedRtp, 1)}</dd></div>
+          <div><dt>Seen all</dt><dd>${pct(all.observedRtp, 1)}</dd></div>
+        </dl>
+      </div>
+
+      <div class="ng-limits">
+        <label><span>Max single win</span><span class="money-input"><span>$</span><input name="maxWin" inputmode="decimal" value="${settings.maxWinCents / 100}" /></span></label>
+        <label><span>Daily payout limit</span><span class="money-input"><span>$</span><input name="dailyLimit" inputmode="decimal" value="${settings.dailyLimitCents / 100}" /></span></label>
+        <div class="usage" title="Net paid out in the last 24 hours vs the daily limit">
+          <div class="usage-bar"><i style="width:${Math.max(0, usage) / 1.2 * 100}%" class="${usage >= 1 ? "full" : usage > 0.5 ? "hot" : ""}"></i><b style="left:${(0.5 / 1.2) * 100}%"></b><b style="left:${(1 / 1.2) * 100}%"></b></div>
+          <small>${day.net > 0 ? `${money(day.net)} paid out net` : `${money(-day.net)} earned`} in 24h · ${pct(Math.max(0, live.usage), 0)} of limit</small>
+        </div>
+      </div>
+
+      <div class="ng-stats">
+        <dl>
+          <div><dt>Rounds 24h</dt><dd>${day.rounds.toLocaleString("en-US")}</dd></div>
+          <div><dt>Wagered 24h</dt><dd>${money(day.wagered)}</dd></div>
+          <div><dt>Paid 24h</dt><dd>${money(day.paid)}</dd></div>
+          <div><dt>Rounds all</dt><dd>${all.rounds.toLocaleString("en-US")}</dd></div>
+        </dl>
+        <div class="winners"><small>Top winners 24h</small>${game.topWinners.length ? `<ol>${game.topWinners.map((winner) => `<li><button type="button" class="inline-link" data-player-details="${winner.playerId}">${escapeHtml(winner.loginId)}</button><code title="Player ID">${winner.playerId.slice(0, 8)}</code><b>+${money(winner.netCents)}</b></li>`).join("")}</ol>` : "<p>No one is ahead.</p>"}</div>
+      </div>
+
+      <div class="ng-save"><button class="button primary" type="submit" disabled>Save</button></div>
+    </form>`;
+};
+
+const renderNerd = () => {
+  renderBank();
+  nerdGames.innerHTML = nerd.games.map(gameRow).join("");
+};
+
+async function loadNerd() {
+  try {
+    nerd = await request("/api/admin/reports?view=nerd");
+    renderNerd();
+  } catch (error) {
+    nerdGames.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+const nerdPost = async (body, button) => {
+  if (button) button.disabled = true;
+  try {
+    nerd = await request("/api/admin/reports", { method: "POST", body: JSON.stringify(body) });
+    renderNerd();
+    return true;
+  } catch (error) {
+    window.alert(error.message);
+    if (button) button.disabled = false;
+    return false;
+  }
+};
+
+bankControls.addEventListener("click", (event) => {
+  const option = event.target.closest("[data-start]");
+  if (!option) return;
+  const form = option.closest("form");
+  form.querySelector("input[name=amount]").value = Number(option.dataset.start) / 100;
+  form.querySelectorAll("[data-start]").forEach((item) => item.classList.toggle("on", item === option));
+});
+bankControls.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const amountCents = dollarsToCents(form.querySelector("input[name=amount]").value);
+  if (!amountCents) return;
+  const action = form.dataset.bank;
+  const verb = { house_start: "Set the starting bank to", house_capital: "Add", house_withdraw: "Take" }[action];
+  if (!window.confirm(`${verb} ${money(amountCents)}?`)) return;
+  nerdPost({ action, amountCents }, form.querySelector("button[type=submit]"));
+});
+
+nerdGames.addEventListener("input", (event) => {
+  const form = event.target.closest("form[data-game]");
+  if (!form) return;
+  if (event.target.name === "rtp") form.querySelector("output[name=rtpOut]").textContent = pct(event.target.value);
+  form.querySelector(".ng-save button").disabled = false;
+  form.classList.add("dirty");
+});
+nerdGames.addEventListener("click", (event) => {
+  const reset = event.target.closest("[data-reset-rtp]");
+  if (!reset) return;
+  const form = reset.closest("form");
+  const slider = form.querySelector("input[name=rtp]");
+  slider.value = reset.dataset.resetRtp;
+  slider.dispatchEvent(new Event("input", { bubbles: true }));
+});
+nerdGames.addEventListener("change", (event) => {
+  if (event.target.name !== "enabled") return;
+  event.target.nextElementSibling.textContent = event.target.checked ? "Live" : "Paused";
+});
+nerdGames.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const game = nerd.games.find((item) => item.id === form.dataset.game);
+  const rtp = Number(form.elements.rtp.value);
+  nerdPost({
+    action: "game_settings",
+    gameId: game.id,
+    // Back at the game's own RTP: store "no override".
+    rtp: Math.abs(rtp - game.baseRtp) < 0.0001 ? null : rtp,
+    maxWinCents: dollarsToCents(form.elements.maxWin.value),
+    dailyLimitCents: dollarsToCents(form.elements.dailyLimit.value),
+    enabled: form.elements.enabled.checked,
+  }, form.querySelector(".ng-save button"));
+});

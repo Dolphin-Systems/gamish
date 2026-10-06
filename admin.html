@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=11" />
+  <link rel="stylesheet" href="admin.css?v=12" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -39,6 +39,10 @@
         <button class="tab-button" type="button" data-tab="money" aria-label="Money"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.75"/><path d="M15.25 8.5c-.8-.65-1.8-1-3.05-1-1.55 0-2.7.75-2.7 1.95 0 3.25 5.25 1.1 5.25 4.2 0 1.25-1.1 2.1-2.85 2.1-1.25 0-2.35-.4-3.2-1.15M12 5.75v12.5"/></svg></span><span class="tab-label">Money</span><i id="money-badge" class="tab-badge" hidden></i></button>
         <button class="tab-button" type="button" data-tab="reports" aria-label="Reports"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3v14H6z"/><path d="M15 3.5v3h3M9 16.5v-3M12 16.5v-6M15 16.5v-4.5"/></svg></span><span class="tab-label">Reports</span></button>
       </nav>
+      <div class="core-settings">
+        <p class="core-label">Core settings</p>
+        <button class="tab-button nerd-button" type="button" data-tab="nerd" aria-label="Nerd: game math and house bank"><span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7.5 3.5 12 8 16.5M16 7.5l4.5 4.5-4.5 4.5M13.5 5l-3 14"/></svg></span><span class="tab-label">Nerd</span></button>
+      </div>
       <div class="sidebar-footer">
         <a class="side-action" href="/" title="Open game"><span>↗</span>Game</a>
         <button id="admin-logout" class="side-action" type="button" title="Sign out"><span>⇥</span>Sign out</button>
@@ -241,6 +245,31 @@
           </div>
         </section>
       </section>
+      <section class="tab-panel nerd" data-panel="nerd" hidden>
+        <section class="nerd-bank" aria-labelledby="bank-title">
+          <div class="bank-head">
+            <div><p class="eyebrow">HOUSE BANK</p><h2 id="bank-title">The money games pay from</h2></div>
+            <p class="bank-rule">Bets go in, wins come out, in one transaction. The bank can't go below $0, and bonuses only come out of profit.</p>
+          </div>
+          <div id="bank-figures" class="bank-figures"></div>
+          <div id="bank-controls" class="bank-controls"></div>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">CENTRAL MATH</p><h2>Games</h2></div>
+            <p class="helper nerd-help">RTP = what a game pays back per $1 wagered, on average. Past half of a game's daily payout limit, its RTP is turned down automatically; at the limit nothing pays above the stake.</p>
+          </div>
+          <div id="nerd-games" class="nerd-games"><p class="helper">Loading…</p></div>
+        </section>
+
+        <section class="content-section">
+          <div class="section-heading"><div><p class="eyebrow">AUDIT</p><h2>Bank history</h2></div></div>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>When</th><th>What</th><th>Amount</th><th>Bank after</th><th>By</th></tr></thead><tbody id="bank-ledger"></tbody></table>
+          </div>
+        </section>
+      </section>
     </main>
 
     <button id="admin-chat-backdrop" class="side-panel-backdrop" type="button" aria-label="Close player chat" hidden></button>
@@ -319,6 +348,6 @@
     <p id="chat-image-viewer-title">Chat image</p>
   </dialog>
   <script src="chat-images.js?v=1"></script>
-  <script type="module" src="admin.js?v=12"></script>
+  <script type="module" src="admin.js?v=13"></script>
 </body>
 </html>

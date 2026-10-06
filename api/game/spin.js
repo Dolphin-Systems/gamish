@@ -32,10 +32,21 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true });
     }
 
-    const { bet, outcome, multiplier, value } = playRound(gameId, body);
+    // Draw, then pay. If another round moved the house bank in between, draw again once.
+    let drawn;
+    let round;
+    for (let attempt = 0; ; attempt += 1) {
+      drawn = await playRound(gameId, body);
+      try {
+        round = await recordGameRound({ playerId: player.id, gameId, outcome: drawn.outcome, bet: drawn.bet, multiplier: drawn.multiplier });
+        break;
+      } catch (error) {
+        if (error.code !== "house_moved" || attempt >= 1) throw error;
+      }
+    }
+    const { outcome, multiplier, value } = drawn;
     // Phoenix Ruby's built-in reels draw the symbol grid the server picks for its outcome.
     const marks = gameId === "phoenix-ruby" ? buildResultMarks(multiplier) : undefined;
-    const round = await recordGameRound({ playerId: player.id, gameId, outcome, bet, multiplier, marks });
     return json(res, 200, {
       round: {
         roundId: round.roundId, gameId, bet: round.bet, outcome, multiplier: round.multiplier, payout: round.payout,
