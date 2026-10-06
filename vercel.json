@@ -62,5 +62,67 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/lib/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/scripts/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/test/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/node_modules/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/games/:id/math.json",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/games/_template/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/games/README.md",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/package.json",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/package-lock.json",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/BACKEND.md",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/DESIGN.md",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/vercel.json",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }

@@ -54,7 +54,9 @@
 
   // ---------- On its own: a local preview with practice credits ----------
   const startPreview = async () => {
-    const math = await fetch("math.json").then((response) => response.json());
+    // The odds file is only readable on a designer's own machine; the live site never serves it.
+    const math = await fetch("math.json").then((response) => response.json()).catch(() => null);
+    if (!math?.model) throw new Error("Preview needs this game's math.json: open it from a local copy of the repo, or play it inside the app.");
     const game = await fetch("game.json").then((response) => response.json()).catch(() => ({ id: "preview", title: document.title }));
     const credits = 10_000;
     preview = { math, wallet: { regularCredits: credits, bonusCredits: 0, totalCredits: credits } };

@@ -50,7 +50,7 @@ async function loadGame(id) {
       cover: manifest.cover ? `/games/${id}/${manifest.cover}` : null,
       description: manifest.description ?? "",
       accent: manifest.accent ?? "#ffc96b",
-      math: publicMath(math, figures),
+      math: publicMath(math),
     },
   };
 }

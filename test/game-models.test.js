@@ -59,8 +59,9 @@ test("target model: P(win) = rtp / target, and losses report a point below the t
 
 test("games learn the payouts, never the weights", () => {
   const math = GAME_MATH["lucky-wheel"];
-  const view = publicMath(math, validateMath("lucky-wheel", math));
+  const view = publicMath(math);
   assert.ok(view.outcomes.every((outcome) => !("weight" in outcome)));
+  assert.ok(!("rtp" in view));
   assert.deepEqual(view.bets, math.bets);
 });
 
