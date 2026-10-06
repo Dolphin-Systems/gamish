@@ -72,6 +72,22 @@
     muted: 0xb9a7ad,
   };
 
+  // Source coordinates for the supplied 7×5 game-art sheet (1484×1060). Keeping
+  // crops in Phaser avoids recompressing the high-resolution original into 35 files.
+  const GAME_ART_CELLS = [
+    ["Classic 777", 12, 14, 212, 195], ["Fruit Spin", 236, 14, 192, 195], ["Mega Reels", 438, 14, 194, 195],
+    ["Jackpot Gold", 643, 14, 196, 195], ["Hold & Win", 849, 14, 196, 195], ["Crash", 1055, 14, 197, 195], ["Mines", 1262, 14, 210, 195],
+    ["Plinko", 12, 218, 212, 194], ["Dice", 236, 218, 192, 194], ["Limbo", 438, 218, 194, 194],
+    ["Blackjack", 643, 218, 196, 194], ["Video Poker", 849, 218, 196, 194], ["Baccarat", 1055, 218, 197, 194], ["Teen Patti", 1262, 218, 210, 194],
+    ["Dragon Tiger", 12, 420, 212, 195], ["Roulette", 236, 420, 192, 195], ["Craps", 438, 420, 194, 195],
+    ["Sic Bo", 643, 420, 196, 195], ["Lucky Wheel", 849, 420, 196, 195], ["Coin Flip", 1055, 420, 197, 195], ["Keno", 1262, 420, 210, 195],
+    ["Bingo", 12, 622, 212, 194], ["Lucky Numbers", 236, 622, 192, 194], ["Pick 3", 438, 622, 194, 194],
+    ["Number Rush", 643, 622, 196, 194], ["Fishing", 849, 622, 196, 194], ["Pachinko", 1055, 622, 197, 194], ["Target Shot", 1262, 622, 210, 194],
+    ["Treasure Drop", 12, 822, 212, 203], ["Cannon Blast", 236, 822, 192, 203], ["Scratch Card", 438, 822, 194, 203],
+    ["Hi-Lo", 643, 822, 196, 203], ["Mystery Box", 849, 822, 196, 203], ["Lucky Cups", 1055, 822, 197, 203], ["Treasure Chest", 1262, 822, 210, 203],
+  ];
+  const GAME_ART_BY_TITLE = new Map(GAME_ART_CELLS.map(([title, x, y, width, height]) => [title, { x, y, width, height }]));
+
   const GAME_CATEGORIES = [
     { name: "All Games", icon: "✦", accent: 0xffc96b, games: [] },
     { name: "Slots", icon: "7", accent: 0xff7a1a, games: [
@@ -98,7 +114,7 @@
   ].map((category) => ({
     ...category,
     games: category.games.map(([title, icon, playable = false]) => ({
-      title, icon, playable, category: category.name, accent: category.accent,
+      title, icon, playable, category: category.name, accent: category.accent, art: GAME_ART_BY_TITLE.get(title),
     })),
   }));
   GAME_CATEGORIES[0].games = GAME_CATEGORIES.slice(1).flatMap((category) => category.games);
@@ -436,6 +452,7 @@
       this.load.image("phoenix-symbols-v2", "assets/phoenix-symbols-v2.webp");
       this.load.image("phoenix-gameplay-v3", "assets/phoenix-gameplay-bg-v3.webp");
       this.load.image("phoenix-reel-frame-v3", "assets/phoenix-reel-frame-v3.webp");
+      this.load.image("gamish-game-icons", "assets/gamish-game-icons.png");
     }
 
     create() {
@@ -712,20 +729,20 @@
         const panel = addSoftPanel(this, 0, 0, 330, cardHeight, {
           fill: 0x130b18, alpha: 0.86, radius: 34,
         });
-        const iconPlate = this.add.circle(0, -48, 54, game.accent, 0.14);
-        const icon = this.add.text(0, -51, game.icon, {
-          fontFamily: BODY_FONT, fontSize: game.icon.length > 2 ? "42px" : "58px", fontStyle: "700", color: "#fff0c0",
-          shadow: { offsetY: 3, color: "#3c180d", blur: 12, fill: true },
-        }).setOrigin(0.5);
-        const title = this.add.text(0, 42, game.title.toUpperCase(), {
-          fontFamily: DISPLAY_FONT, fontSize: game.title.length > 14 ? "22px" : "27px", color: "#fff0c2",
-          shadow: { offsetY: 3, color: "#000000", blur: 8, fill: true }, align: "center",
-        }).setOrigin(0.5);
+        let art;
+        if (game.art) {
+          const artFrame = game.art;
+          art = this.add.image(0, -14, "gamish-game-icons")
+            .setCrop(artFrame.x, artFrame.y, artFrame.width, artFrame.height)
+            .setScale(204 / artFrame.width, 204 / artFrame.height);
+        } else {
+          art = this.add.image(0, -14, "phoenix").setDisplaySize(204, 204);
+        }
         const stateText = game.playable ? "PLAY NOW  ›" : "COMING SOON";
-        const state = this.add.text(0, 91, stateText, {
-          fontFamily: BODY_FONT, fontSize: "25px", fontStyle: "700", color: game.playable ? "#ffc96b" : "#b9a9b0", letterSpacing: 1,
+        const state = this.add.text(0, 105, stateText, {
+          fontFamily: BODY_FONT, fontSize: "21px", fontStyle: "700", color: game.playable ? "#ffc96b" : "#d4c2c0", letterSpacing: 1,
         }).setOrigin(0.5);
-        card.add([halo, panel, iconPlate, icon, title, state]);
+        card.add([halo, panel, art, state]);
         card.setSize(338, cardHeight + 8).setInteractive({ useHandCursor: true });
         card.on("pointerdown", () => {
           if (!this.catalogDragMoved) window.GamishAudio?.play("tap");
