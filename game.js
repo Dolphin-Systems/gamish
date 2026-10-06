@@ -147,7 +147,8 @@
         category: category.name,
         accent: category.accent,
         art: row.artCell ? GAME_ART_BY_CELL.get(`${row.artCell[0]},${row.artCell[1]}`) : GAME_ART_BY_TITLE.get(row.name),
-        cover: row.logoUrl ? `logo:${row.id}` : null,
+        // Uploaded logo first, then the game's own cover art (both loaded in Boot).
+        cover: row.logoUrl ? `logo:${row.id}` : row.coverUrl ? `cover:${row.id}` : null,
         playable: row.id === "phoenix-ruby",
         module: modules.get(row.id) || null,
       };
@@ -640,6 +641,7 @@
       this.load.once("filecomplete-json-games-registry", (key, type, registry) => {
         (registry?.games || []).forEach((row) => {
           if (row.logoUrl) this.load.image(`logo:${row.id}`, row.logoUrl);
+          else if (row.coverUrl) this.load.image(`cover:${row.id}`, row.coverUrl);
         });
       });
       this.load.once("filecomplete-json-games-catalog", (key, type, catalog) => {

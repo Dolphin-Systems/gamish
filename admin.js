@@ -1266,7 +1266,8 @@ let logoTarget = null;
 const SHEET = { url: "/assets/gamish-game-icons.png", width: 1484, height: 1060 };
 
 const logoStyle = (game, size = 56) => {
-  if (game.logoUrl) return `background-image:url('${game.logoUrl}');background-size:cover;background-position:center`;
+  const image = game.logoUrl || game.coverUrl;
+  if (image) return `background-image:url('${image}');background-size:cover;background-position:center`;
   if (game.artCell) {
     const [x, y, w, h] = game.artCell;
     const sx = size / w;
