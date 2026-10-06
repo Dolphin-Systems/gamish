@@ -895,4 +895,31 @@
     window.history.pushState({ gamish: "guard" }, "");
   });
   window.addEventListener("gamish:account", armBackGuard);
+
+  // ---------- Updates ----------
+  // A home-screen app stays in memory for days and never reloads by itself, so when it comes
+  // back to the foreground, compare our asset versions with the live page and reload if newer.
+  const buildSignature = (html) => [...html.matchAll(/(?:src|href)="([\w./-]+\.(?:js|css))\?v=(\d+)"/g)]
+    .map((match) => `${match[1]}@${match[2]}`).sort().join(",");
+  const runningBuild = buildSignature(document.documentElement.outerHTML);
+  let lastUpdateCheck = 0;
+  const checkForUpdate = async () => {
+    if (Date.now() - lastUpdateCheck < 30_000 || !navigator.onLine) return;
+    lastUpdateCheck = Date.now();
+    try {
+      const response = await fetch(`/?build=${Date.now()}`, { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) return;
+      const liveBuild = buildSignature(await response.text());
+      if (liveBuild && runningBuild && liveBuild !== runningBuild) window.location.reload();
+    } catch {
+      // Offline or flaky: try again next time the app comes back.
+    }
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkForUpdate();
+  });
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) checkForUpdate();
+  });
+  window.setTimeout(checkForUpdate, 4000);
 })();
