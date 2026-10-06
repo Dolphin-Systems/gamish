@@ -27,9 +27,9 @@ While designing, open `/games/<id>/index.html` directly from any static server r
 repo root (for example `npx serve .`, then `http://localhost:3000/games/<id>/`). The SDK notices it isn't inside the app and runs a **preview**: 10,000 practice
 credits and local randomness from the same `math.json`. Inside the app, the server decides.
 
-The lobby lists a game as soon as it is in `games/catalog.json` (`npm run games` writes it):
-a tile with the same title as an existing lobby tile becomes playable, and a new title gets its
-own tile in its category, using `cover` art if it has one.
+Once merged, a new game appears in the admin's **Games** page (switched **off**). There the admin
+gives it a logo, name, category and position, and switches it on to put it in the lobby. A
+"coming soon" tile with the same ID becomes playable automatically.
 
 ## Folder layout
 

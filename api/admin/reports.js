@@ -1,5 +1,6 @@
 import { getSessionPlayer } from "../../lib/auth.js";
 import { controlRoom, saveGameSettings } from "../../lib/game-control.js";
+import { addGame, adminGames, CATEGORIES, deleteGame, reorderGames, setGameLogo, updateGame } from "../../lib/game-registry.js";
 import { addCapital, getHouse, houseLedger, setStartingBank, takeProfit } from "../../lib/house.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { getAdminReport } from "../../lib/reports.js";
@@ -17,13 +18,26 @@ export default async function handler(req, res) {
     const admin = await getSessionPlayer(req, { role: "admin" });
     if (req.method === "GET") {
       if (req.query?.view === "nerd") return json(res, 200, await nerdState());
+      if (req.query?.view === "games") return json(res, 200, { games: await adminGames(), categories: CATEGORIES });
       const requestedDays = Number(req.query?.days || 30);
       const days = [7, 30, 90].includes(requestedDays) ? requestedDays : 30;
       return json(res, 200, await getAdminReport({ days }));
     }
     requireBrowserAction(req);
-    const body = await readJson(req, 8_000);
+    const body = await readJson(req, 400_000); // logos are up to 200 KB, base64 adds a third
     const cents = Number(body.amountCents);
+    // The Games page (registry): answers with the full list.
+    const gameActions = {
+      game_update: () => updateGame(String(body.id || ""), body),
+      game_logo: () => setGameLogo(String(body.id || ""), body.logo ?? null),
+      game_add: () => addGame(body),
+      game_delete: () => deleteGame(String(body.id || "")),
+      game_order: () => reorderGames(body.ids),
+    };
+    if (gameActions[body.action]) {
+      await gameActions[body.action]();
+      return json(res, 200, { games: await adminGames(), categories: CATEGORIES });
+    }
     switch (body.action) {
       case "game_settings":
         await saveGameSettings(String(body.gameId || ""), body, admin.id);

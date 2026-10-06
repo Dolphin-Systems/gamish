@@ -1,6 +1,7 @@
 import { getSessionPlayer } from "../../lib/auth.js";
 import { getSql } from "../../lib/db.js";
 import { playRound } from "../../lib/game-engine.js";
+import { getGameLogo, lobbyGames } from "../../lib/game-registry.js";
 import { buildResultMarks } from "../../lib/game-math.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { recordGameRound } from "../../lib/ledger.js";
@@ -14,7 +15,21 @@ const EVENT_NAME = /^[A-Za-z0-9_.:-]{1,40}$/;
 // (action "event"), which keeps the deployment within its serverless function limit.
 export default async function handler(req, res) {
   try {
-    requireMethod(req, "POST");
+    requireMethod(req, ["GET", "POST"]);
+    if (req.method === "GET") {
+      // Public: the lobby's games (those switched on) and their logos.
+      const logoId = req.query?.logo;
+      if (logoId) {
+        const logo = await getGameLogo(String(logoId));
+        res.statusCode = 200;
+        res.setHeader("Content-Type", logo.mime);
+        // Logo URLs carry a version, so a new upload gets a new URL.
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        return res.end(logo.bytes);
+      }
+      return json(res, 200, { games: await lobbyGames() }, { "Cache-Control": "no-store" });
+    }
     requireBrowserAction(req);
     const player = await getSessionPlayer(req);
     const body = await readJson(req, 8_000);

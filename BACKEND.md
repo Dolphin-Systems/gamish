@@ -113,3 +113,20 @@ are stored with their `game_id` and `outcome`.
   Nerd page lists each game's top net winners (player IDs) for the last 24 hours.
 * API: `GET /api/admin/reports?view=nerd`, `POST /api/admin/reports` with `action` =
   `game_settings` | `house_start` | `house_capital` | `house_withdraw`.
+
+## Game registry (admin → Core settings → Games)
+
+`games` holds one row per lobby tile (`lib/game-registry.js`): id, name, category, logo
+(uploaded PNG/JPEG/WebP ≤ 200 KB, checked by its bytes; or a cell of the built-in art sheet),
+order, and on/off. A row is **playable** when a game with that id exists in code
+(`games/<id>/`), otherwise it is a **coming soon** tile. The table is seeded once from the old
+static lobby; games added in code later appear automatically, switched **off**.
+
+* The lobby builds from `GET /api/game/spin` (public: games that are on, in order); logos are
+  served from `GET /api/game/spin?logo=<id>&v=<version>` (cached forever per version). If the
+  registry can't be reached the lobby falls back to its built-in list.
+* A game that is off is hidden from the lobby and its rounds are refused (423). Nerd's
+  Live/Paused switch writes the same field.
+* Admin API: `GET /api/admin/reports?view=games`; `POST /api/admin/reports` with `action` =
+  `game_update` (name, category, enabled) | `game_logo` (data URL or null) | `game_add` |
+  `game_delete` (coming-soon tiles only) | `game_order` (ids).
