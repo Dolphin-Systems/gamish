@@ -609,16 +609,16 @@
       this.add.circle(654, 1010, 370, 0x3b2069, 0.075).setBlendMode(Phaser.BlendModes.ADD);
       addAtmosphere(this, 18, [0xffad42, 0x6ee7ea, 0xd994ff]);
 
-      this.add.text(WIDTH / 2, 126, "GAMISH777", {
+      this.add.text(350, 126, "GAMISH777", {
         fontFamily: DISPLAY_FONT,
-        fontSize: "44px",
+        fontSize: "36px",
         color: "#fff1c6",
         shadow: { offsetY: 5, color: "#000000", blur: 16, fill: true },
       }).setOrigin(0.5);
 
-      this.addMenuAction(530, "profile", "Player profile", () => this.openProfile());
-      this.addMenuAction(608, "payments", "Payments", () => this.openAppView("payments"));
-      this.addMenuAction(686, "chat", "Chat with support", () => this.openAppView("messages"));
+      this.addMenuAction(548, "profile", "Player profile", () => this.openProfile());
+      this.addMenuAction(626, "payments", "Payments", () => this.openAppView("payments"));
+      this.addMenuAction(704, "chat", "Chat with support", () => this.openAppView("messages"));
 
       this.addFeaturedPhoenix(370);
       const allGamesHeading = this.add.text(48, 505, "ALL GAMES", {
