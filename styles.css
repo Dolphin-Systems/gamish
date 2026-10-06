@@ -126,7 +126,7 @@ body {
   margin: 0 auto 12px;
   border: 1px solid rgba(255, 201, 107, 0.78);
   border-radius: 50%;
-  background: url("gamish777-icon-master.png") center / cover no-repeat, rgba(48, 12, 26, 0.76);
+  background: url("assets/gamish777-icon-master.png") center / cover no-repeat, rgba(48, 12, 26, 0.76);
   box-shadow: 0 0 38px rgba(255, 99, 25, 0.4), inset 0 0 18px rgba(255, 160, 54, 0.18);
   animation: login-crest 2.2s ease-in-out infinite;
 }
@@ -1361,3 +1361,97 @@ noscript {
   .request-icon { width: 34px; height: 34px; }
 }
 [hidden] { display: none !important; }
+
+/* ---------- Landscape PWA ---------- */
+/* The canvas owns every touch: no browser pan/zoom arbitration, so taps and drags respond at once. */
+#game-shell, #game-shell canvas { touch-action: none; }
+body[data-view="arcade"] .utility-nav { display: none; }
+
+.rotate-prompt { display: none; }
+@media (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
+  .rotate-prompt {
+    position: fixed;
+    z-index: 5000;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px;
+    background: radial-gradient(circle at 50% 40%, rgba(255, 110, 30, 0.18), transparent 46%), #09050d;
+    color: #fff0c8;
+    text-align: center;
+  }
+  .rotate-prompt b { font-family: "Cinzel Decorative", Georgia, serif; font-size: 24px; }
+  .rotate-prompt span:last-child { color: #c9b4bd; font-size: 15px; }
+  .rotate-phone {
+    width: 64px;
+    height: 108px;
+    margin-bottom: 18px;
+    border: 3px solid #ffc96b;
+    border-radius: 14px;
+    box-shadow: 0 0 32px rgba(255, 140, 40, 0.35), inset 0 -10px 0 -7px #ffc96b;
+    animation: rotate-hint 2.2s ease-in-out infinite;
+  }
+}
+@keyframes rotate-hint {
+  0%, 20% { transform: rotate(0deg); }
+  55%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  /* Login: brand on the left, form on the right, so it fits a phone held sideways. */
+  .auth-gate { padding: max(12px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }
+  .login-card {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-areas: "mark id" "kicker pin" "title submit" "title error";
+    column-gap: 30px;
+    align-items: center;
+    width: min(100%, 720px);
+    padding: 22px 30px;
+  }
+  .login-mark { grid-area: mark; margin-bottom: 4px; }
+  .login-kicker { grid-area: kicker; }
+  .login-card h1 { grid-area: title; align-self: start; }
+  .login-card label:nth-of-type(1) { grid-area: id; }
+  .login-card label:nth-of-type(2) { grid-area: pin; margin-top: 10px; }
+  .login-card button { grid-area: submit; margin-top: 12px; }
+  #login-error { grid-area: error; }
+
+  .page-shell {
+    width: min(100%, 1180px);
+    padding: max(14px, env(safe-area-inset-top)) max(22px, calc(env(safe-area-inset-right) + 12px)) max(18px, env(safe-area-inset-bottom)) max(22px, calc(env(safe-area-inset-left) + 12px));
+  }
+  .back-to-arcade { margin-bottom: 10px; }
+
+  /* Wallet: balance, tabs and history on the left; the active form on the right. */
+  .payment-shell { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); column-gap: 16px; align-items: start; }
+  .payment-shell > .back-to-arcade { grid-column: 1 / -1; grid-row: 1; }
+  .payment-shell > .wallet-summary { grid-column: 1; grid-row: 2; min-height: 0; padding: 18px 22px; }
+  .payment-shell > .wallet-tabs { grid-column: 1; grid-row: 3; }
+  .payment-shell > .requests-panel { grid-column: 1; grid-row: 4; }
+  .payment-shell > [data-wallet-panel] { grid-column: 2; grid-row: 2 / span 3; }
+  .payment-shell > [data-wallet-panel] > .surface:first-child { margin-top: 0; }
+  .cash-amount-entry { min-height: 78px; margin: 6px auto 12px; }
+  .cash-amount-entry input { font-size: 48px; }
+  .amount-chip { min-height: 54px; }
+
+  /* Chat: support card on the left, the conversation using the full height on the right. */
+  .messages-shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 16px; height: 100dvh; }
+  .messages-shell > .back-to-arcade { grid-column: 1; grid-row: 1; }
+  .messages-shell > .support-card { grid-column: 1; grid-row: 2; align-self: start; flex-direction: column; text-align: center; }
+  .messages-shell .response-time { margin: 0; text-align: center; }
+  .messages-shell > .conversation { grid-column: 2; grid-row: 2; min-height: 0; margin-top: 0; padding: 14px 16px; }
+
+  /* A phone held sideways is wider than the desktop breakpoint: keep the icon bar in the top
+     corner, in the same row as the Lobby button, clear of the page content below. */
+  .utility-nav { top: max(8px, env(safe-area-inset-top)); right: max(12px, calc(env(safe-area-inset-right) + 8px)); gap: 3px; padding: 5px; }
+  .utility-button { width: 40px; height: 40px; }
+  .utility-button svg { width: 22px; height: 22px; }
+  .back-to-arcade { min-height: 44px; margin-bottom: 12px; }
+  .messages-shell .message-list { max-height: none; min-height: 0; }
+  .messages-shell .quick-replies { padding: 8px 0; }
+}
