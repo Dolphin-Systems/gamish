@@ -107,11 +107,16 @@
     if (now - (lastPlayed.get(name) ?? -Infinity) < MIN_REPEAT_MS) return;
     lastPlayed.set(name, now);
     switch (name) {
+      // A crisp UI click: a short bright tick on top of a soft low pop.
       case "tap":
-        tone(480, 0.055, { to: 650, type: "triangle", gain: 0.022 });
+        noiseBurst(0.028, { frequency: 3800, to: 2400, filterType: "bandpass", gain: 0.045, q: 1.4 });
+        tone(1650, 0.035, { to: 900, type: "triangle", gain: 0.03 });
+        tone(320, 0.05, { to: 180, type: "sine", gain: 0.04 });
         break;
+      // Moving between screens: the click plus a short rising note.
       case "nav":
-        sequence([[430, 0], [650, 0.055]], { duration: 0.09, gain: 0.026 });
+        noiseBurst(0.028, { frequency: 3600, to: 2400, filterType: "bandpass", gain: 0.04, q: 1.4 });
+        sequence([[620, 0.012], [930, 0.06]], { duration: 0.08, gain: 0.03, type: "triangle" });
         break;
       case "spin":
         sequence([[180, 0], [235, 0.065], [320, 0.13], [440, 0.195]], { duration: 0.11, gain: 0.03, glide: 1.12 });
@@ -204,6 +209,8 @@
     isEnabled: () => enabled,
     contextState: () => context?.state ?? "not-started",
     play,
+    // Starts audio inside a user gesture (iOS only allows that on touchend/click).
+    unlock: () => { ensureContext(); },
     setEnabled,
     toggle: () => setEnabled(!enabled),
   };
