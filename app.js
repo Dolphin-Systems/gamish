@@ -570,6 +570,7 @@
     const seenTime = seenUntil ? new Date(seenUntil).getTime() : 0;
     const lastOwn = [...chatMessages].reverse().find((message) => message.senderId === ownId);
     let lastDay = "";
+    let previous = null;
     for (const message of chatMessages) {
       const label = dayLabel(message.createdAt);
       if (label !== lastDay) {
@@ -580,15 +581,21 @@
         lastDay = label;
       }
       const own = message.senderId === ownId;
+      const next = chatMessages[chatMessages.indexOf(message) + 1];
+      // Consecutive messages from one sender sit tight together, like a messaging app.
+      const sameAsPrevious = previous && previous.senderId === message.senderId && label === lastDay
+        && new Date(message.createdAt) - new Date(previous.createdAt) < 5 * 60_000;
+      const endsGroup = !next || next.senderId !== message.senderId || dayLabel(next.createdAt) !== label
+        || new Date(next.createdAt) - new Date(message.createdAt) >= 5 * 60_000;
       const row = document.createElement("div");
       const content = document.createElement("div");
       const bubble = document.createElement("div");
       const stamp = document.createElement("time");
-      row.className = `message-row ${own ? "user-message" : "agent-message"}${message.pending ? " pending" : ""}`;
+      row.className = `message-row ${own ? "user-message" : "agent-message"}${message.pending ? " pending" : ""}${sameAsPrevious ? " grouped" : ""}`;
       if (!own) {
         const avatar = document.createElement("div");
-        avatar.className = "mini-avatar";
-        avatar.textContent = "G";
+        avatar.className = endsGroup ? "mini-avatar" : "mini-avatar spacer";
+        avatar.textContent = endsGroup ? "G" : "";
         row.append(avatar);
       }
       bubble.className = "message-bubble";
@@ -607,10 +614,14 @@
       if (own && message === lastOwn) {
         stampText += message.pending ? " · Sending…" : new Date(message.createdAt).getTime() <= seenTime ? " · Seen" : " · Sent";
       }
+      stamp.className = "bubble-time";
       stamp.textContent = stampText;
-      content.append(bubble, stamp);
+      // The time rides inside the bubble, on the text's last line, so each message costs one line less.
+      bubble.append(stamp);
+      content.append(bubble);
       row.append(content);
       messageList.append(row);
+      previous = message;
     }
     if (nearBottom || !chatLoaded) messageList.scrollTop = messageList.scrollHeight;
   };
@@ -688,8 +699,41 @@
     catch (error) { showToast(error.message); }
   });
 
+  // Quick replies wait behind the ⚡ button so they don't take a line from the conversation.
+  const quickReplies = document.getElementById("quick-replies");
+  const quickToggle = document.getElementById("quick-reply-toggle");
+  const setQuickReplies = (open) => {
+    quickReplies.hidden = !open;
+    quickToggle.setAttribute("aria-expanded", String(open));
+  };
+  quickToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setQuickReplies(quickReplies.hidden);
+  });
+  document.addEventListener("click", (event) => {
+    if (!quickReplies.hidden && !quickReplies.contains(event.target)) setQuickReplies(false);
+  });
   document.querySelectorAll("[data-reply]").forEach((button) => {
-    button.addEventListener("click", () => sendMessage(button.dataset.reply).catch((error) => showToast(error.message)));
+    button.addEventListener("click", () => {
+      setQuickReplies(false);
+      sendMessage(button.dataset.reply).catch((error) => showToast(error.message));
+    });
+  });
+
+  // Support details live behind the header chip so the conversation gets the screen.
+  const supportToggle = document.getElementById("support-info-toggle");
+  const supportInfo = document.getElementById("support-info");
+  const setSupportInfo = (open) => {
+    supportInfo.hidden = !open;
+    supportToggle.setAttribute("aria-expanded", String(open));
+  };
+  supportToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    audio?.play("tap");
+    setSupportInfo(supportInfo.hidden);
+  });
+  document.addEventListener("click", (event) => {
+    if (!supportInfo.hidden && !supportInfo.contains(event.target)) setSupportInfo(false);
   });
 
   messageAttach.addEventListener("click", () => {
@@ -740,4 +784,20 @@
   };
   lockLandscape();
   window.addEventListener("pointerdown", lockLandscape, { once: true });
+
+  // ---------- In-app back ----------
+  // The phone's back button or gesture never leaves the app: a guard history entry turns it
+  // into in-app navigation (close a popover, leave Wallet/Chat, leave a game for the lobby).
+  const armBackGuard = () => {
+    if (window.history.state?.gamish !== "guard") window.history.pushState({ gamish: "guard" }, "");
+  };
+  window.addEventListener("popstate", () => {
+    if (!window.GamishAccount.player) return;
+    if (!supportInfo.hidden) setSupportInfo(false);
+    else if (!quickReplies.hidden) setQuickReplies(false);
+    else if (currentView !== "arcade") showView("arcade");
+    else window.dispatchEvent(new CustomEvent("gamish:back"));
+    window.history.pushState({ gamish: "guard" }, "");
+  });
+  window.addEventListener("gamish:account", armBackGuard);
 })();

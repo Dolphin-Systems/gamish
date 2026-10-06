@@ -14,17 +14,8 @@
   const PORTRAIT_PROMPT = window.matchMedia("(orientation: portrait) and (max-width: 900px) and (pointer: coarse)");
   const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
 
-  const readSafeInsets = () => {
-    const probe = document.createElement("div");
-    probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;"
-      + "padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
-    document.body.append(probe);
-    const style = getComputedStyle(probe);
-    const read = (side) => parseFloat(style[`padding${side}`]) || 0;
-    const insets = { top: read("Top"), right: read("Right"), bottom: read("Bottom"), left: read("Left") };
-    probe.remove();
-    return insets;
-  };
+  // Notch-aware safe margins (see safe-area.js): full margin on the notch side only.
+  const readSafeInsets = () => window.GamishSafeArea?.read() ?? { top: 0, right: 0, bottom: 0, left: 0 };
 
   const measureView = () => {
     const shell = document.getElementById("game-shell");
@@ -632,6 +623,7 @@
         this.time.removeAllEvents();
       });
       this.leaving = false;
+      this.handleBack = () => this.openLoader();
       this.openLoader = () => {
         if (this.leaving) return;
         this.leaving = true;
@@ -685,7 +677,7 @@
     rows: [312, 560],
     tile: 228,
     colStep: 246,
-    margin: 70,
+    margin: 40,
     featuredWidth: 470,
   };
 
@@ -1041,6 +1033,11 @@
     }
 
     // ---------- Navigation and dialogs ----------
+
+    handleBack() {
+      if (this.modal) this.closeModal();
+      else this.glideTo(0);
+    }
 
     openAppView(name) {
       window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: name }));
@@ -2121,6 +2118,11 @@
       }
     }
 
+    handleBack() {
+      if (this.overlay) this.overlay.close();
+      else this.returnToHall();
+    }
+
     returnToHall() {
       if (this.leaving) return;
       this.leaving = true;
@@ -2197,6 +2199,11 @@
 
     const game = new Phaser.Game(config);
     window.addEventListener("gamish:signedout", () => game.scene.start("WaitForPlayer"));
+    // The phone's back button, routed here by app.js, steps back inside the game.
+    window.addEventListener("gamish:back", () => {
+      const scene = game.scene.getScenes(true)[0];
+      scene?.handleBack?.();
+    });
 
     let resizeTimer;
     const refit = () => {
