@@ -1,0 +1,20 @@
+# Pull requests from game/... branches (AI or human game work) may only change one module
+# game's folder. Anything else fails here, before it can be merged.
+name: Game guard
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  guard:
+    if: startsWith(github.head_ref, 'game/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: node scripts/game-guard.mjs origin/${{ github.base_ref }}
+      - run: npm run check

@@ -14,7 +14,7 @@ test("server-only files are never served", async () => {
   for (const path of [
     "/lib/games.generated.js", "/lib/game-models.js", "/lib/house.js", "/lib/db.js",
     "/scripts/games.mjs", "/test/game-models.test.js", "/package.json", "/BACKEND.md",
-    "/games/README.md", "/games/_template/math.json", "/games/_template/index.html",
+    "/games/README.md", "/games/AI_SESSION.md", "/games/_template/math.json", "/games/_template/index.html",
   ]) assert.ok(blocked(path), `${path} is publicly downloadable`);
   const games = (await readdir(new URL("../games", import.meta.url), { withFileTypes: true })).filter((entry) => entry.isDirectory());
   for (const game of games) assert.ok(blocked(`/games/${game.name}/math.json`), `${game.name}'s odds are public`);
