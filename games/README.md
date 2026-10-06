@@ -139,6 +139,11 @@ One round at a time: wait for `play()` before starting the next.
 
 ## Briefing an AI to make a game
 
+For a session that should only build games, paste `games/AI_SESSION.md`: it carries the scope
+guardrails, and CI enforces them on `game/...` pull requests (`scripts/game-guard.mjs`).
+
+Short form:
+
 > Build a Gamish777 game in `games/<id>/` following `games/README.md`. Theme: <theme>.
 > Use the <weighted|target> model with an RTP of about <90>% and outcomes <…>.
 > Landscape phone layout, keep the top-left 72 px clear, no `localStorage`. Use only
