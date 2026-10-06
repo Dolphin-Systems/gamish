@@ -767,21 +767,20 @@
       games.forEach((game, index) => {
         const position = { x: columns[index % 2], y: firstY + Math.floor(index / 2) * rowStep };
         const card = this.add.container(position.x, position.y);
-        const halo = this.add.circle(0, 0, 170, game.accent, 0.045).setBlendMode(Phaser.BlendModes.ADD);
-        const panel = addSoftPanel(this, 0, 0, 330, cardHeight, {
-          fill: 0x130b18, alpha: 0.86, radius: 34,
-        });
+        const halo = this.add.circle(0, 0, 132, game.accent, 0.055).setBlendMode(Phaser.BlendModes.ADD);
         let art;
         if (game.art) {
-          art = this.add.image(0, -14, "gamish-game-icons", game.art).setDisplaySize(204, 204);
+          art = this.add.image(0, -14, "gamish-game-icons", game.art).setDisplaySize(212, 212);
         } else {
-          art = this.add.image(0, -14, "phoenix").setDisplaySize(204, 204);
+          art = this.add.image(0, -14, "phoenix").setDisplaySize(212, 212);
         }
-        const stateText = game.playable ? "PLAY NOW  ›" : "COMING SOON";
-        const state = this.add.text(0, 105, stateText, {
-          fontFamily: BODY_FONT, fontSize: "21px", fontStyle: "700", color: game.playable ? "#ffc96b" : "#d4c2c0", letterSpacing: 1,
-        }).setOrigin(0.5);
-        card.add([halo, panel, art, state]);
+        card.add([halo, art]);
+        if (game.playable) {
+          const state = this.add.text(0, 108, "PHOENIX RUBY  ·  PLAY  ›", {
+            fontFamily: BODY_FONT, fontSize: "17px", fontStyle: "700", color: "#ffc96b", letterSpacing: 0.6,
+          }).setOrigin(0.5);
+          card.add(state);
+        }
         card.setSize(338, cardHeight + 8).setInteractive({ useHandCursor: true });
         card.on("pointerdown", () => {
           if (!this.catalogDragMoved) window.GamishAudio?.play("tap");
@@ -817,7 +816,7 @@
 
     openGameModal(game) {
       if (this.modal) return;
-      setStatus(`${game.title} is coming soon.`);
+      setStatus(`${game.title} game preview opened.`);
       const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
       const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
       const glow = this.add.circle(0, -100, 160, game.accent, 0.14);
@@ -834,7 +833,7 @@
         color: "#fff0c2",
         shadow: { offsetY: 4, color: "#000000", blur: 12, fill: true },
       }).setOrigin(0.5);
-      const copy = this.add.text(0, 84, `${game.category.toUpperCase()}  •  COMING SOON\nThis game is on the Gamish777 roadmap.`, {
+      const copy = this.add.text(0, 84, `${game.category.toUpperCase()}  •  GAME PREVIEW\nThis game is not playable yet.`, {
         fontFamily: BODY_FONT,
         fontSize: "21px",
         color: "#cbb8bf",
