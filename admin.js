@@ -738,6 +738,9 @@ const openPlayerDrawer = async (playerId, { quiet = false } = {}) => {
         <button class="button dark" type="button" data-drawer-action="fund">Add money</button>
         <button class="mini-button" type="button" data-drawer-action="cashout">Record cash out</button>
       </div>`}
+      <h3>Payment usernames</h3>
+      <ul class="drawer-list">${Object.entries(player.payoutHandles || {}).map(([name, handle]) => `
+        <li><span class="dot deposit"></span><div><b>${escapeHtml(name)}</b><small>Saved by the player</small></div><strong>${escapeHtml(handle)}</strong></li>`).join("") || "<li class='empty'>None saved yet.</li>"}</ul>
       <h3>Requests</h3>
       <ul class="drawer-list">${requests.map((item) => `
         <li><span class="dot ${item.kind}"></span><div><b>${item.kind === "deposit" ? "Deposit" : "Cash out"} · ${escapeHtml(item.methodName)}</b><small>${inboxTime(item.createdAt)} · ${{ pending: "Waiting on you", approved: item.kind === "deposit" ? "Credited" : "Sent", declined: "Declined", cancelled: "Cancelled by player" }[item.status]}</small></div><strong>${money(item.amountCents)}</strong></li>`).join("") || "<li class='empty'>No requests yet.</li>"}</ul>

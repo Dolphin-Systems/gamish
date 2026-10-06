@@ -233,9 +233,10 @@
   const addIconButton = (scene, x, y, kind, onTap, { label = "" } = {}) => {
     const iconKey = (name) => bakeGraphics(scene, `icon:${name}`, 48, 48, ICON_DRAWERS[name]);
     const button = scene.add.container(x, y);
-    const disk = scene.add.circle(0, 0, 30, 0x1d101b, 0.94).setStrokeStyle(1.5, COLORS.gold, 0.66);
+    const disk = scene.add.circle(0, 0, 30, 0x34142a, 0.95);
+    const shine = scene.add.ellipse(0, -14, 34, 14, 0xffd9a0, 0.1);
     const icon = scene.add.image(0, 0, iconKey(kind));
-    button.add([disk, icon]).setSize(76, 76).setInteractive({ useHandCursor: true });
+    button.add([disk, shine, icon]).setSize(76, 76).setInteractive({ useHandCursor: true });
     button.setData("label", label);
     button.setIcon = (name) => icon.setTexture(iconKey(name));
     button.on("pointerdown", () => pressFeedback(scene, button, 0.88));
@@ -363,13 +364,68 @@
     }
   };
 
+  // ctx.roundRect is missing on older iOS, so trace the corners by hand.
+  const roundRectPath = (ctx, x, y, w, h, r) => {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  };
+
+  // Texture detail matched to the canvas resolution (the stage renders at VIEW.zoom).
+  const textureScale = () => Math.min(1.5, Math.max(1, Math.round(VIEW.zoom * 4) / 4));
+  const mixColor = (hex, target, amount) => {
+    const channel = (shift) => Math.round(((hex >> shift) & 255) * (1 - amount) + ((target >> shift) & 255) * amount);
+    return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
+  };
+
+  // Panels are smooth, softly lit plates without outlines: a gentle top-to-bottom gradient, a
+  // glassy sheen and a soft drop shadow. (The old hand-drawn gold outline read as a dull thread.)
   const addOrnatePanel = (scene, x, y, width, height, options = {}) => {
     const w = Math.round(width);
     const h = Math.round(height);
-    const key = `panel:${w}x${h}:${[options.fill, options.fillAlpha, options.stroke, options.strokeAlpha, options.lineWidth, options.bend, options.anchors].join(",")}`;
-    bakeGraphics(scene, key, w + PANEL_PAD * 2, h + PANEL_PAD * 2,
-      (graphics) => drawOrnatePanel(graphics, PANEL_PAD + w / 2, PANEL_PAD + h / 2, w, h, options));
-    return scene.add.image(x, y, key);
+    const fill = options.fill ?? COLORS.panel;
+    const alpha = options.fillAlpha ?? 0.94;
+    const radius = Math.min(options.bend ?? 28, h / 2, w / 2);
+    const scale = textureScale();
+    const key = `panel2:${w}x${h}:${fill}:${alpha}:${radius}:${scale}`;
+    if (!scene.textures.exists(key)) {
+      const pad = PANEL_PAD;
+      const texture = scene.textures.createCanvas(key, Math.ceil((w + pad * 2) * scale), Math.ceil((h + pad * 2) * scale));
+      const ctx = texture.getContext();
+      ctx.scale(scale, scale);
+      const plate = () => {
+        ctx.beginPath();
+        roundRectPath(ctx, pad, pad, w, h, radius);
+      };
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = Math.min(14, pad - 2);
+      ctx.shadowOffsetY = 4;
+      const face = ctx.createLinearGradient(0, pad, 0, pad + h);
+      face.addColorStop(0, mixColor(fill, 0xffd9a0, 0.1));
+      face.addColorStop(1, mixColor(fill, 0x000000, 0.12));
+      ctx.globalAlpha = alpha;
+      plate();
+      ctx.fillStyle = face;
+      ctx.fill();
+      ctx.restore();
+      // Light catching the upper half.
+      ctx.save();
+      plate();
+      ctx.clip();
+      const sheen = ctx.createLinearGradient(0, pad, 0, pad + Math.min(h * 0.55, 60));
+      sheen.addColorStop(0, "rgba(255, 226, 170, 0.12)");
+      sheen.addColorStop(1, "rgba(255, 226, 170, 0)");
+      ctx.fillStyle = sheen;
+      ctx.fillRect(pad, pad, w, h);
+      ctx.restore();
+      texture.refresh();
+    }
+    return scene.add.image(x, y, key).setScale(1 / scale);
   };
 
   const addRule = (scene, y, width = 430) => {
@@ -464,7 +520,7 @@
     if (options.back) {
       const back = scene.add.container(88, 70);
       const outerGlow = scene.add.circle(0, 0, 42, COLORS.ember, 0.11).setBlendMode(Phaser.BlendModes.ADD);
-      const disk = scene.add.circle(0, 0, 34, 0x0e0912, 0.96).setStrokeStyle(2, COLORS.gold, 0.82);
+      const disk = scene.add.circle(0, 0, 34, 0x3a1626, 0.96);
       const arrow = scene.add.text(-2, -2, "‹", { fontFamily: BODY_FONT, fontSize: "49px", color: "#ffe4a3" }).setOrigin(0.5);
       back.add([outerGlow, disk, arrow]).setSize(120, 120).setInteractive({ useHandCursor: true });
       back.on("pointerdown", () => {
@@ -668,6 +724,191 @@
     }
   }
 
+  // Category chips: a lacquered pill with a gold rim and, for the chosen one, a glowing gold face.
+  // Drawn with the 2D canvas (gradients, glow) at twice the stage size, once per width.
+  const CHIP_HEIGHT = 46;
+  const cssColor = (hex) => `#${hex.toString(16).padStart(6, "0")}`;
+  const chipPlateTexture = (scene, width, on, accent) => {
+    const scale = textureScale();
+    const key = `chip-plate:${width}:${on ? 1 : 0}:${accent}:${scale}`;
+    if (scene.textures.exists(key)) return key;
+    const pad = 8;
+    const texture = scene.textures.createCanvas(key, Math.ceil((width + pad * 2) * scale), Math.ceil((CHIP_HEIGHT + pad * 2) * scale));
+    const ctx = texture.getContext();
+    ctx.scale(scale, scale);
+    const x = pad;
+    const y = pad;
+    const r = CHIP_HEIGHT / 2;
+    const pill = () => {
+      ctx.beginPath();
+      roundRectPath(ctx, x, y, width, CHIP_HEIGHT, r);
+    };
+    if (on) {
+      ctx.save();
+      ctx.shadowColor = "rgba(255, 150, 40, 0.65)";
+      ctx.shadowBlur = 12;
+      const face = ctx.createLinearGradient(0, y, 0, y + CHIP_HEIGHT);
+      face.addColorStop(0, "#ffe7a3");
+      face.addColorStop(0.5, "#ffbf4f");
+      face.addColorStop(1, "#f07a1c");
+      pill();
+      ctx.fillStyle = face;
+      ctx.fill();
+      ctx.restore();
+      const shine = ctx.createLinearGradient(0, y, 0, y + CHIP_HEIGHT / 2);
+      shine.addColorStop(0, "rgba(255, 255, 255, 0.55)");
+      shine.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.beginPath();
+      roundRectPath(ctx, x + 4, y + 2, width - 8, CHIP_HEIGHT / 2 - 2, 11);
+      ctx.fillStyle = shine;
+      ctx.fill();
+      pill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255, 246, 214, 0.9)";
+      ctx.stroke();
+    } else {
+      const face = ctx.createLinearGradient(0, y, 0, y + CHIP_HEIGHT);
+      face.addColorStop(0, "rgba(46, 22, 40, 0.96)");
+      face.addColorStop(1, "rgba(22, 10, 22, 0.96)");
+      pill();
+      ctx.fillStyle = face;
+      ctx.fill();
+      const rim = ctx.createLinearGradient(x, 0, x + width, 0);
+      rim.addColorStop(0, "rgba(255, 210, 128, 0.7)");
+      rim.addColorStop(0.5, "rgba(255, 210, 128, 0.22)");
+      rim.addColorStop(1, "rgba(255, 210, 128, 0.5)");
+      pill();
+      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = rim;
+      ctx.stroke();
+    }
+    // The icon medallion, tinted with the category's colour.
+    const cx = x + 27;
+    const cy = y + CHIP_HEIGHT / 2;
+    const glow = ctx.createRadialGradient(cx, cy - 4, 2, cx, cy, 17);
+    glow.addColorStop(0, on ? "rgba(255, 255, 255, 0.45)" : cssColor(accent));
+    glow.addColorStop(1, on ? "rgba(120, 40, 0, 0.2)" : "rgba(30, 10, 25, 0.9)");
+    ctx.beginPath();
+    ctx.arc(cx, cy, 16.5, 0, Math.PI * 2);
+    ctx.globalAlpha = on ? 1 : 0.55;
+    ctx.fillStyle = glow;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = on ? "rgba(90, 30, 0, 0.45)" : "rgba(255, 214, 140, 0.75)";
+    ctx.stroke();
+    texture.refresh();
+    return key;
+  };
+
+  // Category icons, drawn on a 64px grid and shown at half size.
+  const CATEGORY_ICONS = {
+    "All Games": (ctx) => {
+      [[14, 14], [34, 14], [14, 34], [34, 34]].forEach(([x, y], index) => {
+        ctx.beginPath();
+        if (index === 3) {
+          // A sparkle in the last cell.
+          ctx.moveTo(42, 32); ctx.quadraticCurveTo(43, 41, 52, 42); ctx.quadraticCurveTo(43, 43, 42, 52);
+          ctx.quadraticCurveTo(41, 43, 32, 42); ctx.quadraticCurveTo(41, 41, 42, 32);
+        } else roundRectPath(ctx, x, y, 16, 16, 4);
+        ctx.fill();
+      });
+    },
+    Slots: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo(23, 37); ctx.quadraticCurveTo(27, 20, 40, 12);
+      ctx.moveTo(43, 39); ctx.quadraticCurveTo(41, 22, 40, 12);
+      ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(46, 13, 9, 4.5, -0.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(21, 44, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(43, 46, 10, 0, Math.PI * 2); ctx.fill();
+    },
+    Instant: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo(37, 6); ctx.lineTo(15, 36); ctx.lineTo(30, 36); ctx.lineTo(25, 58); ctx.lineTo(49, 26);
+      ctx.lineTo(34, 26); ctx.closePath();
+      ctx.fill();
+    },
+    Cards: (ctx) => {
+      ctx.save();
+      ctx.translate(26, 34); ctx.rotate(-0.28);
+      ctx.beginPath(); roundRectPath(ctx, -12, -18, 24, 34, 4); ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.translate(38, 32); ctx.rotate(0.18);
+      ctx.beginPath(); roundRectPath(ctx, -13, -19, 26, 37, 4); ctx.fill();
+      // Spade, cut out of the front card.
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.moveTo(0, -10); ctx.bezierCurveTo(4, -5, 9, -2, 9, 3); ctx.bezierCurveTo(9, 8, 3, 9, 0, 5);
+      ctx.bezierCurveTo(-3, 9, -9, 8, -9, 3); ctx.bezierCurveTo(-9, -2, -4, -5, 0, -10);
+      ctx.moveTo(0, 4); ctx.lineTo(4, 12); ctx.lineTo(-4, 12); ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    },
+    "Table Games": (ctx) => {
+      ctx.beginPath(); ctx.arc(32, 32, 23, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(32, 32, 12, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i += 1) {
+        const angle = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(32 + Math.cos(angle) * 12, 32 + Math.sin(angle) * 12);
+        ctx.lineTo(32 + Math.cos(angle) * 23, 32 + Math.sin(angle) * 23);
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(32, 32, 4.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(46, 15, 4, 0, Math.PI * 2); ctx.fill();
+    },
+    Numbers: (ctx) => {
+      ctx.beginPath(); ctx.arc(32, 33, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath(); ctx.arc(32, 33, 13.5, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.font = "bold 20px Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("7", 32, 34);
+    },
+    Arcade: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo(18, 20); ctx.lineTo(46, 20);
+      ctx.bezierCurveTo(56, 20, 61, 40, 58, 47); ctx.bezierCurveTo(55, 54, 47, 51, 42, 42);
+      ctx.lineTo(22, 42); ctx.bezierCurveTo(17, 51, 9, 54, 6, 47); ctx.bezierCurveTo(3, 40, 8, 20, 18, 20);
+      ctx.fill();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillRect(14, 28, 11, 4); ctx.fillRect(17.5, 24.5, 4, 11);
+      ctx.beginPath(); ctx.arc(44, 27, 3, 0, Math.PI * 2); ctx.arc(50, 33, 3, 0, Math.PI * 2); ctx.fill();
+    },
+    "Quick Games": (ctx) => {
+      ctx.beginPath(); ctx.arc(32, 36, 21, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillRect(27, 6, 10, 6);
+      ctx.beginPath(); ctx.moveTo(32, 12); ctx.lineTo(32, 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(32, 36); ctx.lineTo(32, 23); ctx.moveTo(32, 36); ctx.lineTo(41, 41); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(48, 15); ctx.lineTo(52, 19); ctx.stroke();
+    },
+  };
+
+  const categoryIconTexture = (scene, category, on) => {
+    const key = `category-icon:${category.name}:${on ? 1 : 0}`;
+    if (scene.textures.exists(key)) return key;
+    const texture = scene.textures.createCanvas(key, 64, 64);
+    const ctx = texture.getContext();
+    const paint = on ? "#3a1305" : (() => {
+      const gold = ctx.createLinearGradient(0, 6, 0, 58);
+      gold.addColorStop(0, "#fff3c8");
+      gold.addColorStop(1, "#f2b14a");
+      return gold;
+    })();
+    ctx.fillStyle = paint;
+    ctx.strokeStyle = paint;
+    ctx.lineWidth = 4.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    (CATEGORY_ICONS[category.name] ?? CATEGORY_ICONS["All Games"])(ctx);
+    texture.refresh();
+    return key;
+  };
+
   // Lobby geometry on the landscape stage.
   const LOBBY = {
     barY: 64,
@@ -745,14 +986,13 @@
 
       // Balance pill doubles as the way into the wallet.
       const pill = this.add.container(right - 330, LOBBY.barY);
-      const plate = addSoftPanel(this, 0, 0, 236, 62, { fill: 0x1d101b, alpha: 0.94, radius: 31 });
-      const ring = this.add.graphics().lineStyle(1.5, COLORS.gold, 0.6).strokeRoundedRect(-118, -31, 236, 62, 31);
+      const plate = addOrnatePanel(this, 0, 0, 236, 62, { fill: 0x34142a, fillAlpha: 0.95, bend: 31 });
       this.balanceText = this.add.text(-96, 0, "$0.00", {
         fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#fff0c0",
       }).setOrigin(0, 0.5);
       const add = this.add.circle(86, 0, 21, COLORS.ember, 1);
       const plus = this.add.text(86, -2, "+", { fontFamily: BODY_FONT, fontSize: "30px", fontStyle: "700", color: "#2a0d06" }).setOrigin(0.5);
-      pill.add([plate, ring, this.balanceText, add, plus]).setSize(236, 70).setInteractive({ useHandCursor: true });
+      pill.add([plate, this.balanceText, add, plus]).setSize(236, 70).setInteractive({ useHandCursor: true });
       pill.on("pointerdown", () => pressFeedback(this, pill, 0.95));
       pill.on("pointerup", () => {
         window.GamishAudio?.play("nav");
@@ -768,31 +1008,43 @@
 
     createCategoryChips() {
       this.chips = [];
-      let x = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
-      GAME_CATEGORIES.forEach((category) => {
-        // Letter and number icons read like counts ("7 SLOTS"), so only symbol icons lead a label.
-        const label = /^[A-Za-z0-9]+$/.test(category.icon) ? category.name.toUpperCase() : `${category.icon}  ${category.name.toUpperCase()}`;
-        const text = this.add.text(0, 0, label, {
-          fontFamily: BODY_FONT, fontSize: "17px", fontStyle: "700", color: "#e9d3bd", letterSpacing: 1,
-        }).setOrigin(0.5);
-        const width = Math.ceil(text.width) + 40;
-        const chip = this.add.container(x + width / 2, LOBBY.chipsY);
-        const plate = addSoftPanel(this, 0, 0, width, 46, { fill: 0x1b0f1c, alpha: 0.9, radius: 23 });
-        const active = addSoftPanel(this, 0, 0, width, 46, { fill: category.accent, alpha: 0.95, radius: 23 }).setAlpha(0);
-        chip.add([plate, active, text]).setSize(width, 56).setInteractive({ useHandCursor: true });
-        chip.on("pointerdown", () => pressFeedback(this, chip, 0.94));
-        chip.on("pointerup", () => this.selectCategory(category));
-        this.chips.push({ category, chip, active, text });
-        x += width + 12;
-      });
+      const left = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
+      const room = Math.min(visibleRight(), WIDTH) - LOBBY.margin - left;
+      const build = (fontSize, gap) => {
+        this.chips.forEach(({ chip }) => chip.destroy());
+        this.chips = [];
+        let x = left;
+        GAME_CATEGORIES.forEach((category) => {
+          const text = this.add.text(0, 0, category.name.toUpperCase(), {
+            fontFamily: BODY_FONT, fontSize: `${fontSize}px`, fontStyle: "700", color: "#f1dcc0", letterSpacing: 1.4,
+          }).setOrigin(0, 0.5);
+          const width = Math.ceil(text.width) + 70;
+          const chip = this.add.container(x + width / 2, LOBBY.chipsY);
+          const plate = this.add.image(0, 0, chipPlateTexture(this, width, false, category.accent)).setScale(1 / textureScale());
+          const active = this.add.image(0, 0, chipPlateTexture(this, width, true, category.accent)).setScale(1 / textureScale()).setAlpha(0);
+          const icon = this.add.image(-width / 2 + 27, 0, categoryIconTexture(this, category, false)).setScale(0.5);
+          text.setX(-width / 2 + 50);
+          chip.add([plate, active, icon, text]).setSize(width, 56).setInteractive({ useHandCursor: true });
+          chip.on("pointerdown", () => pressFeedback(this, chip, 0.94));
+          chip.on("pointerup", () => this.selectCategory(category));
+          this.chips.push({ category, chip, active, icon, text });
+          x += width + gap;
+        });
+        return x - gap - left;
+      };
+      // Keep the whole row on screen: tighten the type a step at a time on narrow phones.
+      for (const [fontSize, gap] of [[15, 12], [14, 9], [13, 7], [12, 6]]) {
+        if (build(fontSize, gap) <= room) break;
+      }
       this.refreshChips();
     }
 
     refreshChips() {
-      this.chips.forEach(({ category, active, text }) => {
+      this.chips.forEach(({ category, active, icon, text }) => {
         const on = category === this.category;
-        this.tweens.add({ targets: active, alpha: on ? 1 : 0, duration: 140 });
-        text.setColor(on ? "#1d0b06" : "#e9d3bd");
+        this.tweens.add({ targets: active, alpha: on ? 1 : 0, duration: 160 });
+        icon.setTexture(categoryIconTexture(this, category, on));
+        text.setColor(on ? "#2a0e05" : "#f1dcc0");
       });
     }
 
@@ -1083,26 +1335,8 @@
     }
 
     openProfile() {
-      const player = window.GamishAccount?.player || {};
-      const money = (cents) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents || 0) / 100);
-      this.openDialog({
-        width: 620,
-        height: 470,
-        build: () => [
-          this.add.circle(0, -150, 46, 0x44202a, 0.96).setStrokeStyle(2, COLORS.gold, 0.75),
-          this.add.text(0, -150, String(player.loginId || "P").charAt(0).toUpperCase(), { fontFamily: DISPLAY_FONT, fontSize: "38px", color: "#fff0c0" }).setOrigin(0.5),
-          this.add.text(0, -78, player.loginId || "Player", { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2" }).setOrigin(0.5),
-          this.add.text(-140, -10, "BALANCE", { fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0.5),
-          this.add.text(-140, 28, money(player.totalCredits), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#ffd381" }).setOrigin(0.5),
-          this.add.text(140, -10, "CASHABLE", { fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0.5),
-          this.add.text(140, 28, money(player.regularCredits), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c0" }).setOrigin(0.5),
-          this.add.text(0, 84, "Bonus cash can be played but not cashed out.", { fontFamily: BODY_FONT, fontSize: "16px", color: "#a8939d" }).setOrigin(0.5),
-        ],
-        actions: [
-          { label: "SIGN OUT", onTap: () => document.getElementById("logout-button")?.click() },
-          { label: "WALLET", primary: true, onTap: () => { this.closeModal(); this.openAppView("payments"); } },
-        ],
-      });
+      // The profile is a page (it has text fields for payment usernames), not a canvas dialog.
+      this.openAppView("profile");
     }
 
     openGameModal(game) {
@@ -1410,17 +1644,23 @@
       // Spin
       const spin = this.add.container(cx, 388);
       this.spinHalo = this.add.circle(0, 0, 124, this.theme.accent, 0.18).setBlendMode(Phaser.BlendModes.ADD);
-      const ringKey = bakeGraphics(this, "spin-ring", 232, 232, (ring) => {
-        ring.lineStyle(5, COLORS.gold, 0.9);
-        for (let index = 0; index < 12; index += 1) {
-          const start = Phaser.Math.DegToRad(index * 30);
-          ring.beginPath();
-          ring.arc(116, 116, 110, start, start + Phaser.Math.DegToRad(18));
-          ring.strokePath();
-        }
-      });
+      const ringKey = "spin-ring-glow";
+      if (!this.textures.exists(ringKey)) {
+        const texture = this.textures.createCanvas(ringKey, 240, 240);
+        const ctx = texture.getContext();
+        const glow = ctx.createRadialGradient(120, 120, 96, 120, 120, 120);
+        glow.addColorStop(0, "rgba(255, 200, 100, 0.55)");
+        glow.addColorStop(0.35, "rgba(255, 150, 50, 0.28)");
+        glow.addColorStop(1, "rgba(255, 120, 30, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(120, 120, 120, 0, Math.PI * 2);
+        ctx.fill();
+        texture.refresh();
+      }
       this.spinRing = this.add.image(0, 0, ringKey);
-      const disc = this.add.circle(0, 0, 98, 0x9b2014, 1).setStrokeStyle(4, 0xffd87e, 1);
+      const rim = this.add.circle(0, 0, 101, 0xf0b552, 1);
+      const disc = this.add.circle(0, 0, 97, 0x9b2014, 1);
       const inner = this.add.circle(0, -6, 84, 0xc2331b, 0.55);
       const shine = this.add.ellipse(0, -52, 110, 26, 0xffffff, 0.16);
       this.spinLabel = this.add.text(0, -8, "SPIN", {
@@ -1429,7 +1669,7 @@
       this.spinSub = this.add.text(0, 34, "10 CR", {
         fontFamily: BODY_FONT, fontSize: "14px", fontStyle: "700", color: "#ffd9a0", letterSpacing: 3,
       }).setOrigin(0.5);
-      spin.add([this.spinHalo, this.spinRing, disc, inner, shine, this.spinLabel, this.spinSub]);
+      spin.add([this.spinHalo, this.spinRing, rim, disc, inner, shine, this.spinLabel, this.spinSub]);
       spin.setSize(236, 236).setInteractive({ useHandCursor: true });
       spin.on("pointerdown", () => pressFeedback(this, spin));
       spin.on("pointerup", () => this.spin());
@@ -1460,7 +1700,7 @@
       }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true }).on("pointerup", () => this.showRules());
       const rules = this.add.container(SIDE.left - SIDE.width / 2 + 44, 572);
       const rulesHalo = this.add.circle(0, 0, 31, COLORS.ember, 0.12).setBlendMode(Phaser.BlendModes.ADD);
-      const rulesPlate = this.add.circle(0, 0, 24, 0x160b16, 0.96).setStrokeStyle(2, COLORS.gold, 0.72);
+      const rulesPlate = this.add.circle(0, 0, 24, 0x3a1626, 0.96);
       const rulesIcon = this.add.text(0, -1, "?", {
         fontFamily: DISPLAY_FONT, fontSize: "25px", color: "#ffe0a0", stroke: "#52150c", strokeThickness: 3,
       }).setOrigin(0.5);
@@ -1471,11 +1711,12 @@
 
     makeRoundButton(x, y, radius, label, onClick) {
       const button = this.add.container(x, y);
-      const disc = this.add.circle(0, 0, radius, 0x2a1020, 1).setStrokeStyle(2, COLORS.gold, 0.8);
+      const disc = this.add.circle(0, 0, radius, 0x3a1626, 1);
+      const shine = this.add.ellipse(0, -radius * 0.45, radius * 1.1, radius * 0.5, 0xffd9a0, 0.12);
       const text = this.add.text(0, -2, label, {
         fontFamily: BODY_FONT, fontSize: "30px", fontStyle: "700", color: "#ffe4a3",
       }).setOrigin(0.5);
-      button.add([disc, text]);
+      button.add([disc, shine, text]);
       button.setSize(radius * 2 + 16, radius * 2 + 16).setInteractive({ useHandCursor: true });
       button.on("pointerdown", () => pressFeedback(this, button, 0.88));
       button.on("pointerup", onClick);

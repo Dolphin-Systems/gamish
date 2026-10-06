@@ -1149,7 +1149,8 @@ noscript {
   background: #08050c;
 }
 
-@media (min-width: 820px) {
+/* Desktop only: a landscape phone is wider than 820px but must stay edge to edge. */
+@media (min-width: 820px) and (min-height: 561px) {
   #game-shell canvas {
     border: 1px solid rgba(238, 181, 92, 0.24);
     border-radius: 22px;
@@ -1421,6 +1422,61 @@ body[data-view="arcade"] .utility-nav { display: none; }
   100% { transform: rotate(0deg); }
 }
 
+/* ---------- Profile ---------- */
+.profile-card { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 12px; text-align: center; }
+.profile-avatar {
+  display: grid; place-items: center; width: 74px; height: 74px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffcf7a, #d1561f 60%, #6e1c22);
+  box-shadow: 0 8px 26px rgba(209, 86, 31, 0.35);
+  color: #2a0d06; font-family: "Cinzel Decorative", Georgia, serif; font-size: 30px; font-weight: 700;
+}
+.profile-name { display: flex; flex-direction: column; gap: 2px; }
+.profile-name small { color: #b8a3ad; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.profile-name strong { color: #fff0d0; font-size: 19px; }
+.profile-balances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; margin: 0; }
+.profile-balances div { padding: 8px 4px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); }
+.profile-balances dt { color: #a9949f; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.profile-balances dd { margin: 3px 0 0; color: #ffe2a8; font-size: 14px; font-weight: 700; }
+.ghost-action {
+  min-height: 40px; padding: 0 22px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04); color: #e9d6dc; cursor: pointer; font-size: 13px; font-weight: 700;
+}
+.ghost-action:hover { background: rgba(255, 255, 255, 0.08); }
+.handles-panel { margin-top: 12px; }
+.handles-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 12px; }
+.handle-row {
+  display: grid; grid-template-columns: 30px minmax(70px, auto) minmax(0, 1fr); align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 16px; background: rgba(255, 255, 255, 0.035);
+}
+.handle-row .method-logo { width: 30px; height: 30px; border-radius: 10px 5px 10px 10px; font-size: 13px; }
+.handle-row b { color: #fff0e4; font-size: 13px; white-space: nowrap; }
+.handle-row input {
+  width: 100%; min-height: 40px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+  outline: none; background: rgba(0, 0, 0, 0.2); color: #f6ebee; font-size: 14px;
+}
+.handle-row input:focus { border-color: rgba(255, 177, 76, 0.55); box-shadow: 0 0 0 3px rgba(255, 142, 43, 0.1); }
+.method-heading { margin-top: 18px; }
+
+/* Pay sheet: the "send exactly" step pops up over the wallet once a method is picked. */
+.pay-sheet { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 12px; }
+.pay-sheet[hidden] { display: none; }
+body.sheet-open .utility-nav { display: none; }
+.pay-sheet-backdrop { position: absolute; inset: 0; background: rgba(6, 3, 9, 0.72); backdrop-filter: blur(6px); animation: sheet-fade 160ms ease; }
+.pay-sheet-card {
+  position: relative; width: min(440px, 100%); max-height: calc(100dvh - 24px); margin: 0; overflow-y: auto;
+  background: linear-gradient(180deg, #24132a, #140b18); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: sheet-rise 200ms cubic-bezier(.2, .9, .3, 1.2);
+}
+.pay-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.pay-sheet-head h2 { margin: 0; color: #fff0d5; font-size: 17px; }
+.pay-sheet .pay-instructions { margin-top: 0; }
+@keyframes sheet-fade { from { opacity: 0; } }
+@keyframes sheet-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+.link-button {
+  justify-self: start; margin-top: 8px; padding: 2px 0; border: 0; background: none;
+  color: #ffc56b; cursor: pointer; font-size: 12px; font-weight: 700; text-align: left;
+}
+
 @media (orientation: landscape) and (max-height: 560px) {
   /* Login: brand on the left, form on the right, so it fits a phone held sideways. */
   .auth-gate { padding: max(12px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }
@@ -1446,18 +1502,103 @@ body[data-view="arcade"] .utility-nav { display: none; }
     padding: 0 calc(var(--edge-right, 0px) + 14px) calc(var(--edge-bottom, 0px) + 12px) calc(var(--edge-left, 0px) + 14px);
   }
 
-  /* Wallet: balance, tabs and history on the left; the active form on the right. */
-  .payment-shell { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); column-gap: 14px; align-items: start; }
-  .payment-shell > .page-header { grid-column: 1 / -1; grid-row: 1; }
-  .payment-shell > .wallet-summary { grid-column: 1; grid-row: 2; min-height: 0; padding: 16px 20px; }
-  .payment-shell > .wallet-tabs { grid-column: 1; grid-row: 3; margin-top: 12px; }
-  .payment-shell > .requests-panel { grid-column: 1; grid-row: 4; margin-top: 12px; }
-  .payment-shell > [data-wallet-panel] { grid-column: 2; grid-row: 2 / span 3; }
-  .payment-shell > [data-wallet-panel] > .surface:first-child { margin-top: 0; }
-  .payment-shell .surface { padding: 16px 18px; }
-  .cash-amount-entry { min-height: 78px; margin: 6px auto 12px; }
-  .cash-amount-entry input { font-size: 48px; }
-  .amount-chip { min-height: 54px; }
+  /* Wallet fits one screen: balance, tabs and history on the left; the active form fills the
+     rest as two side-by-side cards. Only the history list scrolls, inside its own card. */
+  #payments-view, #profile-view { overflow: hidden; }
+  .payment-shell {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.62fr) minmax(0, 1.38fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    column-gap: 10px;
+    height: 100dvh;
+    min-height: 0;
+  }
+  .payment-shell > .page-header { grid-column: 1 / -1; grid-row: 1; margin-bottom: 4px; }
+  .payment-shell > .wallet-summary { grid-column: 1; grid-row: 2; display: flex; flex-direction: column-reverse; align-items: stretch; gap: 2px; min-height: 0; padding: 10px 16px 12px; border-radius: 22px; }
+  .payment-shell .wallet-summary > div { gap: 3px; }
+  .payment-shell .wallet-summary strong { font-size: 27px; }
+  .payment-shell .wallet-summary .wallet-split { font-size: 10.5px; line-height: 1.3; }
+  .payment-shell .wallet-summary .player-id { flex-direction: row; justify-content: space-between; align-items: baseline; padding: 0; }
+  .payment-shell .wallet-summary .player-id span { font-size: 10px; }
+  .payment-shell .wallet-summary .player-id strong { font-family: "DM Sans", sans-serif; font-size: 12px; }
+  .payment-shell > .wallet-tabs { grid-column: 1; grid-row: 3; margin-top: 8px; padding: 4px; }
+  .payment-shell .wallet-tab { min-height: 36px; font-size: 12.5px; white-space: nowrap; }
+  .payment-shell > .requests-panel { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; min-height: 0; margin: 8px 0 0; padding: 10px 12px; }
+  .payment-shell .requests-panel .surface-heading h2 { font-size: 14px; }
+  .payment-shell .requests-panel .icon-chip { width: 30px; height: 30px; font-size: 15px; }
+  .payment-shell .request-list { flex: 1; min-height: 0; margin-top: 8px; overflow-y: auto; gap: 6px; }
+  .payment-shell .request-row { padding: 8px; }
+  .payment-shell > [data-wallet-panel] { grid-column: 2; grid-row: 2 / -1; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .payment-shell > [data-wallet-panel][hidden] { display: none; }
+  .payment-shell [data-wallet-panel] > .surface { min-height: 0; margin: 0; padding: 12px 14px; overflow-y: auto; border-radius: 22px; scrollbar-width: none; }
+  .payment-shell .surface h2,
+  .payment-shell .amount-entry-heading h2 { font-size: 15px; }
+  .payment-shell .step-dot { width: 22px; height: 22px; font-size: 11px; }
+  .payment-shell .selection-label { font-size: 11px; }
+  .payment-shell .amount-entry-panel::after,
+  .payment-shell #amount-label,
+  .payment-shell #method-label { display: none; }
+  .payment-shell .amount-entry-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); grid-template-rows: auto auto 1fr; column-gap: 18px; align-content: start; }
+  .payment-shell .amount-entry-panel > .amount-entry-heading { grid-column: 1; grid-row: 1; }
+  .payment-shell .amount-entry-panel > .cash-amount-entry { grid-column: 1; grid-row: 2; }
+  .payment-shell .amount-entry-panel > .amount-grid { grid-column: 1; grid-row: 3; align-self: start; }
+  .payment-shell .amount-entry-panel > .method-heading { grid-column: 2; grid-row: 1; margin-top: 0; }
+  .payment-shell .amount-entry-panel > .method-grid { grid-column: 2; grid-row: 2 / -1; align-self: start; }
+  .payment-shell h2 { white-space: nowrap; }
+  .pay-sheet .pay-handle small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .payment-shell .cash-amount-entry { min-height: 50px; margin: 4px auto 6px; }
+  .payment-shell .cash-amount-entry span { font-size: 24px; }
+  .payment-shell .cash-amount-entry input { font-size: 42px; }
+  .payment-shell .amount-grid { gap: 7px; }
+  .payment-shell .amount-chip { min-height: 40px; border-radius: 16px 7px 16px 16px; }
+  .payment-shell .amount-chip small { font-size: 9px; }
+  .payment-shell .amount-chip strong { font-size: 14px; }
+  /* Methods in one row of compact chips; the chosen one's details show below. */
+  .payment-shell .method-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; margin-top: 8px; }
+  .payment-shell .method-card { flex-direction: row; justify-content: flex-start; gap: 10px; min-height: 46px; padding: 6px 10px; border-radius: 14px; text-align: left; }
+  .payment-shell .method-card small { display: none; }
+  .payment-shell .method-card i { top: 50%; transform: translateY(-50%); }
+  .payment-shell .method-logo { width: 28px; height: 28px; flex: none; border-radius: 10px 5px 10px 10px; font-size: 13px; }
+  /* "SEND EXACTLY $5.00" on one line, then the handle; the note's placeholder replaces its label. */
+  .pay-sheet .pay-instructions { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 10px; padding: 10px 12px 12px; }
+  .pay-sheet .pay-instructions > * { grid-column: 1 / -1; }
+  .pay-sheet .pay-instructions .detail-kicker { grid-column: 1; font-size: 9px; }
+  .pay-sheet .pay-amount { grid-column: 2; margin: 0 0 6px; font-size: 22px; text-align: right; }
+  .pay-sheet .pay-instructions .field-label { font-size: 0; gap: 0; }
+  .pay-sheet .pay-instructions .field-label span { display: none; }
+  .pay-sheet .pay-handle { padding: 6px 6px 6px 12px; }
+  .pay-sheet .pay-handle { gap: 8px; }
+  .pay-sheet .pay-handle b { font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
+  .pay-sheet .pay-handle .copy-button { flex: none; min-height: 32px; padding: 0 11px; font-size: 12px; }
+  .payment-shell .method-card b { font-size: 12px; }
+  .pay-sheet .pay-hint { margin-top: 6px; font-size: 10.5px; line-height: 1.3; }
+  .payment-shell .field-label { gap: 4px; margin-top: 7px; font-size: 11px; }
+  .payment-shell .field-label input, .payment-shell .field-label select { min-height: 38px; border-radius: 11px; font-size: 14px; }
+  .payment-shell .primary-action { min-height: 44px; margin-top: 10px; }
+  .payment-shell .primary-action b { font-size: 19px; }
+  .payment-shell .primary-action span { font-size: 14px; white-space: nowrap; }
+  .payment-shell .demo-note { display: none; }
+  /* Cash out: amount on the left, where to send it on the right. */
+  .payment-shell #cashout-panel { grid-template-columns: minmax(0, 1fr); }
+  .payment-shell .cashout-panel-surface { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 16px; align-content: start; }
+  .cashout-panel-surface > .amount-entry-heading { grid-column: 1 / -1; }
+  .cashout-panel-surface > .cash-amount-entry { grid-column: 1; grid-row: 2 / span 2; align-self: center; }
+  .cashout-panel-surface > .cashout-quick { grid-column: 1; grid-row: 4 / span 2; margin: 0; align-self: start; }
+  .cashout-panel-surface > .field-label:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+  .cashout-panel-surface > .field-label:nth-of-type(3) { grid-column: 2; grid-row: 3; }
+  .cashout-panel-surface > .link-button { grid-column: 2; grid-row: 4; }
+  .cashout-panel-surface > .primary-action { grid-column: 2; grid-row: 5; }
+
+  /* Profile: the player card on the left, payment usernames on the right. */
+  .profile-shell { display: grid; grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 10px; height: 100dvh; min-height: 0; }
+  .profile-shell > .page-header { grid-column: 1 / -1; margin-bottom: 4px; }
+  .profile-shell > .surface { min-height: 0; margin: 0; padding: 12px 14px; overflow-y: auto; border-radius: 22px; scrollbar-width: none; }
+  .profile-shell .profile-card { gap: 10px; }
+  .profile-shell .profile-avatar { width: 54px; height: 54px; font-size: 22px; }
+  .profile-shell .handles-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 10px; margin-top: 8px; }
+  .profile-shell .handle-row { min-height: 0; padding: 6px 8px; }
+  .profile-shell .handle-row input { min-height: 34px; }
+  .profile-shell .primary-action { min-height: 44px; margin-top: 10px; }
 
   /* Chat: the conversation takes the whole screen under the header. */
   .messages-shell { display: flex; flex-direction: column; height: 100dvh; min-height: 0; }
@@ -1544,4 +1685,9 @@ body[data-view="arcade"] .utility-nav { display: none; }
   .support-chip-copy { display: none; }
   .support-chip { padding-right: 4px; }
   .support-popover { right: 0; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .pay-sheet-card { width: min(460px, 100%); padding: 14px 16px; }
+  .pay-sheet .demo-note { display: flex; justify-content: flex-start; margin: 8px 0 0; font-size: 10.5px; line-height: 1.35; text-align: left; }
 }

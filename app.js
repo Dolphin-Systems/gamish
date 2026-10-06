@@ -45,6 +45,11 @@
     walletPlayerId.textContent = player.loginId;
     accountInitial.textContent = player.loginId.charAt(0).toUpperCase();
     document.getElementById("pay-player-id").textContent = player.loginId;
+    document.getElementById("profile-initial").textContent = player.loginId.charAt(0).toUpperCase();
+    document.getElementById("profile-login").textContent = player.loginId;
+    document.getElementById("profile-total").textContent = dollars(player.totalCredits);
+    document.getElementById("profile-cashable").textContent = dollars(player.regularCredits);
+    document.getElementById("profile-bonus").textContent = dollars(player.bonusCredits);
     window.dispatchEvent(new CustomEvent("gamish:cashable", { detail: Number(player.regularCredits || 0) }));
   };
 
@@ -125,6 +130,7 @@
     ["arcade", document.getElementById("arcade-view")],
     ["payments", document.getElementById("payments-view")],
     ["messages", document.getElementById("messages-view")],
+    ["profile", document.getElementById("profile-view")],
   ]);
   const viewTriggers = [...document.querySelectorAll(".view-trigger")];
   const utilityButtons = [...document.querySelectorAll(".utility-button")];
@@ -245,11 +251,25 @@
     return "custom";
   };
 
+  // "Send exactly" lives in a pop-up sheet, opened by picking a method.
+  const paySheet = document.getElementById("pay-sheet");
+  const setPaySheet = (open) => {
+    paySheet.hidden = !open;
+    document.body.classList.toggle("sheet-open", open);
+    if (open) document.getElementById("copy-pay-handle").focus({ preventScroll: true });
+  };
+  window.GamishPaySheet = { isOpen: () => !paySheet.hidden, close: () => setPaySheet(false) };
+  paySheet.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-pay-sheet], #pay-sheet-close")) setPaySheet(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !paySheet.hidden) setPaySheet(false);
+  });
+
   const selectMethod = (card) => {
     selectedMethod = card;
     methodCards.forEach((item) => item.classList.toggle("selected", item === card));
     methodLabel.textContent = card ? `${card.dataset.method} selected` : "Choose a method";
-    payInstructions.hidden = !card;
     if (card) {
       document.getElementById("pay-method-name").textContent = `${card.dataset.method} · send to`;
       document.getElementById("pay-handle").textContent = card.dataset.handle;
@@ -290,6 +310,7 @@
         card.addEventListener("click", () => {
           audio?.play("tap");
           selectMethod(card);
+          setPaySheet(true);
         });
         methodGrid.append(card);
         return card;
@@ -298,10 +319,74 @@
     }
     // Cash-outs can go to any method players use; offer the known ones plus "Other".
     const current = cashoutMethod.value;
-    const names = [...new Set([...paymentMethods.map((method) => method.methodName), "Cash App", "Chime", "PayPal", "Venmo"])];
-    cashoutMethod.replaceChildren(...names.map((name) => new Option(name, name)), new Option("Other", "Other"));
-    if (current) cashoutMethod.value = current;
+    cashoutMethod.replaceChildren(...payoutMethodNames().map((name) => new Option(name, name)), new Option("Other", "Other"));
+    // Start on a method the player saved a username for.
+    const saved = savedHandles();
+    const preferred = current || [...cashoutMethod.options].map((option) => option.value).find((name) => saved[name]);
+    if (preferred) cashoutMethod.value = preferred;
+    fillCashoutHandle();
   };
+
+  // ---------- Profile: payment usernames ----------
+
+  const savedHandles = () => window.GamishAccount.player?.payoutHandles || {};
+  const payoutMethodNames = () => [...new Set([
+    ...paymentMethods.map((method) => method.methodName), "Cash App", "Chime", "PayPal", "Venmo", ...Object.keys(savedHandles()),
+  ])];
+  const HANDLE_HINTS = { "cash app": "$cashtag", venmo: "@username", paypal: "Email or @username", chime: "$ChimeSign or phone", zelle: "Email or phone" };
+  const handleHint = (name) => HANDLE_HINTS[name.toLowerCase()] || "Username, phone or email";
+  let autoFilledHandle = "";
+  const fillCashoutHandle = () => {
+    const saved = savedHandles()[cashoutMethod.value] || "";
+    // Replace the field only if the player hasn't typed something of their own.
+    if (!cashoutHandle.value.trim() || cashoutHandle.value === autoFilledHandle) {
+      cashoutHandle.value = saved;
+      autoFilledHandle = saved;
+    }
+  };
+  cashoutMethod.addEventListener("change", fillCashoutHandle);
+
+  const handlesList = document.getElementById("handles-list");
+  const handlesForm = document.getElementById("handles-form");
+  const renderHandles = () => {
+    const saved = savedHandles();
+    handlesList.replaceChildren(...payoutMethodNames().map((name) => {
+      const row = document.createElement("label");
+      const logo = document.createElement("span");
+      const title = document.createElement("b");
+      const input = document.createElement("input");
+      row.className = "handle-row";
+      logo.className = `method-logo ${paymentTone(name)}`;
+      logo.textContent = name.charAt(0).toUpperCase();
+      title.textContent = name;
+      input.name = name;
+      input.maxLength = 100;
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.placeholder = handleHint(name);
+      input.value = saved[name] || "";
+      row.append(logo, title, input);
+      return row;
+    }));
+  };
+  handlesForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = document.getElementById("save-handles");
+    const payoutHandles = Object.fromEntries([...handlesList.querySelectorAll("input")].map((input) => [input.name, input.value]));
+    button.disabled = true;
+    try {
+      const data = await request("/api/player/wallet", { method: "POST", body: JSON.stringify({ payoutHandles }) });
+      window.GamishAccount.player = { ...window.GamishAccount.player, ...data.player };
+      renderHandles();
+      fillCashoutHandle();
+      audio?.play("tap");
+      showToast("Payment usernames saved");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   const loadPaymentMethods = async () => {
     const data = await request("/api/payment-methods");
@@ -479,6 +564,7 @@
       note: depositNote.value,
     }, () => {
       depositNote.value = "";
+      setPaySheet(false);
       showToast("Got it! We'll add your credits once the payment arrives.");
     });
   });
@@ -511,6 +597,14 @@
   });
 
   window.addEventListener("gamish:view", (event) => {
+    if (event.detail !== "profile" || !window.GamishAccount.player) return;
+    renderHandles();
+    refreshWallet().catch(() => {});
+    if (!paymentMethods.length) loadPaymentMethods().then(renderHandles).catch(() => {});
+  });
+
+  window.addEventListener("gamish:view", (event) => {
+    if (event.detail !== "payments") setPaySheet(false);
     if (event.detail !== "payments" || !window.GamishAccount.player) return;
     Promise.all([refreshWallet(), loadPaymentMethods(), loadRequests()]).catch((error) => showToast(error.message));
   });
@@ -793,7 +887,8 @@
   };
   window.addEventListener("popstate", () => {
     if (!window.GamishAccount.player) return;
-    if (!supportInfo.hidden) setSupportInfo(false);
+    if (window.GamishPaySheet.isOpen()) window.GamishPaySheet.close();
+    else if (!supportInfo.hidden) setSupportInfo(false);
     else if (!quickReplies.hidden) setQuickReplies(false);
     else if (currentView !== "arcade") showView("arcade");
     else window.dispatchEvent(new CustomEvent("gamish:back"));
