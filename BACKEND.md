@@ -94,3 +94,22 @@ Games live in `games/<id>/` (see `games/README.md`). The server's central math i
 `{ gameId, bet, target? }` plays a round for any game (no `gameId` means Phoenix Ruby), and
 `{ gameId, action: "event", name, data }` records what a game reports (`game_events`). Rounds
 are stored with their `game_id` and `outcome`.
+
+## House bank and live game control (admin → Core settings → Nerd)
+
+* **House bank** (`house`, `house_ledger`, `lib/house.js`): the admin's money that games pay
+  from. It starts at an amount the admin picks (default `$1,000`, or `HOUSE_START_DOLLARS`;
+  pickable until the first round), and can be topped up. Each round moves the bet into it and
+  the win out of it in the same SQL statement as the player's balance, so credits are only
+  ever moved, never created, and the bank can never go below $0. Profit (balance above
+  capital) is the only source of bonuses (deposit bonuses and admin bonus credits) and the
+  only thing that can be taken out.
+* **Per-game controls** (`game_settings`, `lib/game-control.js`): target RTP (50–97%, within
+  what the game's table can reach), max single win, daily payout limit, and a pause switch.
+  The engine (`effectiveMath` in `lib/game-models.js`) applies them every round: the 0×
+  outcomes are resized to hit the target RTP exactly; outcomes above the max win (or above
+  what the bank holds) are removed; past half the daily limit (net paid out in 24h) the RTP
+  is scaled down, to 35% of target at the limit, where nothing pays above the stake. The
+  Nerd page lists each game's top net winners (player IDs) for the last 24 hours.
+* API: `GET /api/admin/reports?view=nerd`, `POST /api/admin/reports` with `action` =
+  `game_settings` | `house_start` | `house_capital` | `house_withdraw`.
