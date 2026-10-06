@@ -89,10 +89,9 @@
   ];
 
   const HOW_TO_PLAY = [
-    ["symbol-4", "SWIPE OR TAP SPIN", "Bet 10, 20, or 40 virtual credits.", "#ffe8bd"],
-    ["symbol-1", "RUBY DIAMONDS  ×1.5", "Three on the center line.", "#ff7d8c"],
-    ["symbol-0", "GOLDEN SEVENS  ×3", "Three on the center line.", "#ffd46d"],
-    ["symbol-8", "COLLECT THE PHOENIX", "10 crests unlock a new realm theme.", "#ffba61"],
+    ["symbol-0", "3 GOLDEN SEVENS", "Center line pays 3× your bet", "#ffd66e"],
+    ["symbol-1", "3 RUBY DIAMONDS", "Center line pays 1.5× your bet", "#ff7d8c"],
+    ["symbol-8", "PHOENIX CREST", "Collect gems to unlock realm themes", "#ffba61"],
   ];
 
   const statusNode = document.getElementById("scene-status");
@@ -434,7 +433,7 @@
     }
 
     create() {
-      setStatus("Phoenix Ruby welcome. Review how to play, then enter the Phoenix Realm.");
+      setStatus("Phoenix Ruby welcome. Enter the Phoenix Realm to play.");
       fitBackground(this, "phoenix-realm-v2");
       this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x08040b, 0.5);
       addVignette(this, 0.2);
@@ -464,45 +463,20 @@
       }).setOrigin(0.5);
       addRule(this, 428, 540);
 
-      addOrnatePanel(this, WIDTH / 2, 800, 660, 600, {
-        fill: 0x0d0711, fillAlpha: 0.9, stroke: COLORS.gold, strokeAlpha: 0.7, lineWidth: 3, bend: 48,
-      });
-      this.add.text(WIDTH / 2, 552, "HOW TO PLAY", {
-        fontFamily: DISPLAY_FONT,
-        fontSize: "27px",
-        color: "#fff0bd",
-        stroke: "#52150c",
-        strokeThickness: 5,
-        letterSpacing: 3,
-      }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 590, "Four steps to awaken the Phoenix", {
+      const jewel = this.add.image(WIDTH / 2, 690, "phoenix-symbols-v2", "symbol-1").setDisplaySize(112, 112);
+      const jewelHalo = this.add.circle(WIDTH / 2, 690, 86, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
+      addRule(this, 800, 360);
+      this.add.text(WIDTH / 2, 866, "A FIRELIT REEL ADVENTURE", {
         fontFamily: BODY_FONT,
-        fontSize: "14px",
-        color: "#cdb5ad",
-        letterSpacing: 1,
+        fontSize: "15px",
+        fontStyle: "700",
+        color: "#f4c98e",
+        letterSpacing: 5,
       }).setOrigin(0.5);
+      this.tweens.add({ targets: jewel, angle: { from: -5, to: 5 }, scale: { from: 0.96, to: 1.04 }, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+      this.tweens.add({ targets: jewelHalo, scale: { from: 0.88, to: 1.18 }, alpha: { from: 0.08, to: 0.22 }, duration: 1500, yoyo: true, repeat: -1, ease: "Sine.InOut" });
 
-      HOW_TO_PLAY.forEach(([frame, title, copy, color], index) => {
-        const y = 672 + index * 112;
-        const badge = this.add.circle(128, y, 42, 0x1d0c18, 0.96).setStrokeStyle(2, COLORS.gold, 0.6);
-        const icon = this.add.image(128, y, "phoenix-symbols-v2", frame).setDisplaySize(72, 72);
-        this.add.text(192, y - 22, title, {
-          fontFamily: BODY_FONT,
-          fontSize: "19px",
-          fontStyle: "700",
-          color,
-          letterSpacing: 2,
-        });
-        this.add.text(192, y + 8, copy, {
-          fontFamily: BODY_FONT,
-          fontSize: "17px",
-          color: "#c7b5bb",
-        });
-        this.tweens.add({ targets: icon, scale: { from: icon.scale, to: icon.scale * 1.08 }, duration: 1100 + index * 140, yoyo: true, repeat: -1, ease: "Sine.InOut" });
-        this.tweens.add({ targets: badge, alpha: { from: 0.75, to: 1 }, duration: 1100 + index * 140, yoyo: true, repeat: -1 });
-      });
-
-      makeButton(this, WIDTH / 2, 1210, 540, 96, "ENTER THE PHOENIX REALM", () => {
+      makeButton(this, WIDTH / 2, 1040, 540, 96, "ENTER THE PHOENIX REALM", () => {
         window.GamishAudio?.play("flame-burst");
         setStatus("Opening the Phoenix Realm.");
         this.cameras.main.flash(240, 255, 118, 32, false);
@@ -510,7 +484,7 @@
         this.time.delayedCall(420, () => this.scene.start("GameZone"));
       }, { fill: 0x8d1f12, stroke: 0xffd87e, accent: 0xff5b12, fontSize: "21px" });
 
-      this.add.text(WIDTH / 2, 1300, "VIRTUAL CREDITS  •  NO CASH VALUE", {
+      this.add.text(WIDTH / 2, 1130, "YOUR NEXT SPIN AWAITS", {
         fontFamily: BODY_FONT,
         fontSize: "12px",
         fontStyle: "700",
@@ -990,13 +964,15 @@
         chip.setSize(300, 84).setInteractive({ useHandCursor: true });
         chip.on("pointerup", () => this.showRules());
       });
-      const rules = this.add.container(WIDTH / 2, 1404);
-      const rulesPlate = addPill(this, 0, 0, 250, 46, { fillAlpha: 0.9, strokeAlpha: 0.35, bend: 16 });
-      const rulesText = this.add.text(0, 0, "ⓘ  RULES & PAYOUTS", {
-        fontFamily: BODY_FONT, fontSize: "13px", fontStyle: "700", color: "#f0cf95", letterSpacing: 2,
+      const rules = this.add.container(702, 1403);
+      const rulesHalo = this.add.circle(0, 0, 31, COLORS.ember, 0.12).setBlendMode(Phaser.BlendModes.ADD);
+      const rulesPlate = this.add.circle(0, 0, 24, 0x160b16, 0.96).setStrokeStyle(2, COLORS.gold, 0.72);
+      const rulesIcon = this.add.text(0, -1, "?", {
+        fontFamily: DISPLAY_FONT, fontSize: "25px", color: "#ffe0a0", stroke: "#52150c", strokeThickness: 3,
       }).setOrigin(0.5);
-      rules.add([rulesPlate, rulesText]).setSize(250, 60).setInteractive({ useHandCursor: true });
+      rules.add([rulesHalo, rulesPlate, rulesIcon]).setSize(60, 60).setInteractive({ useHandCursor: true });
       rules.on("pointerup", () => this.showRules());
+      this.tweens.add({ targets: rulesHalo, scale: { from: 0.9, to: 1.15 }, alpha: { from: 0.1, to: 0.3 }, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.InOut" });
     }
 
     makeRoundButton(x, y, radius, label, onClick) {
@@ -1595,16 +1571,11 @@
       const title = this.add.text(0, -262, "HOW TO WIN", {
         fontFamily: DISPLAY_FONT, fontSize: "32px", color: "#fff0bd", stroke: "#52150c", strokeThickness: 6,
       }).setOrigin(0.5);
-      const rows = [
-        ["symbol-0", "3 GOLDEN SEVENS", "Center line pays 3× your bet"],
-        ["symbol-1", "3 RUBY DIAMONDS", "Center line pays 1.5× your bet"],
-        ["symbol-8", "PHOENIX CREST", "Any Phoenix adds a collection gem.\n10 gems unlock a new realm theme."],
-      ];
-      const items = rows.flatMap(([frame, heading, copy], index) => {
+      const items = HOW_TO_PLAY.flatMap(([frame, heading, copy, color], index) => {
         const y = -150 + index * 130;
         return [
           this.add.image(-230, y, "phoenix-symbols-v2", frame).setDisplaySize(96, 96),
-          this.add.text(-160, y - 30, heading, { fontFamily: BODY_FONT, fontSize: "18px", fontStyle: "700", color: "#ffd98a", letterSpacing: 2 }),
+          this.add.text(-160, y - 30, heading, { fontFamily: BODY_FONT, fontSize: "18px", fontStyle: "700", color, letterSpacing: 2 }),
           this.add.text(-160, y + 2, copy, { fontFamily: BODY_FONT, fontSize: "16px", color: "#cdb8bd", lineSpacing: 4 }),
         ];
       });
