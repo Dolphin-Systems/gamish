@@ -596,11 +596,10 @@
     }
 
     create() {
-      this.selectedCategory = "All Games";
       this.catalogCards = [];
       this.catalogScroll = 0;
       this.catalogDrag = null;
-      setStatus("Gamish777 game lobby. Browse categories and choose a game.");
+      setStatus("Gamish777 game hall. Browse games or open your profile, chat, or payments.");
       this.cameras.main.setBackgroundColor("#0b0710");
       this.add.circle(140, 610, 300, 0x942c26, 0.06).setBlendMode(Phaser.BlendModes.ADD);
       this.add.circle(654, 1010, 370, 0x3b2069, 0.075).setBlendMode(Phaser.BlendModes.ADD);
@@ -613,31 +612,28 @@
         shadow: { offsetY: 5, color: "#000000", blur: 16, fill: true },
       }).setOrigin(0.5);
 
-      this.categoryButtons = new Map();
-      GAME_CATEGORIES.forEach((category, index) => {
-        const column = index % 2;
-        const row = Math.floor(index / 2);
-        this.addCategoryButton(category, { x: 200 + column * 368, y: 237 + row * 72 });
-      });
+      this.addMenuAction(530, "profile", "Player profile", () => this.openProfile());
+      this.addMenuAction(608, "payments", "Payments", () => this.openAppView("payments"));
+      this.addMenuAction(686, "chat", "Chat with support", () => this.openAppView("messages"));
 
-      this.addFeaturedPhoenix(600);
-      this.add.text(48, 721, "BROWSE GAMES", {
+      this.addFeaturedPhoenix(370);
+      this.add.text(48, 505, "ALL GAMES", {
         fontFamily: BODY_FONT,
         fontSize: "24px",
         fontStyle: "700",
         color: "#e6c17f",
         letterSpacing: 3,
       }).setOrigin(0, 0.5);
-      this.catalogCount = this.add.text(716, 721, `${GAME_CATEGORIES[0].games.length} GAMES`, {
+      this.catalogCount = this.add.text(716, 505, `${GAME_CATEGORIES[0].games.length} GAMES`, {
         fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#cdb6ad", letterSpacing: 1,
       }).setOrigin(1, 0.5);
       this.renderGameCards(GAME_CATEGORIES[0].games);
 
       this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY) => {
-        if (pointer.y >= 738) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
+        if (pointer.y >= 525) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
       });
       this.input.on("pointerdown", (pointer) => {
-        if (pointer.y >= 738) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
+        if (pointer.y >= 525) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
       });
       this.input.on("pointermove", (pointer) => {
         if (!this.catalogDrag || !pointer.isDown) return;
@@ -655,49 +651,82 @@
       });
 
       this.input.keyboard?.on("keydown-ESC", () => {
-        if (this.modal) this.closeModal(); else this.showCategory("All Games");
+        if (this.modal) this.closeModal(); else this.setCatalogScroll(0);
       });
       this.cameras.main.fadeIn(550, 9, 5, 12);
     }
 
-    addCategoryButton(category, position) {
-      const button = this.add.container(position.x, position.y);
-      const plate = addSoftPanel(this, 0, 0, 340, 60, {
-        fill: category.accent, alpha: 0.1, radius: 22,
+    addMenuAction(x, kind, label, action) {
+      const button = this.add.container(x, 126);
+      const glow = this.add.circle(0, 0, 34, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
+      const disk = this.add.circle(0, 0, 27, 0x1d101b, 0.94).setStrokeStyle(1.5, COLORS.gold, 0.64);
+      const icon = this.add.graphics().lineStyle(2.3, COLORS.ivory, 0.96);
+      if (kind === "profile") {
+        icon.strokeCircle(0, -5, 5);
+        icon.fillStyle(COLORS.ivory, 0.96).fillEllipse(0, 10, 21, 11);
+      } else if (kind === "payments") {
+        icon.strokeRoundedRect(-11, -8, 22, 17, 4);
+        icon.strokeRoundedRect(3, -3, 11, 8, 3);
+        icon.fillStyle(COLORS.ivory, 1).fillCircle(6, 1, 1.5);
+      } else {
+        icon.strokeRoundedRect(-11, -9, 22, 17, 5);
+        icon.beginPath().moveTo(-5, 8).lineTo(-9, 12).lineTo(-8, 5).strokePath();
+        [-4, 0, 4].forEach((dotX) => icon.fillStyle(COLORS.ivory, 0.95).fillCircle(dotX, 0, 1.25));
+      }
+      button.add([glow, disk, icon]).setSize(72, 72).setInteractive({ useHandCursor: true });
+      button.setData("label", label);
+      button.on("pointerup", () => {
+        window.GamishAudio?.play("nav");
+        setStatus(label);
+        action();
       });
-      const icon = this.add.text(-118, -1, category.icon, {
-        fontFamily: DISPLAY_FONT, fontSize: "37px", fontStyle: "700", color: Phaser.Display.Color.IntegerToColor(category.accent).rgba,
-        shadow: { offsetY: 2, color: "#000000", blur: 8, fill: true },
-      }).setOrigin(0.5);
-      const label = this.add.text(-80, 0, category.name.toUpperCase(), {
-        fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#ead5bb", letterSpacing: 0.2,
-      }).setOrigin(0, 0.5);
-      button.add([plate, icon, label]).setSize(346, 68).setInteractive({ useHandCursor: true });
-      button.on("pointerover", () => this.tweens.add({ targets: button, scale: 1.02, duration: 100 }));
+      button.on("pointerover", () => this.tweens.add({ targets: button, scale: 1.08, duration: 110 }));
       button.on("pointerout", () => this.tweens.add({ targets: button, scale: 1, duration: 120 }));
-      button.on("pointerup", () => this.showCategory(category.name));
-      this.categoryButtons.set(category.name, { button, plate, icon, label, category });
-      this.refreshCategoryButtons();
+      return button;
     }
 
-    refreshCategoryButtons() {
-      this.categoryButtons.forEach(({ plate, icon, label, category }, name) => {
-        const active = name === this.selectedCategory;
-        plate.setAlpha(active ? 1 : 0.7);
-        icon.setAlpha(active ? 1 : 0.72);
-        label.setColor(active ? "#fff3ce" : "#e0d0c6");
-      });
+    openAppView(name) {
+      window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: name }));
     }
 
-    showCategory(name) {
-      const category = GAME_CATEGORIES.find((item) => item.name === name);
-      if (!category) return;
-      window.GamishAudio?.play("nav");
-      this.selectedCategory = name;
-      this.catalogScroll = 0;
-      this.refreshCategoryButtons();
-      this.catalogCount.setText(`${category.games.length} ${category.games.length === 1 ? "GAME" : "GAMES"}`);
-      this.renderGameCards(category.games);
+    openProfile() {
+      if (this.modal) return;
+      const player = window.GamishAccount?.player || {};
+      const balance = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+        .format(Number(player.totalCredits || 0) / 100);
+      const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
+      const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
+      const panel = addSoftPanel(this, 0, 0, 570, 500, { fill: 0x130b18, alpha: 0.98, radius: 44 });
+      const avatar = this.add.circle(0, -135, 44, 0x44202a, 0.96).setStrokeStyle(2, COLORS.gold, 0.75);
+      const initial = this.add.text(0, -135, String(player.loginId || "P").charAt(0).toUpperCase(), {
+        fontFamily: DISPLAY_FONT, fontSize: "36px", color: "#fff0c0",
+      }).setOrigin(0.5);
+      const heading = this.add.text(0, -62, "PLAYER PROFILE", {
+        fontFamily: DISPLAY_FONT, fontSize: "25px", color: "#fff0c2",
+      }).setOrigin(0.5);
+      const idLabel = this.add.text(0, 6, "PLAYER ID", {
+        fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3,
+      }).setOrigin(0.5);
+      const id = this.add.text(0, 42, player.loginId || "—", {
+        fontFamily: BODY_FONT, fontSize: "27px", fontStyle: "700", color: "#fff0c0",
+      }).setOrigin(0.5);
+      const walletLabel = this.add.text(0, 93, "AVAILABLE BALANCE", {
+        fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3,
+      }).setOrigin(0.5);
+      const wallet = this.add.text(0, 128, balance, {
+        fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#ffd381",
+      }).setOrigin(0.5);
+      modal.add([blocker, panel, avatar, initial, heading, idLabel, id, walletLabel, wallet]);
+      const close = this.add.container(WIDTH / 2, HEIGHT / 2 + 190).setDepth(101);
+      close.add([
+        addSoftPanel(this, 0, 0, 330, 64, { fill: COLORS.ember, alpha: 0.2, radius: 28 }),
+        this.add.text(0, 0, "BACK TO GAME HALL", { fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
+      ]);
+      close.setSize(350, 74).setInteractive({ useHandCursor: true });
+      close.on("pointerup", () => this.closeModal());
+      modal.setScale(0.92).setAlpha(0);
+      this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 220, ease: "Back.Out" });
+      this.modal = { modal, close };
     }
 
     addFeaturedPhoenix(y) {
@@ -726,7 +755,7 @@
       const columns = [198, 570];
       const rowStep = 276;
       const cardHeight = 246;
-      const firstY = 858;
+      const firstY = 655;
       games.forEach((game, index) => {
         const position = { x: columns[index % 2], y: firstY + Math.floor(index / 2) * rowStep };
         const card = this.add.container(position.x, position.y);
@@ -761,7 +790,7 @@
         this.catalogCards.push({ container: card, x: position.x, y: position.y });
       });
       const rowCount = Math.ceil(games.length / 2);
-      this.catalogMaxScroll = Math.max(0, rowCount * rowStep - 720);
+      this.catalogMaxScroll = Math.max(0, rowCount * rowStep - (HEIGHT - firstY - 100));
       this.catalogDragMoved = false;
     }
 
@@ -803,7 +832,7 @@
         lineSpacing: 8,
       }).setOrigin(0.5);
       modal.add([blocker, glow, panel, iconPlate, icon, title, copy]);
-      const closeLabel = `BACK TO ${this.selectedCategory.toUpperCase()}`;
+      const closeLabel = "BACK TO GAME HALL";
       const close = this.add.container(WIDTH / 2, HEIGHT / 2 + 226).setDepth(101);
       close.add([
         addSoftPanel(this, 0, 0, 360, 70, { fill: game.accent, alpha: 0.2, radius: 30 }),
@@ -829,14 +858,14 @@
         onComplete: () => {
           destroyWithTweens(this, modal);
           destroyWithTweens(this, close);
-          setStatus(`Browsing ${this.selectedCategory} on Gamish777.`);
+          setStatus("Browsing all games on Gamish777.");
         },
       });
     }
 
     returnToLanding() {
       if (this.modal) this.closeModal();
-      else this.showCategory("All Games");
+      else this.setCatalogScroll(0);
     }
   }
 
