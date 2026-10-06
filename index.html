@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=13" />
+  <link rel="stylesheet" href="styles.css?v=14" />
   <title>Gamish777 — Game Lobby</title>
 </head>
 <body data-view="arcade">
@@ -85,30 +85,39 @@
               <button class="amount-chip featured" type="button" data-amount="50" data-bonus="10"><strong>$50</strong><small>+$10 bonus</small></button>
               <button class="amount-chip featured" type="button" data-amount="100" data-bonus="25"><strong>$100</strong><small>+$25 bonus</small></button>
             </div>
-          </section>
 
-          <section class="surface methods-panel" aria-labelledby="method-heading">
-            <div class="surface-heading">
+            <div class="surface-heading method-heading">
               <h2 id="method-heading"><i class="step-dot">2</i>Pay with</h2>
               <span class="selection-label" id="method-label">Choose a method</span>
             </div>
-            <div id="payment-method-grid" class="method-grid"><p class="payment-method-empty">Payment methods are being updated.</p></div>
-
-            <div id="pay-instructions" class="pay-instructions" hidden>
-              <p class="detail-kicker"><i class="step-dot">3</i>SEND EXACTLY</p>
-              <strong id="pay-amount" class="pay-amount">$5.00</strong>
-              <div class="pay-handle">
-                <div><small id="pay-method-name">Cash App</small><b id="pay-handle">—</b></div>
-                <button id="copy-pay-handle" class="copy-button" type="button">Copy</button>
-              </div>
-              <p class="pay-hint">Put your Player ID <b id="pay-player-id">—</b> in the payment note so we can match it quickly.</p>
-              <label class="field-label">Payment name or reference <span>(optional)</span>
-                <input id="deposit-note" maxlength="140" autocomplete="off" placeholder="e.g. sent from $myname" />
-              </label>
-            </div>
-            <button id="submit-deposit" class="primary-action" type="button" disabled><span>Choose a method to continue</span><b>→</b></button>
-            <p class="demo-note"><span>i</span>We add your credits as soon as the team confirms the payment. You'll see it update below.</p>
+            <div id="payment-method-grid" class="method-grid" role="group" aria-labelledby="method-heading"><p class="payment-method-empty">Payment methods are being updated.</p></div>
           </section>
+
+        </div>
+
+        <div id="pay-sheet" class="pay-sheet" hidden>
+          <div class="pay-sheet-backdrop" data-close-pay-sheet></div>
+            <section class="surface methods-panel pay-sheet-card" role="dialog" aria-modal="true" aria-labelledby="pay-sheet-title">
+              <div class="pay-sheet-head">
+                <h2 id="pay-sheet-title">Send your payment</h2>
+                <button id="pay-sheet-close" class="icon-chip" type="button" aria-label="Close">×</button>
+              </div>
+
+              <div id="pay-instructions" class="pay-instructions">
+                <p class="detail-kicker"><i class="step-dot">3</i>SEND EXACTLY</p>
+                <strong id="pay-amount" class="pay-amount">$5.00</strong>
+                <div class="pay-handle">
+                  <div><small id="pay-method-name">Cash App</small><b id="pay-handle">—</b></div>
+                  <button id="copy-pay-handle" class="copy-button" type="button">Copy</button>
+                </div>
+                <p class="pay-hint">Put your Player ID <b id="pay-player-id">—</b> in the payment note so we can match it quickly.</p>
+                <label class="field-label">Payment name or reference <span>(optional)</span>
+                  <input id="deposit-note" maxlength="140" autocomplete="off" placeholder="Name or note on your payment (optional)" />
+                </label>
+              </div>
+              <button id="submit-deposit" class="primary-action" type="button" disabled><span>Choose a method to continue</span><b>→</b></button>
+              <p class="demo-note"><span>i</span>We add your credits as soon as the team confirms the payment. You'll see it update below.</p>
+            </section>
         </div>
 
         <div id="cashout-panel" role="tabpanel" aria-labelledby="wallet-tab-cashout" data-wallet-panel="cashout" hidden>
@@ -129,6 +138,7 @@
             <label class="field-label">Your $Cashtag, phone or email
               <input id="cashout-handle" maxlength="100" autocomplete="off" placeholder="$yourname" />
             </label>
+            <button class="link-button view-trigger" type="button" data-view="profile">Saved usernames ›</button>
             <button id="submit-cashout" class="primary-action" type="button"><span>Request cash out</span><b>→</b></button>
             <p class="demo-note"><span>i</span>Bonus cash can be played but not cashed out. Requests are reviewed by the team.</p>
           </section>
@@ -141,6 +151,37 @@
           </div>
           <div id="request-list" class="request-list" aria-live="polite"><p class="request-empty">No requests yet.</p></div>
         </section>
+      </div>
+    </section>
+
+    <section id="profile-view" class="app-view page-view" aria-labelledby="profile-title" aria-hidden="true">
+      <div class="page-shell profile-shell">
+        <header class="page-header">
+          <button class="back-to-arcade view-trigger" type="button" data-view="arcade" aria-label="Back to the game lobby">
+            <span aria-hidden="true">‹</span> Lobby
+          </button>
+          <h1 id="profile-title" class="page-title">Profile</h1>
+        </header>
+
+        <article class="surface profile-card">
+          <div class="profile-avatar" aria-hidden="true"><span id="profile-initial">P</span></div>
+          <div class="profile-name"><small>Player ID</small><strong id="profile-login">—</strong></div>
+          <dl class="profile-balances">
+            <div><dt>Balance</dt><dd id="profile-total">$0.00</dd></div>
+            <div><dt>Cashable</dt><dd id="profile-cashable">$0.00</dd></div>
+            <div><dt>Bonus</dt><dd id="profile-bonus">$0.00</dd></div>
+          </dl>
+          <button id="logout-button" class="ghost-action" type="button">Sign out</button>
+        </article>
+
+        <form id="handles-form" class="surface handles-panel" aria-labelledby="handles-heading">
+          <div class="surface-heading">
+            <h2 id="handles-heading">Payment usernames</h2>
+            <span class="selection-label">Used to fill in cash outs</span>
+          </div>
+          <div id="handles-list" class="handles-list"></div>
+          <button id="save-handles" class="primary-action" type="submit"><span>Save usernames</span><b>✓</b></button>
+        </form>
       </div>
     </section>
 
@@ -205,9 +246,9 @@
         <span class="sr-only">Messages</span>
         <i id="unread-dot" class="unread-dot" aria-label="New message" hidden></i>
       </button>
-      <button id="logout-button" class="utility-button account-button" type="button" aria-label="Sign out" title="Sign out">
+      <button class="utility-button account-button view-trigger" type="button" data-view="profile" aria-label="Open profile" title="Profile">
         <span id="account-initial" aria-hidden="true">P</span>
-        <span class="sr-only">Sign out</span>
+        <span class="sr-only">Profile</span>
       </button>
     </nav>
 
@@ -222,8 +263,8 @@
   <script src="safe-area.js?v=1"></script>
   <script defer src="audio.js?v=3"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
-  <script defer src="game.js?v=19"></script>
+  <script defer src="game.js?v=20"></script>
   <script src="chat-images.js?v=1"></script>
-  <script defer src="app.js?v=11"></script>
+  <script defer src="app.js?v=12"></script>
 </body>
 </html>
