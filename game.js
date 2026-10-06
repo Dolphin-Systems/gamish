@@ -379,11 +379,11 @@
 
     if (options.back) {
       const back = scene.add.container(88, 70);
-      const outerGlow = scene.add.circle(0, 0, 36, COLORS.ember, 0.09).setStrokeStyle(2, COLORS.ember, 0.25);
-      const disk = scene.add.circle(0, 0, 31, 0x0e0912, 0.96).setStrokeStyle(2, COLORS.gold, 0.82);
+      const outerGlow = scene.add.circle(0, 0, 42, COLORS.ember, 0.11).setBlendMode(Phaser.BlendModes.ADD);
+      const disk = scene.add.circle(0, 0, 34, 0x0e0912, 0.96).setStrokeStyle(2, COLORS.gold, 0.82);
       const arrow = scene.add.text(-2, -2, "‹", { fontFamily: BODY_FONT, fontSize: "49px", color: "#ffe4a3" }).setOrigin(0.5);
-      back.add([outerGlow, disk, arrow]).setSize(82, 82).setInteractive({ useHandCursor: true });
-      back.on("pointerup", () => {
+      back.add([outerGlow, disk, arrow]).setSize(120, 120).setInteractive({ useHandCursor: true });
+      back.on("pointerdown", () => {
         window.GamishAudio?.play("nav");
         options.back();
       });
@@ -896,6 +896,7 @@
       this.credits = Number(window.GamishAccount?.player?.totalCredits || 0);
       this.lastWin = 0;
       this.phase = "idle";
+      this.leaving = false;
       this.quickStop = false;
       this.pendingRound = null;
       this.stopEvents = [];
@@ -1333,7 +1334,10 @@
         });
         round = response.round;
       } catch (error) {
-        if (!this.sys.isActive()) return;
+        if (this.leaving || !this.sys.isActive()) {
+          window.GamishAccount?.refreshWallet().catch(() => {});
+          return;
+        }
         this.credits += this.bet;
         this.autoLeft = 0;
         this.failedSpin = error.message;
@@ -1341,7 +1345,13 @@
         this.scheduleStops(this.pendingRound.marks);
         return;
       }
-      if (!this.sys.isActive()) return;
+      if (this.leaving || !this.sys.isActive()) {
+        if (round?.wallet && window.GamishAccount?.player) {
+          Object.assign(window.GamishAccount.player, round.wallet);
+          window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: window.GamishAccount.player }));
+        }
+        return;
+      }
       this.pendingRound = round;
       const wait = this.quickStop ? 0 : Math.max(0, REEL.minSpinMs - (this.time.now - startedAt));
       this.stopEvents.push(this.time.delayedCall(wait, () => this.scheduleStops(round.marks)));
@@ -1775,10 +1785,20 @@
     }
 
     returnToHall() {
-      if (this.phase !== "idle" || this.overlay) return;
+      if (this.leaving) return;
+      this.leaving = true;
       this.autoLeft = 0;
-      this.cameras.main.fadeOut(300, 9, 4, 12);
-      this.time.delayedCall(300, () => this.scene.start("GameZone"));
+      this.phase = "leaving";
+      this.stopEvents.forEach((event) => event.remove());
+      this.stopEvents = [];
+      if (this.pendingRound?.wallet && window.GamishAccount?.player) {
+        Object.assign(window.GamishAccount.player, this.pendingRound.wallet);
+        window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: window.GamishAccount.player }));
+      }
+      window.GamishAccount?.refreshWallet().catch(() => {});
+      setStatus("Returning to the Gamish777 game lobby.");
+      this.cameras.main.fadeOut(220, 9, 4, 12);
+      this.time.delayedCall(220, () => this.scene.start("GameZone"));
     }
   }
 
