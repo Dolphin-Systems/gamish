@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Template Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- The platform draws the back button in the top-left corner: keep that area free. -->
+  <main class="stage">
+    <h1>Template Game</h1>
+    <p id="balance" class="balance">—</p>
+    <p id="result" class="result">Pick a bet and play</p>
+    <div id="bets" class="bets"></div>
+    <button id="play" class="play" type="button">PLAY</button>
+  </main>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

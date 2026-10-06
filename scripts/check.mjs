@@ -14,7 +14,7 @@ async function collectJavaScript(directory) {
 }
 
 const files = ["app.js", "audio.js", "game.js", "admin.js"];
-for (const directory of ["api", "lib", "scripts"]) {
+for (const directory of ["api", "lib", "scripts", "platform", "games"]) {
   files.push(...await collectJavaScript(directory));
 }
 

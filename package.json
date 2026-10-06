@@ -8,8 +8,10 @@
   },
   "scripts": {
     "db:migrate": "node scripts/migrate.mjs",
+    "games": "node scripts/games.mjs",
+    "game:new": "node scripts/games.mjs new",
     "test": "node --test",
-    "check": "node scripts/check.mjs && node --test"
+    "check": "node scripts/check.mjs && node scripts/games.mjs --check && node --test"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

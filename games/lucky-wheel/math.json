@@ -1,0 +1,12 @@
+{
+  "model": "weighted",
+  "bets": [10, 20, 50, 100],
+  "outcomes": [
+    { "id": "miss", "weight": 50, "multiplier": 0 },
+    { "id": "half", "weight": 20, "multiplier": 0.5 },
+    { "id": "x1-5", "weight": 16, "multiplier": 1.5 },
+    { "id": "x2", "weight": 10, "multiplier": 2 },
+    { "id": "x5", "weight": 4, "multiplier": 5 },
+    { "id": "x10", "weight": 2, "multiplier": 10 }
+  ]
+}

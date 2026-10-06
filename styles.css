@@ -1716,3 +1716,30 @@ body[data-view="profile"] .utility-nav { display: none; }
 .pay-sheet .primary-action { min-height: 46px; margin-top: 10px; }
 .pay-sheet .primary-action span { font-size: 14px; }
 .pay-sheet .demo-note { justify-content: flex-start; margin: 8px 0 0; font-size: 10.5px; line-height: 1.35; text-align: left; }
+
+/* ---------- Module game host ----------
+   A full-screen sandboxed frame with the platform's single back button on top. */
+body[data-view="game"] .utility-nav { display: none; }
+.game-host { z-index: 30; background: #07040b; transform: none; }
+.game-frame-slot, .game-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.game-frame { display: block; background: #07040b; }
+.game-host-back {
+  position: absolute; z-index: 2;
+  top: max(10px, var(--edge-top, 0px)); left: calc(var(--edge-left, 0px) + 12px);
+  display: grid; place-items: center; width: 48px; height: 48px; padding: 0 0 3px;
+  border: 0; border-radius: 50%;
+  background: rgba(20, 10, 22, 0.72); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px rgba(255, 220, 160, 0.18);
+  backdrop-filter: blur(6px);
+  color: #ffe4a3; cursor: pointer; font-size: 34px; line-height: 1;
+}
+.game-host-back:active { transform: scale(0.92); }
+.game-host-loading {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 12px;
+  color: #d9c3b6; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none;
+}
+.game-host-loading[hidden] { display: none; }
+.game-host-loading i {
+  width: 34px; height: 34px; border: 3px solid rgba(255, 200, 120, 0.2); border-top-color: #ffc14f; border-radius: 50%;
+  animation: host-spin 800ms linear infinite;
+}
+@keyframes host-spin { to { transform: rotate(360deg); } }

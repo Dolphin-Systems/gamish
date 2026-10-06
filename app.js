@@ -131,6 +131,7 @@
     ["payments", document.getElementById("payments-view")],
     ["messages", document.getElementById("messages-view")],
     ["profile", document.getElementById("profile-view")],
+    ["game", document.getElementById("game-host-view")],
   ]);
   const viewTriggers = [...document.querySelectorAll(".view-trigger")];
   const utilityButtons = [...document.querySelectorAll(".utility-button")];
@@ -973,4 +974,111 @@
     if (event.persisted) checkForUpdate();
   });
   window.setTimeout(checkForUpdate, 4000);
+
+  // ---------- Module games ----------
+  // Each game in games/<id>/ runs in a sandboxed frame (scripts only: no cookies, no session,
+  // no same-origin access). It talks to us through platform/gamish-sdk.js; we play rounds on
+  // the server and pass back only the result and the wallet.
+  const frameSlot = document.getElementById("game-frame-slot");
+  const hostLoading = document.getElementById("game-host-loading");
+  let moduleGame = null; // { entry, frame, busy }
+
+  const closeModuleGame = () => {
+    if (!moduleGame) return;
+    moduleGame.frame.remove();
+    moduleGame = null;
+    hostLoading.hidden = true;
+    refreshWallet().catch(() => {});
+  };
+
+  const openModuleGame = (entry) => {
+    if (!entry || entry.runtime !== "module" || typeof entry.url !== "string" || !entry.url.startsWith("/games/")) return;
+    closeModuleGame();
+    const frame = document.createElement("iframe");
+    frame.className = "game-frame";
+    frame.title = entry.title;
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.setAttribute("allow", "autoplay");
+    frame.src = `${entry.url}?v=${encodeURIComponent(entry.version)}`;
+    moduleGame = { entry, frame, busy: false };
+    hostLoading.hidden = false;
+    frame.addEventListener("load", () => { hostLoading.hidden = true; }, { once: true });
+    frameSlot.append(frame);
+    showView("game");
+  };
+
+  window.addEventListener("gamish:play-module", (event) => openModuleGame(event.detail));
+  window.addEventListener("gamish:view", (event) => {
+    if (event.detail !== "game") closeModuleGame();
+  });
+  document.getElementById("game-host-back").addEventListener("click", () => {
+    audio?.play("nav");
+    showView("arcade");
+  });
+
+  const replyTo = (game, id, ok, payload) => {
+    game.frame.contentWindow?.postMessage(ok ? { gamish: 1, reply: id, ok: true, data: payload } : { gamish: 1, reply: id, ok: false, error: payload }, "*");
+  };
+  const pushWallet = (wallet) => {
+    const player = { ...window.GamishAccount.player, ...wallet };
+    window.GamishAccount.player = player;
+    setWallet(player);
+    window.dispatchEvent(new CustomEvent("gamish:wallet", { detail: player }));
+  };
+
+  window.addEventListener("message", async (event) => {
+    const game = moduleGame;
+    if (!game || event.source !== game.frame.contentWindow) return;
+    const message = event.data;
+    if (!message || message.gamish !== 1 || !Number.isInteger(message.id)) return;
+    const { id, type, payload = {} } = message;
+    const player = window.GamishAccount.player;
+    if (!player) return replyTo(game, id, false, { message: "Signed out", code: "unauthorized" });
+    const walletOf = (source) => ({ regularCredits: source.regularCredits, bonusCredits: source.bonusCredits, totalCredits: source.totalCredits });
+
+    if (type === "connect") {
+      return replyTo(game, id, true, {
+        game: { id: game.entry.id, title: game.entry.title, version: game.entry.version },
+        player: { loginId: player.loginId },
+        wallet: walletOf(player),
+        math: game.entry.math,
+      });
+    }
+    if (type === "play") {
+      // One round at a time per game; the server validates the bet against the game's math.
+      if (game.busy) return replyTo(game, id, false, { message: "A round is already running", code: "busy" });
+      game.busy = true;
+      try {
+        const body = { gameId: game.entry.id, bet: payload.bet, ...(payload.target === undefined ? {} : { target: payload.target }) };
+        const { round } = await request("/api/game/spin", { method: "POST", body: JSON.stringify(body), timeout: 15_000 });
+        if (moduleGame !== game) return;
+        pushWallet(round.wallet);
+        replyTo(game, id, true, round);
+      } catch (error) {
+        replyTo(game, id, false, { message: error.message, code: /credits/i.test(error.message) ? "insufficient_credits" : "round_failed" });
+      } finally {
+        game.busy = false;
+      }
+      return;
+    }
+    if (type === "event") {
+      const body = { gameId: game.entry.id, action: "event", name: String(payload.name || "").slice(0, 40), data: payload.data };
+      request("/api/game/spin", { method: "POST", body: JSON.stringify(body) }).then(() => replyTo(game, id, true, {}), (error) => replyTo(game, id, false, { message: error.message }));
+      return;
+    }
+    if (type === "exit") {
+      replyTo(game, id, true, {});
+      showView("arcade");
+      return;
+    }
+    replyTo(game, id, false, { message: `Unknown request ${type}`, code: "unknown" });
+  });
+
+  // Keep an open game's balance in step when the wallet changes elsewhere (e.g. a deposit lands).
+  window.addEventListener("gamish:wallet", (event) => {
+    const game = moduleGame;
+    const wallet = event.detail;
+    if (!game || !wallet) return;
+    game.frame.contentWindow?.postMessage({ gamish: 1, type: "wallet", wallet: { regularCredits: wallet.regularCredits, bonusCredits: wallet.bonusCredits, totalCredits: wallet.totalCredits } }, "*");
+  });
 })();

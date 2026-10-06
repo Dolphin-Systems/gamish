@@ -1,0 +1,85 @@
+{
+  "games": [
+    {
+      "id": "lucky-wheel",
+      "title": "Lucky Wheel",
+      "category": "Table Games",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/lucky-wheel/index.html",
+      "cover": null,
+      "description": "Spin the wheel for up to 10× your bet.",
+      "accent": "#ffc14f",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100
+        ],
+        "rtp": 0.9216,
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "half",
+            "multiplier": 0.5
+          },
+          {
+            "id": "x1-5",
+            "multiplier": 1.5
+          },
+          {
+            "id": "x2",
+            "multiplier": 2
+          },
+          {
+            "id": "x5",
+            "multiplier": 5
+          },
+          {
+            "id": "x10",
+            "multiplier": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "phoenix-ruby",
+      "title": "Phoenix Ruby",
+      "category": "Slots",
+      "version": "1.0.0",
+      "runtime": "builtin",
+      "url": null,
+      "cover": null,
+      "description": "3-reel slot. Three rubies pay 1.5×, three sevens pay 3×.",
+      "accent": "#ff7a1a",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          40
+        ],
+        "rtp": 0.8,
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "rubies",
+            "multiplier": 1.5
+          },
+          {
+            "id": "sevens",
+            "multiplier": 3
+          }
+        ]
+      }
+    }
+  ]
+}

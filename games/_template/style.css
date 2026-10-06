@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, #3a1430, #0b0610 70%);
+  color: #fff0d0; font-family: system-ui, sans-serif; user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+h1 { margin: 0; font-size: 28px; letter-spacing: 0.06em; }
+.balance { margin: 0; color: #ffd88a; font-size: 20px; font-weight: 700; }
+.result { min-height: 24px; margin: 0; color: #e9d6dc; font-size: 18px; }
+.bets { display: flex; gap: 8px; }
+.bets button, .play { border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 800; }
+.bets button { min-width: 64px; min-height: 40px; background: rgba(255, 255, 255, 0.08); color: #f1dcc0; }
+.bets button.on { background: #ffc14f; color: #2a0e05; }
+.play { min-width: 200px; min-height: 56px; background: linear-gradient(180deg, #ffb347, #e8641c); color: #2a0e05; font-size: 20px; }
+.play:disabled { filter: grayscale(0.7) brightness(0.7); }

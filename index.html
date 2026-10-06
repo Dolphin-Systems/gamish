@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
   <title>Gamish777 — Game Lobby</title>
 </head>
 <body data-view="arcade">
@@ -45,6 +45,14 @@
         <strong>Loading Gamish777…</strong>
       </div>
       <p id="scene-status" class="sr-only" aria-live="polite">Loading Gamish777.</p>
+    </section>
+
+    <!-- Module games (games/<id>/) run here, sandboxed: they reach credits and randomness only
+         through the platform SDK. The platform's back button is the way out to the lobby. -->
+    <section id="game-host-view" class="app-view game-host" aria-label="Game" aria-hidden="true">
+      <div id="game-frame-slot" class="game-frame-slot"></div>
+      <div id="game-host-loading" class="game-host-loading" hidden><i></i><span>Loading game…</span></div>
+      <button id="game-host-back" class="game-host-back" type="button" aria-label="Back to the lobby"><span aria-hidden="true">‹</span></button>
     </section>
 
     <section id="payments-view" class="app-view sheet-view" aria-labelledby="payments-title" aria-hidden="true">
@@ -242,8 +250,8 @@
   <script src="safe-area.js?v=1"></script>
   <script defer src="audio.js?v=3"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
-  <script defer src="game.js?v=21"></script>
+  <script defer src="game.js?v=22"></script>
   <script src="chat-images.js?v=1"></script>
-  <script defer src="app.js?v=15"></script>
+  <script defer src="app.js?v=16"></script>
 </body>
 </html>

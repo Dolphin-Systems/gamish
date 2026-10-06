@@ -127,6 +127,31 @@
   GAME_CATEGORIES[0].games = GAME_CATEGORIES.slice(1).flatMap((category) => category.games);
   const PHOENIX_GAME = GAME_CATEGORIES.find((category) => category.name === "Slots").games[0];
 
+  // Module games from games/catalog.json: a lobby tile with the same title becomes playable,
+  // and a new title gets its own tile (with its cover art) in its category. Playable games
+  // lead their category.
+  const applyGameCatalog = (catalog) => {
+    for (const entry of catalog?.games || []) {
+      if (entry.runtime !== "module") continue;
+      const category = GAME_CATEGORIES.find((item) => item.name === entry.category) || GAME_CATEGORIES.at(-1);
+      let game = category.games.find((item) => item.title === entry.title);
+      if (!game) {
+        game = {
+          title: entry.title, icon: "✦", playable: false, category: category.name,
+          accent: Number.parseInt((entry.accent || "#ffc96b").slice(1), 16), art: GAME_ART_BY_TITLE.get(entry.title),
+        };
+        category.games.push(game);
+      }
+      game.module = entry;
+      if (entry.cover) game.cover = `cover:${entry.id}`;
+    }
+    GAME_CATEGORIES.slice(1).forEach((category) => {
+      category.games.sort((a, b) => Number(Boolean(b.playable || b.module)) - Number(Boolean(a.playable || a.module)));
+    });
+    GAME_CATEGORIES[0].games = GAME_CATEGORIES.slice(1).flatMap((category) => category.games)
+      .sort((a, b) => Number(Boolean(b.playable || b.module)) - Number(Boolean(a.playable || a.module)));
+  };
+
   const PHOENIX_BETS = [10, 20, 40];
   const PHOENIX_SYMBOLS = [
     { mark: "7", frame: "symbol-0", name: "Golden Seven" },
@@ -577,6 +602,13 @@
       this.load.image("phoenix-gameplay-v3", "assets/phoenix-gameplay-bg-v3.webp");
       this.load.image("phoenix-reel-frame-v3", "assets/phoenix-reel-frame-v3.webp");
       this.load.image("gamish-game-icons", "assets/gamish-game-icons.png");
+      // The game catalogue (generated from games/*/game.json) and any module game covers.
+      this.load.json("games-catalog", "games/catalog.json");
+      this.load.once("filecomplete-json-games-catalog", (key, type, catalog) => {
+        (catalog?.games || []).forEach((entry) => {
+          if (entry.cover) this.load.image(`cover:${entry.id}`, entry.cover);
+        });
+      });
     }
 
     create() {
@@ -593,6 +625,7 @@
           symbolTexture.add(frameName, 0, (index % 3) * cell, Math.floor(index / 3) * cell, cell, cell);
         }
       }
+      applyGameCatalog(this.cache.json.get("games-catalog"));
       document.getElementById("loading-fallback")?.classList.add("ready");
       this.scene.start("WaitForPlayer");
     }
@@ -1074,15 +1107,19 @@
       const halo = this.add.circle(0, 0, LOBBY.tile * 0.58, game.accent, 0.05).setBlendMode(Phaser.BlendModes.ADD);
       const art = game.art
         ? this.add.image(0, 0, "gamish-game-icons", game.art)
-        : this.add.image(0, 0, "phoenix");
+        : this.add.image(0, 0, game.cover && this.textures.exists(game.cover) ? game.cover : "phoenix");
       art.setDisplaySize(LOBBY.tile, LOBBY.tile);
       card.add([halo, art]);
-      if (game.playable) {
+      if (game.playable || game.module) {
         const tag = addSoftPanel(this, 0, LOBBY.tile / 2 - 6, 120, 34, { fill: COLORS.ember, alpha: 1, radius: 17 });
         const tagText = this.add.text(0, LOBBY.tile / 2 - 7, "PLAY ›", { fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#2a0d06" }).setOrigin(0.5);
         card.add([tag, tagText]);
       }
-      this.makeTappable(card, LOBBY.tile, LOBBY.tile, () => (game.playable ? this.launchPhoenix() : this.openGameModal(game)));
+      this.makeTappable(card, LOBBY.tile, LOBBY.tile, () => {
+        if (game.playable) this.launchPhoenix();
+        else if (game.module) this.launchModule(game.module);
+        else this.openGameModal(game);
+      });
       this.content.add(card);
       this.cards.push(card);
       return card;
@@ -1232,6 +1269,13 @@
 
     openAppView(name) {
       window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: name }));
+    }
+
+    // Module games open in the platform's game host (app.js), over the sleeping lobby.
+    launchModule(entry) {
+      window.GamishAudio?.play("tap");
+      setStatus(`Opening ${entry.title}.`);
+      window.dispatchEvent(new CustomEvent("gamish:play-module", { detail: entry }));
     }
 
     launchPhoenix() {
