@@ -55,6 +55,7 @@
     app.classList.remove("account-locked");
     app.setAttribute("aria-hidden", "false");
     window.dispatchEvent(new CustomEvent("gamish:account", { detail: player }));
+    window.dispatchEvent(new CustomEvent("gamish:authenticated", { detail: player }));
   };
 
   const lockApp = () => {
@@ -62,6 +63,7 @@
     loginView.classList.remove("hidden");
     app.classList.add("account-locked");
     app.setAttribute("aria-hidden", "true");
+    window.dispatchEvent(new CustomEvent("gamish:signedout"));
   };
 
   const refreshWallet = async () => {
@@ -97,7 +99,7 @@
       loginError.textContent = error.message;
     } finally {
       button.disabled = false;
-      button.textContent = "Enter the Phoenix Realm";
+      button.textContent = "Enter Gamish777";
     }
   });
 
