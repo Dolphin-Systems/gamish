@@ -7,7 +7,11 @@
   const WIDTH = 1536;
   const HEIGHT = 720;
   const BLEED = 700;
-  const MAX_CANVAS_PIXELS = 3_400_000;
+  // Hard ceiling on canvas pixels. iOS kills a page whose WebGL buffers outgrow its memory
+  // allowance ("A problem repeatedly occurred"), so the render scale bends to fit this budget.
+  const MAX_CANVAS_PIXELS = 2_600_000;
+  // Phones held upright see the rotate prompt; the game behind it stays landscape-sized and asleep.
+  const PORTRAIT_PROMPT = window.matchMedia("(orientation: portrait) and (max-width: 900px) and (pointer: coarse)");
   const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
 
   const readSafeInsets = () => {
@@ -24,10 +28,13 @@
 
   const measureView = () => {
     const shell = document.getElementById("game-shell");
-    const cssWidth = shell?.clientWidth || window.innerWidth;
-    const cssHeight = shell?.clientHeight || window.innerHeight;
+    let cssWidth = shell?.clientWidth || window.innerWidth;
+    let cssHeight = shell?.clientHeight || window.innerHeight;
     if (!cssWidth || !cssHeight) return { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
-    const insets = readSafeInsets();
+    const portrait = PORTRAIT_PROMPT.matches;
+    // Upright, measure as if the phone were already turned: no tall, memory-hungry canvas.
+    if (portrait) [cssWidth, cssHeight] = [Math.max(cssWidth, cssHeight), Math.min(cssWidth, cssHeight)];
+    const insets = portrait ? { top: 0, right: 0, bottom: 0, left: 0 } : readSafeInsets();
     const safeWidth = Math.max(1, cssWidth - insets.left - insets.right);
     const safeHeight = Math.max(1, cssHeight - insets.top - insets.bottom);
     const scale = Math.min(safeWidth / WIDTH, safeHeight / HEIGHT); // CSS px per stage unit
@@ -36,9 +43,10 @@
     // Render closer to the screen's real pixel density so text and art stay sharp on
     // high-density phones, within a pixel budget that keeps the frame rate smooth.
     const density = Math.min(window.devicePixelRatio || 1, 3);
-    let zoom = Phaser.Math.Clamp((cssWidth * density) / width, 1, 1.6);
-    if (width * height * zoom * zoom > MAX_CANVAS_PIXELS) zoom = Math.max(1, Math.sqrt(MAX_CANVAS_PIXELS / (width * height)));
-    zoom = Math.floor(zoom * 4) / 4;
+    let zoom = Phaser.Math.Clamp((cssWidth * density) / width, 1, 1.5);
+    // The budget always wins, even if that means rendering a little below the stage size.
+    zoom = Math.min(zoom, Math.sqrt(MAX_CANVAS_PIXELS / (width * height)));
+    zoom = Math.max(0.5, Math.floor(zoom * 8) / 8);
     return {
       width,
       height,
@@ -2141,6 +2149,9 @@
     // 120Hz phones would otherwise draw every frame twice; 60fps is plenty for this game.
     fps: { target: 60, limit: 60 },
     render: {
+      // No multisampled WebGL buffer: it quadruples framebuffer memory, which iOS punishes.
+      // Art is drawn from textures and the canvas renders near native resolution, so edges stay smooth.
+      antialiasGL: false,
       antialias: true,
       pixelArt: false,
       roundPixels: false,
@@ -2205,11 +2216,23 @@
     window.visualViewport?.addEventListener("resize", refit);
     window.addEventListener("orientationchange", refit);
 
-    // Stop drawing while the wallet or messages page covers the game; resume where it left off.
-    window.addEventListener("gamish:view", (event) => {
-      if (event.detail === "arcade") game.loop.wake();
+    // Stop drawing while the wallet or messages page, or the rotate prompt, covers the game;
+    // resume where it left off.
+    let currentView = "arcade";
+    const syncLoop = () => {
+      if (currentView === "arcade" && !PORTRAIT_PROMPT.matches) game.loop.wake();
       else game.loop.sleep();
+    };
+    window.addEventListener("gamish:view", (event) => {
+      currentView = event.detail;
+      syncLoop();
     });
+    PORTRAIT_PROMPT.addEventListener?.("change", () => {
+      syncLoop();
+      refit();
+    });
+    // Phaser starts its loop after "ready", so apply the sleep state once the first frame has run.
+    game.events.once("poststep", syncLoop);
   };
 
   if (document.fonts?.ready) document.fonts.ready.then(start);
