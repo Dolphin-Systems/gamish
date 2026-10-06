@@ -73,26 +73,26 @@
   };
 
   const GAME_CATEGORIES = [
-    { name: "All Games", accent: 0xffc96b, games: [] },
-    { name: "Slots", accent: 0xff7a1a, games: [
+    { name: "All Games", icon: "✦", accent: 0xffc96b, games: [] },
+    { name: "Slots", icon: "7", accent: 0xff7a1a, games: [
       ["Phoenix Ruby", "♦", true], ["Classic 777", "7"], ["Fruit Spin", "🍒"], ["Mega Reels", "✦"], ["Jackpot Gold", "♛"], ["Hold & Win", "❖"],
     ] },
-    { name: "Instant", accent: 0x4de7e1, games: [
+    { name: "Instant", icon: "↗", accent: 0x4de7e1, games: [
       ["Crash", "↗"], ["Mines", "✹"], ["Plinko", "◉"], ["Dice", "⚄"], ["Limbo", "∞"],
     ] },
-    { name: "Cards", accent: 0xb783ff, games: [
+    { name: "Cards", icon: "♠", accent: 0xb783ff, games: [
       ["Blackjack", "♠"], ["Video Poker", "A♠"], ["Baccarat", "♥"], ["Teen Patti", "♣"], ["Dragon Tiger", "龍"],
     ] },
-    { name: "Table Games", accent: 0xffc14f, games: [
+    { name: "Table Games", icon: "◉", accent: 0xffc14f, games: [
       ["Roulette", "◎"], ["Craps", "⚄"], ["Sic Bo", "⚂"], ["Lucky Wheel", "◉"], ["Coin Flip", "◒"],
     ] },
-    { name: "Numbers", accent: 0xff6d79, games: [
+    { name: "Numbers", icon: "8", accent: 0xff6d79, games: [
       ["Keno", "▦"], ["Bingo", "B"], ["Lucky Numbers", "8"], ["Pick 3", "3"], ["Number Rush", "↗"],
     ] },
-    { name: "Arcade", accent: 0x68d39a, games: [
+    { name: "Arcade", icon: "✥", accent: 0x68d39a, games: [
       ["Fishing", "♧"], ["Pachinko", "◉"], ["Target Shot", "◎"], ["Treasure Drop", "◆"], ["Cannon Blast", "✹"],
     ] },
-    { name: "Quick Games", accent: 0xff9c47, games: [
+    { name: "Quick Games", icon: "★", accent: 0xff9c47, games: [
       ["Scratch Card", "▤"], ["Hi-Lo", "↕"], ["Mystery Box", "▣"], ["Lucky Cups", "♧"], ["Treasure Chest", "♜"],
     ] },
   ].map((category) => ({
@@ -579,51 +579,43 @@
       this.catalogScroll = 0;
       this.catalogDrag = null;
       setStatus("Gamish777 game lobby. Browse categories and choose a game.");
-      fitBackground(this, "hall-bg");
-      addVignette(this, 0.42);
-      addAtmosphere(this, 22, [0xffad42, 0x6ee7ea, 0xd994ff]);
-      addTopBar(this, { title: "GAMISH777" });
+      this.cameras.main.setBackgroundColor("#0b0710");
+      this.add.circle(140, 610, 300, 0x942c26, 0.06).setBlendMode(Phaser.BlendModes.ADD);
+      this.add.circle(654, 1010, 370, 0x3b2069, 0.075).setBlendMode(Phaser.BlendModes.ADD);
+      addAtmosphere(this, 18, [0xffad42, 0x6ee7ea, 0xd994ff]);
 
-      this.add.text(WIDTH / 2, 164, "CHOOSE YOUR GAME", {
+      this.add.text(WIDTH / 2, 126, "GAMISH777", {
         fontFamily: DISPLAY_FONT,
-        fontSize: "30px",
+        fontSize: "44px",
         color: "#fff1c6",
-        stroke: "#55200d",
-        strokeThickness: 7,
+        shadow: { offsetY: 5, color: "#000000", blur: 16, fill: true },
       }).setOrigin(0.5);
-      this.add.text(WIDTH / 2, 208, "A universe of games, all in one place", {
-        fontFamily: BODY_FONT,
-        fontSize: "15px",
-        color: "#d1b7b5",
-        letterSpacing: 1,
-      }).setOrigin(0.5);
-      addRule(this, 248, 510);
 
       this.categoryButtons = new Map();
       GAME_CATEGORIES.forEach((category, index) => {
-        const column = index % 4;
-        const row = Math.floor(index / 4);
-        this.addCategoryButton(category, { x: 104 + column * 187, y: 312 + row * 66 });
+        const column = index % 2;
+        const row = Math.floor(index / 2);
+        this.addCategoryButton(category, { x: 200 + column * 368, y: 237 + row * 72 });
       });
 
-      this.addFeaturedPhoenix();
-      this.add.text(52, 681, "BROWSE GAMES", {
+      this.addFeaturedPhoenix(600);
+      this.add.text(48, 721, "BROWSE GAMES", {
         fontFamily: BODY_FONT,
-        fontSize: "13px",
+        fontSize: "24px",
         fontStyle: "700",
         color: "#e6c17f",
         letterSpacing: 3,
       }).setOrigin(0, 0.5);
-      this.catalogCount = this.add.text(716, 681, `${GAME_CATEGORIES[0].games.length} GAMES`, {
-        fontFamily: BODY_FONT, fontSize: "11px", fontStyle: "700", color: "#cdb6ad", letterSpacing: 2,
+      this.catalogCount = this.add.text(716, 721, `${GAME_CATEGORIES[0].games.length} GAMES`, {
+        fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#cdb6ad", letterSpacing: 1,
       }).setOrigin(1, 0.5);
       this.renderGameCards(GAME_CATEGORIES[0].games);
 
       this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY) => {
-        if (pointer.y >= 694) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
+        if (pointer.y >= 738) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
       });
       this.input.on("pointerdown", (pointer) => {
-        if (pointer.y >= 694) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
+        if (pointer.y >= 738) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
       });
       this.input.on("pointermove", (pointer) => {
         if (!this.catalogDrag || !pointer.isDown) return;
@@ -648,23 +640,30 @@
 
     addCategoryButton(category, position) {
       const button = this.add.container(position.x, position.y);
-      const plate = addOrnatePanel(this, 0, 0, 170, 48, {
-        fill: category.accent, fillAlpha: 0.14, stroke: category.accent, strokeAlpha: 0.45, lineWidth: 1, bend: 17, anchors: false,
+      const plate = addSoftPanel(this, 0, 0, 340, 60, {
+        fill: category.accent, alpha: 0.1, radius: 22,
       });
-      const label = this.add.text(0, 0, category.name.toUpperCase(), {
-        fontFamily: BODY_FONT, fontSize: "10px", fontStyle: "700", color: "#ead5bb", letterSpacing: 1,
+      const icon = this.add.text(-118, -1, category.icon, {
+        fontFamily: DISPLAY_FONT, fontSize: "37px", fontStyle: "700", color: Phaser.Display.Color.IntegerToColor(category.accent).rgba,
+        shadow: { offsetY: 2, color: "#000000", blur: 8, fill: true },
       }).setOrigin(0.5);
-      button.add([plate, label]).setSize(176, 54).setInteractive({ useHandCursor: true });
+      const label = this.add.text(-80, 0, category.name.toUpperCase(), {
+        fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#ead5bb", letterSpacing: 0.2,
+      }).setOrigin(0, 0.5);
+      button.add([plate, icon, label]).setSize(346, 68).setInteractive({ useHandCursor: true });
+      button.on("pointerover", () => this.tweens.add({ targets: button, scale: 1.02, duration: 100 }));
+      button.on("pointerout", () => this.tweens.add({ targets: button, scale: 1, duration: 120 }));
       button.on("pointerup", () => this.showCategory(category.name));
-      this.categoryButtons.set(category.name, { button, plate, label, category });
+      this.categoryButtons.set(category.name, { button, plate, icon, label, category });
       this.refreshCategoryButtons();
     }
 
     refreshCategoryButtons() {
-      this.categoryButtons.forEach(({ plate, label, category }, name) => {
+      this.categoryButtons.forEach(({ plate, icon, label, category }, name) => {
         const active = name === this.selectedCategory;
-        plate.setAlpha(active ? 1 : 0.62);
-        label.setColor(active ? "#fff3ce" : "#c9b3ad");
+        plate.setAlpha(active ? 1 : 0.7);
+        icon.setAlpha(active ? 1 : 0.72);
+        label.setColor(active ? "#fff3ce" : "#e0d0c6");
       });
     }
 
@@ -679,28 +678,21 @@
       this.renderGameCards(category.games);
     }
 
-    addFeaturedPhoenix() {
-      const featured = this.add.container(WIDTH / 2, 520);
-      const glow = this.add.circle(0, 0, 350, COLORS.ember, 0.08).setBlendMode(Phaser.BlendModes.ADD);
-      const plate = addOrnatePanel(this, 0, 0, 696, 192, {
-        fill: 0x170b17, fillAlpha: 0.92, stroke: PHOENIX_GAME.accent, strokeAlpha: 0.7, bend: 40, anchors: true,
+    addFeaturedPhoenix(y) {
+      const featured = this.add.container(WIDTH / 2, y);
+      const glow = this.add.circle(0, 0, 350, COLORS.ember, 0.07).setBlendMode(Phaser.BlendModes.ADD);
+      const plate = addSoftPanel(this, 0, 0, 696, 176, {
+        fill: 0x1a0d1a, alpha: 0.92, radius: 38,
       });
-      const art = this.add.image(-218, 0, "phoenix").setDisplaySize(240, 176).setTint(0xffd7a0);
-      const tag = this.add.text(-66, -52, "FEATURED SLOT", {
-        fontFamily: BODY_FONT, fontSize: "11px", fontStyle: "700", color: "#ffbd69", letterSpacing: 3,
+      const art = this.add.image(-222, 0, "phoenix").setDisplaySize(236, 166).setTint(0xffd7a0);
+      const title = this.add.text(-66, -18, "PHOENIX RUBY", {
+        fontFamily: DISPLAY_FONT, fontSize: "24px", color: "#fff0c2",
+        shadow: { offsetY: 3, color: "#000000", blur: 10, fill: true },
       });
-      const title = this.add.text(-66, -14, "PHOENIX RUBY", {
-        fontFamily: DISPLAY_FONT, fontSize: "23px", color: "#fff0c2", stroke: "#4c180c", strokeThickness: 5,
-      });
-      const sub = this.add.text(-66, 26, "A firelit 3-reel slot", {
-        fontFamily: BODY_FONT, fontSize: "14px", color: "#d9c2b8",
-      });
-      const play = this.add.container(258, 0);
-      play.add([
-        this.add.circle(0, 0, 36, 0x9b2014, 0.98).setStrokeStyle(2, COLORS.gold, 0.82),
-        this.add.text(0, -1, "›", { fontFamily: BODY_FONT, fontSize: "46px", color: "#fff0c0" }).setOrigin(0.5),
-      ]);
-      featured.add([glow, plate, art, tag, title, sub, play]).setSize(696, 192).setInteractive({ useHandCursor: true });
+      const play = this.add.text(258, 0, "PLAY  ›", {
+        fontFamily: BODY_FONT, fontSize: "22px", fontStyle: "700", color: "#ffc96b", letterSpacing: 1,
+      }).setOrigin(0.5);
+      featured.add([glow, plate, art, title, play]).setSize(696, 184).setInteractive({ useHandCursor: true });
       featured.on("pointerup", () => this.launchPhoenix());
       featured.on("pointerover", () => this.tweens.add({ targets: featured, scale: 1.015, duration: 120 }));
       featured.on("pointerout", () => this.tweens.add({ targets: featured, scale: 1, duration: 120 }));
@@ -711,36 +703,29 @@
       this.catalogCards = [];
       const columns = [198, 570];
       const rowStep = 276;
-      const cardHeight = 250;
-      const firstY = 830;
+      const cardHeight = 246;
+      const firstY = 858;
       games.forEach((game, index) => {
         const position = { x: columns[index % 2], y: firstY + Math.floor(index / 2) * rowStep };
         const card = this.add.container(position.x, position.y);
         const halo = this.add.circle(0, 0, 170, game.accent, 0.045).setBlendMode(Phaser.BlendModes.ADD);
-        const panel = addOrnatePanel(this, 0, 0, 330, cardHeight, {
-          fill: 0x120913, fillAlpha: 0.94, stroke: game.accent, strokeAlpha: game.playable ? 0.86 : 0.43, bend: 28, anchors: true,
+        const panel = addSoftPanel(this, 0, 0, 330, cardHeight, {
+          fill: 0x130b18, alpha: 0.86, radius: 34,
         });
-        const iconPlate = this.add.circle(0, -49, 52, game.accent, 0.12).setStrokeStyle(2, game.accent, 0.52);
+        const iconPlate = this.add.circle(0, -48, 54, game.accent, 0.14);
         const icon = this.add.text(0, -51, game.icon, {
-          fontFamily: BODY_FONT, fontSize: game.icon.length > 2 ? "34px" : "46px", fontStyle: "700", color: "#fff0c0",
-          stroke: "#41130f", strokeThickness: 5,
+          fontFamily: BODY_FONT, fontSize: game.icon.length > 2 ? "42px" : "58px", fontStyle: "700", color: "#fff0c0",
+          shadow: { offsetY: 3, color: "#3c180d", blur: 12, fill: true },
         }).setOrigin(0.5);
-        const title = this.add.text(0, 29, game.title.toUpperCase(), {
-          fontFamily: DISPLAY_FONT, fontSize: game.title.length > 14 ? "15px" : "18px", color: "#fff0c2",
-          stroke: "#40130e", strokeThickness: 4, align: "center",
+        const title = this.add.text(0, 42, game.title.toUpperCase(), {
+          fontFamily: DISPLAY_FONT, fontSize: game.title.length > 14 ? "22px" : "27px", color: "#fff0c2",
+          shadow: { offsetY: 3, color: "#000000", blur: 8, fill: true }, align: "center",
         }).setOrigin(0.5);
-        const subtitle = this.add.text(0, 63, game.category.toUpperCase(), {
-          fontFamily: BODY_FONT, fontSize: "10px", fontStyle: "700", color: Phaser.Display.Color.IntegerToColor(game.accent).rgba, letterSpacing: 2,
+        const stateText = game.playable ? "PLAY NOW  ›" : "COMING SOON";
+        const state = this.add.text(0, 91, stateText, {
+          fontFamily: BODY_FONT, fontSize: "25px", fontStyle: "700", color: game.playable ? "#ffc96b" : "#b9a9b0", letterSpacing: 1,
         }).setOrigin(0.5);
-        const badgeText = game.playable ? "PLAY NOW" : "COMING SOON";
-        const badge = addOrnatePanel(this, 0, 94, 152, 31, {
-          fill: game.accent, fillAlpha: game.playable ? 0.38 : 0.11, stroke: game.accent, strokeAlpha: game.playable ? 0.8 : 0.38,
-          lineWidth: 1, bend: 11, anchors: false,
-        });
-        const badgeLabel = this.add.text(0, 94, badgeText, {
-          fontFamily: BODY_FONT, fontSize: "10px", fontStyle: "700", color: game.playable ? "#fff0c0" : "#bca8a7", letterSpacing: 2,
-        }).setOrigin(0.5);
-        card.add([halo, panel, iconPlate, icon, title, subtitle, badge, badgeLabel]);
+        card.add([halo, panel, iconPlate, icon, title, state]);
         card.setSize(338, cardHeight + 8).setInteractive({ useHandCursor: true });
         card.on("pointerdown", () => {
           if (!this.catalogDragMoved) window.GamishAudio?.play("tap");
@@ -778,10 +763,10 @@
       const modal = this.add.container(WIDTH / 2, HEIGHT / 2).setDepth(100);
       const blocker = this.add.rectangle(0, 0, WIDTH + BLEED * 2, HEIGHT + BLEED * 2, 0x060309, 0.84).setInteractive();
       const glow = this.add.circle(0, -100, 160, game.accent, 0.14);
-      const panel = addOrnatePanel(this, 0, 0, 570, 610, {
-        fill: 0x110a15, fillAlpha: 0.98, stroke: game.accent, strokeAlpha: 0.78, lineWidth: 3, bend: 44,
+      const panel = addSoftPanel(this, 0, 0, 570, 610, {
+        fill: 0x130b18, alpha: 0.98, radius: 44,
       });
-      const iconPlate = this.add.circle(0, -120, 92, game.accent, 0.12).setStrokeStyle(2, game.accent, 0.5);
+      const iconPlate = this.add.circle(0, -120, 92, game.accent, 0.14);
       const icon = this.add.text(0, -120, game.icon, {
         fontFamily: BODY_FONT, fontSize: "82px", fontStyle: "700", color: "#fff0c0",
       }).setOrigin(0.5);
@@ -789,24 +774,24 @@
         fontFamily: DISPLAY_FONT,
         fontSize: "26px",
         color: "#fff0c2",
-        stroke: "#4c180c",
-        strokeThickness: 6,
+        shadow: { offsetY: 4, color: "#000000", blur: 12, fill: true },
       }).setOrigin(0.5);
       const copy = this.add.text(0, 84, `${game.category.toUpperCase()}  •  COMING SOON\nThis game is on the Gamish777 roadmap.`, {
         fontFamily: BODY_FONT,
-        fontSize: "15px",
+        fontSize: "21px",
         color: "#cbb8bf",
         align: "center",
         lineSpacing: 8,
       }).setOrigin(0.5);
       modal.add([blocker, glow, panel, iconPlate, icon, title, copy]);
       const closeLabel = `BACK TO ${this.selectedCategory.toUpperCase()}`;
-      const close = makeButton(this, WIDTH / 2, HEIGHT / 2 + 226, 360, 66, closeLabel, () => this.closeModal(), {
-        fill: 0x5a1916,
-        stroke: game.accent,
-        accent: game.accent,
-        fontSize: "18px",
-      }).setDepth(101);
+      const close = this.add.container(WIDTH / 2, HEIGHT / 2 + 226).setDepth(101);
+      close.add([
+        addSoftPanel(this, 0, 0, 360, 70, { fill: game.accent, alpha: 0.2, radius: 30 }),
+        this.add.text(0, 0, closeLabel, { fontFamily: BODY_FONT, fontSize: "24px", fontStyle: "700", color: "#fff0c0", letterSpacing: 1 }).setOrigin(0.5),
+      ]);
+      close.setSize(370, 78).setInteractive({ useHandCursor: true });
+      close.on("pointerup", () => this.closeModal());
       modal.setScale(0.9).setAlpha(0);
       this.tweens.add({ targets: modal, scale: 1, alpha: 1, duration: 240, ease: "Back.Out" });
       this.tweens.add({ targets: glow, scale: 1.18, alpha: 0.3, duration: 1300, yoyo: true, repeat: -1 });
@@ -879,6 +864,27 @@
     bend: options.bend ?? Math.min(26, height * 0.3),
     anchors: options.anchors ?? false,
   });
+
+  const addSoftPanel = (scene, x, y, width, height, options = {}) => {
+    const fill = options.fill ?? 0x130b18;
+    const alpha = options.alpha ?? 0.82;
+    const radius = options.radius ?? 28;
+    const accent = options.accent ?? null;
+    const key = `soft-panel:${width}x${height}:${fill}:${alpha}:${radius}:${accent ?? "none"}`;
+    bakeGraphics(scene, key, width + 8, height + 8, (graphics) => {
+      if (accent !== null) {
+        graphics.fillStyle(accent, 0.08);
+        graphics.fillRoundedRect(2, 2, width + 4, height + 4, radius + 4);
+      }
+      graphics.fillStyle(fill, alpha);
+      graphics.fillRoundedRect(4, 4, width, height, radius);
+      if (accent !== null) {
+        graphics.fillStyle(accent, 0.72);
+        graphics.fillRoundedRect(4, 18, 5, Math.max(12, height - 36), 3);
+      }
+    });
+    return scene.add.image(x, y, key);
+  };
 
   class PhoenixGameScene extends Phaser.Scene {
     constructor() {
