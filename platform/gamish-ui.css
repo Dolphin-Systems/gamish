@@ -1,0 +1,37 @@
+/*
+ * Gamish777 UI kit: the platform's default gold frame, shared by the app and by every game.
+ *
+ *   <link rel="stylesheet" href="/platform/gamish-ui.css" />
+ *   <button class="gamish-frame">…</button>        any button, card, panel or tile
+ *   <input class="gamish-field" />                  inputs and selects (no pseudo-elements)
+ *
+ * The frame is a thin bevelled gold edge: bright highlights and darker gold bands, the same as
+ * the lobby's game tiles. It sits on the element's edge and never changes its size.
+ */
+:root {
+  --gamish-gold-edge: linear-gradient(155deg, #fff6d0 0%, #f3c35a 14%, #b5782a 32%, #ffe08e 50%, #c48a34 68%, #8e5a1e 84%, #f2c66a 100%);
+  --gamish-frame-width: 2px;
+  --gamish-field-fill: #1d1120;
+}
+
+.gamish-frame { position: relative; }
+.gamish-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: var(--gamish-frame-width);
+  border-radius: inherit;
+  background: var(--gamish-gold-edge);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Inputs can't carry ::after, so their frame is a second background layer under the fill. */
+.gamish-field {
+  border: var(--gamish-frame-width) solid transparent !important;
+  background: linear-gradient(var(--gamish-field-fill), var(--gamish-field-fill)) padding-box, var(--gamish-gold-edge) border-box !important;
+}

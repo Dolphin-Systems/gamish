@@ -290,10 +290,9 @@
   const addIconButton = (scene, x, y, kind, onTap, { label = "" } = {}) => {
     const iconKey = (name) => bakeGraphics(scene, `icon:${name}`, 48, 48, ICON_DRAWERS[name]);
     const button = scene.add.container(x, y);
-    const disk = scene.add.circle(0, 0, 30, 0x34142a, 0.95);
-    const shine = scene.add.ellipse(0, -14, 34, 14, 0xffd9a0, 0.1);
+    const disk = scene.add.image(0, 0, goldDiscTexture(scene, 30)).setScale(1 / textureScale());
     const icon = scene.add.image(0, 0, iconKey(kind));
-    button.add([disk, shine, icon]).setSize(76, 76).setInteractive({ useHandCursor: true });
+    button.add([disk, icon]).setSize(76, 76).setInteractive({ useHandCursor: true });
     button.setData("label", label);
     button.setIcon = (name) => icon.setTexture(iconKey(name));
     button.on("pointerdown", () => pressFeedback(scene, button, 0.88));
@@ -432,6 +431,92 @@
     ctx.closePath();
   };
 
+  // The platform's gold frame (platform/gamish-ui.css): a thin bevelled gold edge, the same as
+  // the lobby's game tiles. Drawn on a 2D canvas inside a rounded rect path.
+  const GOLD_EDGE = [[0, "#fff6d0"], [0.14, "#f3c35a"], [0.32, "#b5782a"], [0.5, "#ffe08e"], [0.68, "#c48a34"], [0.84, "#8e5a1e"], [1, "#f2c66a"]];
+  const strokeGoldEdge = (ctx, x, y, w, h, r, width = 2.5) => {
+    // 155deg like the CSS: light from the top left.
+    const gradient = ctx.createLinearGradient(x, y, x + w * 0.42 + h * 0.2, y + h);
+    GOLD_EDGE.forEach(([stop, color]) => gradient.addColorStop(stop, color));
+    ctx.save();
+    ctx.beginPath();
+    roundRectPath(ctx, x + width / 2, y + width / 2, w - width, h - width, Math.max(0, r - width / 2));
+    ctx.lineWidth = width;
+    ctx.strokeStyle = gradient;
+    ctx.stroke();
+    // A hairline of shadow just inside, for depth.
+    ctx.beginPath();
+    roundRectPath(ctx, x + width + 0.5, y + width + 0.5, w - width * 2 - 1, h - width * 2 - 1, Math.max(0, r - width - 0.5));
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(20, 6, 4, 0.55)";
+    ctx.stroke();
+    ctx.restore();
+  };
+  const strokeGoldRing = (ctx, cx, cy, radius, width = 2.5) => {
+    const gradient = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius * 0.6, cy + radius);
+    GOLD_EDGE.forEach(([stop, color]) => gradient.addColorStop(stop, color));
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - width / 2, 0, Math.PI * 2);
+    ctx.lineWidth = width;
+    ctx.strokeStyle = gradient;
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const goldDiscTexture = (scene, radius, fill = "#34142a") => {
+    const scale = textureScale();
+    const key = `gold-disc:${radius}:${fill}:${scale}`;
+    if (scene.textures.exists(key)) return key;
+    const size = radius * 2 + 4;
+    const texture = scene.textures.createCanvas(key, Math.ceil(size * scale), Math.ceil(size * scale));
+    const ctx = texture.getContext();
+    ctx.scale(scale, scale);
+    const c = size / 2;
+    const face = ctx.createLinearGradient(0, c - radius, 0, c + radius);
+    face.addColorStop(0, "#4a1d3a");
+    face.addColorStop(1, fill);
+    ctx.beginPath();
+    ctx.arc(c, c, radius, 0, Math.PI * 2);
+    ctx.fillStyle = face;
+    ctx.fill();
+    const shine = ctx.createLinearGradient(0, c - radius, 0, c);
+    shine.addColorStop(0, "rgba(255, 226, 170, 0.18)");
+    shine.addColorStop(1, "rgba(255, 226, 170, 0)");
+    ctx.beginPath();
+    ctx.arc(c, c, radius - 2, Math.PI, 0);
+    ctx.fillStyle = shine;
+    ctx.fill();
+    strokeGoldRing(ctx, c, c, radius, 2.5);
+    texture.refresh();
+    return key;
+  };
+
+  // Game tiles whose picture has no frame of its own (uploaded logos, cover art, the Phoenix
+  // key art) get the platform frame and rounded corners, baked once per picture.
+  const framedTileTexture = (scene, sourceKey, size) => {
+    const scale = textureScale();
+    const key = `framed-tile:${sourceKey}:${size}:${scale}`;
+    if (scene.textures.exists(key)) return key;
+    const frame = scene.textures.getFrame(sourceKey);
+    const texture = scene.textures.createCanvas(key, Math.ceil(size * scale), Math.ceil(size * scale));
+    const ctx = texture.getContext();
+    ctx.scale(scale, scale);
+    const radius = size * 0.07;
+    ctx.save();
+    ctx.beginPath();
+    roundRectPath(ctx, 0, 0, size, size, radius);
+    ctx.clip();
+    ctx.fillStyle = "#140a12";
+    ctx.fillRect(0, 0, size, size);
+    const side = Math.min(frame.cutWidth, frame.cutHeight);
+    ctx.drawImage(frame.source.image, frame.cutX + (frame.cutWidth - side) / 2, frame.cutY + (frame.cutHeight - side) / 2, side, side, 0, 0, size, size);
+    ctx.restore();
+    strokeGoldEdge(ctx, 0, 0, size, size, radius, Math.max(3, size * 0.016));
+    texture.refresh();
+    return key;
+  };
+
   // Texture detail matched to the canvas resolution (the stage renders at VIEW.zoom).
   const textureScale = () => Math.min(1.5, Math.max(1, Math.round(VIEW.zoom * 4) / 4));
   const mixColor = (hex, target, amount) => {
@@ -448,7 +533,8 @@
     const alpha = options.fillAlpha ?? 0.94;
     const radius = Math.min(options.bend ?? 28, h / 2, w / 2);
     const scale = textureScale();
-    const key = `panel2:${w}x${h}:${fill}:${alpha}:${radius}:${scale}`;
+    const framed = options.frame !== false;
+    const key = `panel3:${w}x${h}:${fill}:${alpha}:${radius}:${scale}:${framed ? 1 : 0}`;
     if (!scene.textures.exists(key)) {
       const pad = PANEL_PAD;
       const texture = scene.textures.createCanvas(key, Math.ceil((w + pad * 2) * scale), Math.ceil((h + pad * 2) * scale));
@@ -480,6 +566,7 @@
       ctx.fillStyle = sheen;
       ctx.fillRect(pad, pad, w, h);
       ctx.restore();
+      if (framed) strokeGoldEdge(ctx, pad, pad, w, h, radius, 2.5);
       texture.refresh();
     }
     return scene.add.image(x, y, key).setScale(1 / scale);
@@ -577,7 +664,7 @@
     if (options.back) {
       const back = scene.add.container(88, 70);
       const outerGlow = scene.add.circle(0, 0, 42, COLORS.ember, 0.11).setBlendMode(Phaser.BlendModes.ADD);
-      const disk = scene.add.circle(0, 0, 34, 0x3a1626, 0.96);
+      const disk = scene.add.image(0, 0, goldDiscTexture(scene, 34)).setScale(1 / textureScale());
       const arrow = scene.add.text(-2, -2, "‹", { fontFamily: BODY_FONT, fontSize: "49px", color: "#ffe4a3" }).setOrigin(0.5);
       back.add([outerGlow, disk, arrow]).setSize(120, 120).setInteractive({ useHandCursor: true });
       back.on("pointerdown", () => {
@@ -803,7 +890,7 @@
   const CHIP_HEIGHT = 48;
   const chipPlateTexture = (scene, width, on, accent) => {
     const scale = textureScale();
-    const key = `chip-plate:${width}:${on ? 1 : 0}:${accent}:${scale}`;
+    const key = `chip-plate2:${width}:${on ? 1 : 0}:${accent}:${scale}`;
     if (scene.textures.exists(key)) return key;
     const pad = 8;
     const texture = scene.textures.createCanvas(key, Math.ceil((width + pad * 2) * scale), Math.ceil((CHIP_HEIGHT + pad * 2) * scale));
@@ -835,10 +922,7 @@
       roundRectPath(ctx, x + 4, y + 2, width - 8, CHIP_HEIGHT / 2 - 2, 11);
       ctx.fillStyle = shine;
       ctx.fill();
-      pill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = "rgba(255, 246, 214, 0.9)";
-      ctx.stroke();
+      strokeGoldEdge(ctx, x, y, width, CHIP_HEIGHT, r, 2.5);
     } else {
       const face = ctx.createLinearGradient(0, y, 0, y + CHIP_HEIGHT);
       face.addColorStop(0, "rgba(46, 22, 40, 0.96)");
@@ -846,14 +930,7 @@
       pill();
       ctx.fillStyle = face;
       ctx.fill();
-      const rim = ctx.createLinearGradient(x, 0, x + width, 0);
-      rim.addColorStop(0, "rgba(255, 210, 128, 0.7)");
-      rim.addColorStop(0.5, "rgba(255, 210, 128, 0.22)");
-      rim.addColorStop(1, "rgba(255, 210, 128, 0.5)");
-      pill();
-      ctx.lineWidth = 1.3;
-      ctx.strokeStyle = rim;
-      ctx.stroke();
+      strokeGoldEdge(ctx, x, y, width, CHIP_HEIGHT, r, 2);
     }
     texture.refresh();
     return key;
@@ -1144,10 +1221,12 @@
       const card = this.add.container(cx, cy);
       const halo = this.add.circle(0, 0, LOBBY.tile * 0.58, game.accent, 0.05).setBlendMode(Phaser.BlendModes.ADD);
       // An uploaded logo wins, then the lobby art sheet, then the Phoenix key art.
+      // The art sheet's pictures already have the gold frame; the others get it baked on.
       const art = game.cover && this.textures.exists(game.cover)
-        ? this.add.image(0, 0, game.cover)
-        : game.art ? this.add.image(0, 0, "gamish-game-icons", game.art) : this.add.image(0, 0, "phoenix");
-      art.setDisplaySize(LOBBY.tile, LOBBY.tile);
+        ? this.add.image(0, 0, framedTileTexture(this, game.cover, LOBBY.tile)).setScale(1 / textureScale())
+        : game.art ? this.add.image(0, 0, "gamish-game-icons", game.art)
+          : this.add.image(0, 0, framedTileTexture(this, "phoenix", LOBBY.tile)).setScale(1 / textureScale());
+      if (game.art && !(game.cover && this.textures.exists(game.cover))) art.setDisplaySize(LOBBY.tile, LOBBY.tile);
       card.add([halo, art]);
       this.makeTappable(card, LOBBY.tile, LOBBY.tile, () => {
         if (game.playable) this.launchPhoenix();
@@ -1448,22 +1527,42 @@
   const addSoftPanel = (scene, x, y, width, height, options = {}) => {
     const fill = options.fill ?? 0x130b18;
     const alpha = options.alpha ?? 0.82;
-    const radius = options.radius ?? 28;
+    const radius = Math.min(options.radius ?? 28, height / 2, width / 2);
     const accent = options.accent ?? null;
-    const key = `soft-panel:${width}x${height}:${fill}:${alpha}:${radius}:${accent ?? "none"}`;
-    bakeGraphics(scene, key, width + 8, height + 8, (graphics) => {
+    const framed = options.frame !== false;
+    const scale = textureScale();
+    const key = `soft-panel2:${width}x${height}:${fill}:${alpha}:${radius}:${accent ?? "none"}:${framed ? 1 : 0}:${scale}`;
+    if (!scene.textures.exists(key)) {
+      const pad = 4;
+      const texture = scene.textures.createCanvas(key, Math.ceil((width + pad * 2) * scale), Math.ceil((height + pad * 2) * scale));
+      const ctx = texture.getContext();
+      ctx.scale(scale, scale);
+      const hex = (value) => `#${value.toString(16).padStart(6, "0")}`;
       if (accent !== null) {
-        graphics.fillStyle(accent, 0.08);
-        graphics.fillRoundedRect(2, 2, width + 4, height + 4, radius + 4);
+        ctx.globalAlpha = 0.08;
+        ctx.fillStyle = hex(accent);
+        ctx.beginPath();
+        roundRectPath(ctx, pad - 2, pad - 2, width + 4, height + 4, radius + 4);
+        ctx.fill();
       }
-      graphics.fillStyle(fill, alpha);
-      graphics.fillRoundedRect(4, 4, width, height, radius);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = hex(fill);
+      ctx.beginPath();
+      roundRectPath(ctx, pad, pad, width, height, radius);
+      ctx.fill();
+      ctx.globalAlpha = 1;
       if (accent !== null) {
-        graphics.fillStyle(accent, 0.72);
-        graphics.fillRoundedRect(4, 18, 5, Math.max(12, height - 36), 3);
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = hex(accent);
+        ctx.beginPath();
+        roundRectPath(ctx, pad, pad + 14, 5, Math.max(12, height - 28), 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
       }
-    });
-    return scene.add.image(x, y, key);
+      if (framed) strokeGoldEdge(ctx, pad, pad, width, height, radius, 2.5);
+      texture.refresh();
+    }
+    return scene.add.image(x, y, key).setScale(1 / scale);
   };
 
   class PhoenixGameScene extends Phaser.Scene {
@@ -1724,7 +1823,7 @@
       }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true }).on("pointerup", () => this.showRules());
       const rules = this.add.container(SIDE.left - SIDE.width / 2 + 44, 572);
       const rulesHalo = this.add.circle(0, 0, 31, COLORS.ember, 0.12).setBlendMode(Phaser.BlendModes.ADD);
-      const rulesPlate = this.add.circle(0, 0, 24, 0x3a1626, 0.96);
+      const rulesPlate = this.add.image(0, 0, goldDiscTexture(this, 24)).setScale(1 / textureScale());
       const rulesIcon = this.add.text(0, -1, "?", {
         fontFamily: DISPLAY_FONT, fontSize: "25px", color: "#ffe0a0", stroke: "#52150c", strokeThickness: 3,
       }).setOrigin(0.5);
@@ -1735,12 +1834,11 @@
 
     makeRoundButton(x, y, radius, label, onClick) {
       const button = this.add.container(x, y);
-      const disc = this.add.circle(0, 0, radius, 0x3a1626, 1);
-      const shine = this.add.ellipse(0, -radius * 0.45, radius * 1.1, radius * 0.5, 0xffd9a0, 0.12);
+      const disc = this.add.image(0, 0, goldDiscTexture(this, radius)).setScale(1 / textureScale());
       const text = this.add.text(0, -2, label, {
         fontFamily: BODY_FONT, fontSize: "30px", fontStyle: "700", color: "#ffe4a3",
       }).setOrigin(0.5);
-      button.add([disc, shine, text]);
+      button.add([disc, text]);
       button.setSize(radius * 2 + 16, radius * 2 + 16).setInteractive({ useHandCursor: true });
       button.on("pointerdown", () => pressFeedback(this, button, 0.88));
       button.on("pointerup", onClick);

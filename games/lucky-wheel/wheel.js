@@ -147,6 +147,7 @@
   const betButtons = bets.map((amount) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "gamish-frame";
     button.textContent = amount;
     button.classList.toggle("on", amount === bet);
     button.addEventListener("click", () => {
