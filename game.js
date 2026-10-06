@@ -599,6 +599,10 @@
       this.catalogCards = [];
       this.catalogScroll = 0;
       this.catalogDrag = null;
+      this.hallContent = this.add.container(0, 0);
+      const hallMask = this.make.graphics({ x: 0, y: 0, add: false });
+      hallMask.fillStyle(0xffffff, 1).fillRect(0, 225, WIDTH, HEIGHT - 300);
+      this.hallContent.setMask(hallMask.createGeometryMask());
       setStatus("Gamish777 game hall. Browse games or open your profile, chat, or payments.");
       this.cameras.main.setBackgroundColor("#0b0710");
       this.add.circle(140, 610, 300, 0x942c26, 0.06).setBlendMode(Phaser.BlendModes.ADD);
@@ -617,23 +621,24 @@
       this.addMenuAction(686, "chat", "Chat with support", () => this.openAppView("messages"));
 
       this.addFeaturedPhoenix(370);
-      this.add.text(48, 505, "ALL GAMES", {
+      const allGamesHeading = this.add.text(48, 505, "ALL GAMES", {
         fontFamily: BODY_FONT,
         fontSize: "24px",
         fontStyle: "700",
         color: "#e6c17f",
         letterSpacing: 3,
       }).setOrigin(0, 0.5);
-      this.catalogCount = this.add.text(716, 505, `${GAME_CATEGORIES[0].games.length} GAMES`, {
+      const catalogCount = this.add.text(716, 505, `${GAME_CATEGORIES[0].games.length} GAMES`, {
         fontFamily: BODY_FONT, fontSize: "20px", fontStyle: "700", color: "#cdb6ad", letterSpacing: 1,
       }).setOrigin(1, 0.5);
+      this.hallContent.add([allGamesHeading, catalogCount]);
       this.renderGameCards(GAME_CATEGORIES[0].games);
 
       this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY) => {
-        if (pointer.y >= 525) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
+        if (pointer.y >= 225 && this.catalogMaxScroll > 0) this.setCatalogScroll(this.catalogScroll + deltaY * 1.1);
       });
       this.input.on("pointerdown", (pointer) => {
-        if (pointer.y >= 525) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
+        if (pointer.y >= 225 && this.catalogMaxScroll > 0) this.catalogDrag = { y: pointer.y, scroll: this.catalogScroll, moved: false };
       });
       this.input.on("pointermove", (pointer) => {
         if (!this.catalogDrag || !pointer.isDown) return;
@@ -744,9 +749,12 @@
         fontFamily: BODY_FONT, fontSize: "22px", fontStyle: "700", color: "#ffc96b", letterSpacing: 1,
       }).setOrigin(0.5);
       featured.add([glow, plate, art, title, play]).setSize(696, 184).setInteractive({ useHandCursor: true });
-      featured.on("pointerup", () => this.launchPhoenix());
+      featured.on("pointerup", () => {
+        if (!this.catalogDragMoved) this.launchPhoenix();
+      });
       featured.on("pointerover", () => this.tweens.add({ targets: featured, scale: 1.015, duration: 120 }));
       featured.on("pointerout", () => this.tweens.add({ targets: featured, scale: 1, duration: 120 }));
+      this.hallContent.add(featured);
     }
 
     renderGameCards(games) {
@@ -787,16 +795,18 @@
           if (!this.catalogDrag) this.tweens.add({ targets: card, scale: 1.025, duration: 120 });
         });
         card.on("pointerout", () => this.tweens.add({ targets: card, scale: 1, duration: 120 }));
+        this.hallContent.add(card);
         this.catalogCards.push({ container: card, x: position.x, y: position.y });
       });
       const rowCount = Math.ceil(games.length / 2);
-      this.catalogMaxScroll = Math.max(0, rowCount * rowStep - (HEIGHT - firstY - 100));
+      const contentBottom = firstY + Math.max(0, rowCount - 1) * rowStep + cardHeight / 2 + 4;
+      this.catalogMaxScroll = Math.max(0, contentBottom - (HEIGHT - 110));
       this.catalogDragMoved = false;
     }
 
     setCatalogScroll(value) {
       this.catalogScroll = Phaser.Math.Clamp(value, 0, this.catalogMaxScroll || 0);
-      this.catalogCards.forEach(({ container, x, y }) => container.setPosition(x, y - this.catalogScroll));
+      this.hallContent.y = -this.catalogScroll;
     }
 
     launchPhoenix() {
