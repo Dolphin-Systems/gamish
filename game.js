@@ -72,8 +72,8 @@
     muted: 0xb9a7ad,
   };
 
-  // Source coordinates for the supplied 7×5 game-art sheet (1484×1060). Keeping
-  // crops in Phaser avoids recompressing the high-resolution original into 35 files.
+  // Source coordinates for the supplied 7×5 game-art sheet (1484×1060). Phaser
+  // frames expose each tile at its own dimensions without recompressing the original.
   const GAME_ART_CELLS = [
     ["Classic 777", 12, 14, 212, 195], ["Fruit Spin", 236, 14, 192, 195], ["Mega Reels", 438, 14, 194, 195],
     ["Jackpot Gold", 643, 14, 196, 195], ["Hold & Win", 849, 14, 196, 195], ["Crash", 1055, 14, 197, 195], ["Mines", 1262, 14, 210, 195],
@@ -86,7 +86,7 @@
     ["Treasure Drop", 12, 822, 212, 203], ["Cannon Blast", 236, 822, 192, 203], ["Scratch Card", 438, 822, 194, 203],
     ["Hi-Lo", 643, 822, 196, 203], ["Mystery Box", 849, 822, 196, 203], ["Lucky Cups", 1055, 822, 197, 203], ["Treasure Chest", 1262, 822, 210, 203],
   ];
-  const GAME_ART_BY_TITLE = new Map(GAME_ART_CELLS.map(([title, x, y, width, height]) => [title, { x, y, width, height }]));
+  const GAME_ART_BY_TITLE = new Map(GAME_ART_CELLS.map(([title], index) => [title, `game-art-${index}`]));
 
   const GAME_CATEGORIES = [
     { name: "All Games", icon: "✦", accent: 0xffc96b, games: [] },
@@ -456,6 +456,11 @@
     }
 
     create() {
+      const gameArtTexture = this.textures.get("gamish-game-icons");
+      GAME_ART_CELLS.forEach(([title, x, y, width, height]) => {
+        const frame = GAME_ART_BY_TITLE.get(title);
+        if (!gameArtTexture.has(frame)) gameArtTexture.add(frame, 0, x, y, width, height);
+      });
       const symbolTexture = this.textures.get("phoenix-symbols-v2");
       const cell = 418;
       for (let index = 0; index < 9; index += 1) {
@@ -731,10 +736,7 @@
         });
         let art;
         if (game.art) {
-          const artFrame = game.art;
-          art = this.add.image(0, -14, "gamish-game-icons")
-            .setCrop(artFrame.x, artFrame.y, artFrame.width, artFrame.height)
-            .setScale(204 / artFrame.width, 204 / artFrame.height);
+          art = this.add.image(0, -14, "gamish-game-icons", game.art).setDisplaySize(204, 204);
         } else {
           art = this.add.image(0, -14, "phoenix").setDisplaySize(204, 204);
         }
