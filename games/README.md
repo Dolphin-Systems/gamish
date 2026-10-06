@@ -127,6 +127,20 @@ Gamish.exit();                               // optional: same as the platform's
 
 One round at a time: wait for `play()` before starting the next.
 
+## The platform look
+
+Every button, panel and tile on Gamish777 wears the same thin bevelled gold frame. Use it in
+games too:
+
+```html
+<link rel="stylesheet" href="/platform/gamish-ui.css" />
+<button class="gamish-frame">SPIN</button>        <!-- buttons, panels, cards, tiles -->
+<input class="gamish-field" />                     <!-- inputs and selects -->
+```
+
+The frame is drawn on the element's edge and keeps its size and corner radius. Its colours are
+the CSS variable `--gamish-gold-edge`, for anything you draw yourself (canvas, SVG).
+
 ## Sandbox and layout
 
 * Games run in an `<iframe sandbox="allow-scripts">`: no cookies, no `localStorage`, no access

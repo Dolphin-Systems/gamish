@@ -17,6 +17,7 @@
   bets.forEach((amount) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "gamish-frame";
     button.textContent = amount;
     button.addEventListener("click", () => {
       bet = amount;

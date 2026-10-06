@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>Template Game</title>
+  <!-- The platform's gold frame: add class="gamish-frame" to buttons and panels, "gamish-field" to inputs. -->
+  <link rel="stylesheet" href="/platform/gamish-ui.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,7 +15,7 @@
     <p id="balance" class="balance">—</p>
     <p id="result" class="result">Pick a bet and play</p>
     <div id="bets" class="bets"></div>
-    <button id="play" class="play" type="button">PLAY</button>
+    <button id="play" class="play gamish-frame" type="button">PLAY</button>
   </main>
   <script src="/platform/gamish-sdk.js"></script>
   <script src="game.js"></script>

@@ -36,6 +36,8 @@ BUILD:
 - Landscape phone layout (640–950 × 360–430 CSS px), respect env(safe-area-inset-*), keep the
   top-left 72 × 72 px empty for the platform's back button.
 - Polished art, motion and sound in the Gamish777 style (dark plum and ember gold, warm glow).
+  Link /platform/gamish-ui.css and give every button and panel class="gamish-frame" (inputs
+  class="gamish-field"): the platform's default gold frame.
   Audio starts only after a tap. One round at a time; disable controls while a round runs.
 - Show the balance from session.wallet / Gamish.onWallet, the bet choices from session.math.bets,
   and a clear message for "insufficient_credits".

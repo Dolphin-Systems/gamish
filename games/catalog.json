@@ -75,7 +75,7 @@
       "id": "lucky-wheel",
       "title": "Lucky Wheel",
       "category": "Table Games",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "runtime": "module",
       "url": "/games/lucky-wheel/index.html",
       "cover": null,
