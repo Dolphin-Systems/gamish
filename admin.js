@@ -16,6 +16,7 @@ const pageCopy = {
   analytics: ["Player analytics", "Understand player activity and game performance."],
   money: ["Money", "Confirm deposits, send cash-outs, and adjust balances."],
   reports: ["Reports", "Review activity and download a PDF."],
+  games: ["Games", "Every lobby game: logo, name, ID, order, and whether it's on."],
   nerd: ["Nerd", "Game math, RTP and the house bank."],
 };
 
@@ -59,6 +60,7 @@ const setNotice = (message, error = false) => {
 const openTab = (name, updateHash = true) => {
   const tab = pageCopy[name] ? name : "overview";
   if (tab === "nerd") loadNerd();
+  if (tab === "games") loadGames();
   document.querySelectorAll("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
   document.querySelectorAll("[data-tab]").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   [pageTitle.textContent, pageDescription.textContent] = pageCopy[tab];
@@ -1246,4 +1248,199 @@ nerdGames.addEventListener("submit", (event) => {
     dailyLimitCents: dollarsToCents(form.elements.dailyLimit.value),
     enabled: form.elements.enabled.checked,
   }, form.querySelector(".ng-save button"));
+});
+
+
+// ---------- Games: the registry behind the lobby ----------
+const gamesList = document.getElementById("games-list");
+const gamesSearch = document.getElementById("games-search");
+const gamesAdd = document.getElementById("games-add");
+const logoInput = document.getElementById("games-logo-input");
+let registry = { games: [], categories: [] };
+let gamesFilter = "all";
+let logoTarget = null;
+const SHEET = { url: "/assets/gamish-game-icons.png", width: 1484, height: 1060 };
+
+const logoStyle = (game, size = 56) => {
+  if (game.logoUrl) return `background-image:url('${game.logoUrl}');background-size:cover;background-position:center`;
+  if (game.artCell) {
+    const [x, y, w, h] = game.artCell;
+    const sx = size / w;
+    const sy = size / h;
+    return `background-image:url('${SHEET.url}');background-size:${SHEET.width * sx}px ${SHEET.height * sy}px;background-position:${-x * sx}px ${-y * sy}px`;
+  }
+  return "background-image:url('/assets/phoenix-ruby.webp');background-size:cover;background-position:center";
+};
+
+const typeBadge = (game) => game.kind === "playable"
+  ? `<span class="type-badge playable">Playable<small>${game.runtime === "builtin" ? "built in" : "module"}</small></span>`
+  : "<span class=\"type-badge soon\">Coming soon</span>";
+
+const gameRowHtml = (game, index, list) => `
+  <div class="game-row${game.enabled ? "" : " off"}" data-game-id="${game.id}">
+    <div class="gr-order">
+      <button type="button" class="order-button" data-move="-1" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(game.name)} up">▲</button>
+      <button type="button" class="order-button" data-move="1" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(game.name)} down">▼</button>
+    </div>
+    <div class="gr-logo">
+      <button type="button" class="logo-box" data-logo-upload style="${logoStyle(game)}" aria-label="Change the logo of ${escapeHtml(game.name)}"><span>Change</span></button>
+      ${game.logoUrl ? "<button type=\"button\" class=\"link-reset\" data-logo-remove>Remove</button>" : ""}
+    </div>
+    <div class="gr-name">
+      <input class="name-input" value="${escapeHtml(game.name)}" maxlength="40" aria-label="Name" data-field="name" />
+      <code title="Game ID">${game.id}</code>
+    </div>
+    <div class="gr-category">
+      <select data-field="category" aria-label="Category">${registry.categories.map((category) => `<option ${category === game.category ? "selected" : ""}>${category}</option>`).join("")}</select>
+    </div>
+    <div class="gr-type">${typeBadge(game)}</div>
+    <div class="gr-stats">${game.kind === "playable" ? `<b>${game.rounds24h.toLocaleString("en-US")}</b> rounds<br><b>${game.players24h}</b> players` : "<span class=\"muted\">—</span>"}</div>
+    <div class="gr-toggle">
+      <label class="toggle"><input type="checkbox" data-field="enabled" ${game.enabled ? "checked" : ""} /><span class="toggle-track"><i></i></span><b>${game.enabled ? "On" : "Off"}</b></label>
+    </div>
+    <div class="gr-actions">${game.kind === "coming_soon" ? `<button type="button" class="mini-button danger" data-delete-game aria-label="Delete ${escapeHtml(game.name)}">Delete</button>` : ""}</div>
+  </div>`;
+
+const visibleGames = () => {
+  const query = gamesSearch.value.trim().toLowerCase();
+  return registry.games.filter((game) => {
+    if (query && !game.name.toLowerCase().includes(query) && !game.id.includes(query)) return false;
+    if (gamesFilter === "on") return game.enabled;
+    if (gamesFilter === "off") return !game.enabled;
+    if (gamesFilter === "playable" || gamesFilter === "coming_soon") return game.kind === gamesFilter;
+    return true;
+  });
+};
+
+const renderGames = () => {
+  const list = visibleGames();
+  const on = registry.games.filter((game) => game.enabled).length;
+  document.getElementById("games-count").textContent = `${on} of ${registry.games.length} on`;
+  // Reordering only makes sense on the full list.
+  const ordering = gamesFilter === "all" && !gamesSearch.value.trim();
+  gamesList.classList.toggle("no-order", !ordering);
+  gamesList.innerHTML = list.map(gameRowHtml).join("") || "<p class='helper'>No games match.</p>";
+  document.getElementById("games-add-category").innerHTML = registry.categories.map((category) => `<option>${category}</option>`).join("");
+};
+
+async function loadGames() {
+  try {
+    registry = await request("/api/admin/reports?view=games");
+    renderGames();
+  } catch (error) {
+    gamesList.innerHTML = `<p class="form-error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+const gamesPost = async (body) => {
+  try {
+    registry = await request("/api/admin/reports", { method: "POST", body: JSON.stringify(body) });
+    renderGames();
+    return true;
+  } catch (error) {
+    window.alert(error.message);
+    renderGames();
+    return false;
+  }
+};
+
+gamesSearch.addEventListener("input", renderGames);
+document.querySelectorAll("[data-games-filter]").forEach((button) => button.addEventListener("click", () => {
+  gamesFilter = button.dataset.gamesFilter;
+  document.querySelectorAll("[data-games-filter]").forEach((item) => item.classList.toggle("on", item === button));
+  renderGames();
+}));
+document.getElementById("games-add-toggle").addEventListener("click", () => {
+  gamesAdd.hidden = !gamesAdd.hidden;
+  if (!gamesAdd.hidden) gamesAdd.elements.id.focus();
+});
+gamesAdd.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = gamesAdd.elements;
+  if (await gamesPost({ action: "game_add", id: form.id.value.trim(), name: form.name.value.trim(), category: form.category.value })) {
+    gamesAdd.reset();
+    gamesAdd.hidden = true;
+  }
+});
+
+const rowId = (element) => element.closest("[data-game-id]")?.dataset.gameId;
+
+gamesList.addEventListener("change", (event) => {
+  const id = rowId(event.target);
+  const field = event.target.dataset.field;
+  if (!id || !field) return;
+  const value = field === "enabled" ? event.target.checked : event.target.value;
+  if (field === "name" && value.trim() === registry.games.find((game) => game.id === id)?.name) return;
+  gamesPost({ action: "game_update", id, [field]: value });
+});
+gamesList.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.classList.contains("name-input")) event.target.blur();
+});
+
+gamesList.addEventListener("click", (event) => {
+  const id = rowId(event.target);
+  if (!id) return;
+  const move = event.target.closest("[data-move]");
+  if (move) {
+    const ids = registry.games.map((game) => game.id);
+    const from = ids.indexOf(id);
+    const to = from + Number(move.dataset.move);
+    if (to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    gamesPost({ action: "game_order", ids });
+    return;
+  }
+  if (event.target.closest("[data-logo-upload]")) {
+    logoTarget = id;
+    logoInput.value = "";
+    logoInput.click();
+    return;
+  }
+  if (event.target.closest("[data-logo-remove]")) {
+    if (window.confirm("Remove this logo? The lobby goes back to the built-in art.")) gamesPost({ action: "game_logo", id, logo: null });
+    return;
+  }
+  if (event.target.closest("[data-delete-game]")) {
+    const game = registry.games.find((item) => item.id === id);
+    if (window.confirm(`Delete "${game.name}" from the lobby?`)) gamesPost({ action: "game_delete", id });
+  }
+});
+
+// Logos are cropped to a centred square and shrunk in the browser before upload (≤ 200 KB).
+const prepareLogo = (file) => new Promise((resolve, reject) => {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error("Pick a PNG, JPEG or WebP image"));
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  image.onload = () => {
+    URL.revokeObjectURL(url);
+    const side = Math.min(image.naturalWidth, image.naturalHeight);
+    const sx = (image.naturalWidth - side) / 2;
+    const sy = (image.naturalHeight - side) / 2;
+    for (const [size, quality] of [[384, 0.88], [320, 0.8], [256, 0.72], [192, 0.65]]) {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      canvas.getContext("2d").drawImage(image, sx, sy, side, side, 0, 0, size, size);
+      let data = canvas.toDataURL("image/webp", quality);
+      if (!data.startsWith("data:image/webp")) data = canvas.toDataURL("image/png");
+      if (data.length * 0.75 < 195 * 1024) return resolve(data);
+    }
+    reject(new Error("That image is too detailed to fit 200 KB; try a simpler one"));
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    reject(new Error("Couldn't read that image"));
+  };
+  image.src = url;
+});
+
+logoInput.addEventListener("change", async () => {
+  const file = logoInput.files?.[0];
+  if (!file || !logoTarget) return;
+  try {
+    const logo = await prepareLogo(file);
+    await gamesPost({ action: "game_logo", id: logoTarget, logo });
+  } catch (error) {
+    window.alert(error.message);
+  }
 });

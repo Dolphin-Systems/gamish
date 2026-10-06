@@ -125,7 +125,38 @@
     })),
   }));
   GAME_CATEGORIES[0].games = GAME_CATEGORIES.slice(1).flatMap((category) => category.games);
-  const PHOENIX_GAME = GAME_CATEGORIES.find((category) => category.name === "Slots").games[0];
+  const GAME_ART_BY_CELL = new Map(GAME_ART_CELLS.map(([, x, y], index) => [`${x},${y}`, `game-art-${index}`]));
+  // Phoenix Ruby's featured card shows while the game is on; its name follows the registry.
+  const PHOENIX = { live: true, name: "Phoenix Ruby" };
+
+  // The lobby from the game registry (admin → Games): the games that are on, in the admin's
+  // order, with their names, categories and logos. Returns false when there is no registry
+  // (offline, or the server is down) so the built-in list is used instead.
+  const applyGameRegistry = (rows, catalog) => {
+    if (!Array.isArray(rows) || !rows.length) return false;
+    const modules = new Map((catalog?.games || []).filter((entry) => entry.runtime === "module").map((entry) => [entry.id, entry]));
+    GAME_CATEGORIES.slice(1).forEach((category) => { category.games = []; });
+    GAME_CATEGORIES[0].games = [];
+    PHOENIX.live = false;
+    for (const row of rows) {
+      const category = GAME_CATEGORIES.find((item) => item.name === row.category) || GAME_CATEGORIES.at(-1);
+      const game = {
+        id: row.id,
+        title: row.name,
+        icon: "✦",
+        category: category.name,
+        accent: category.accent,
+        art: row.artCell ? GAME_ART_BY_CELL.get(`${row.artCell[0]},${row.artCell[1]}`) : GAME_ART_BY_TITLE.get(row.name),
+        cover: row.logoUrl ? `logo:${row.id}` : null,
+        playable: row.id === "phoenix-ruby",
+        module: modules.get(row.id) || null,
+      };
+      if (game.playable) Object.assign(PHOENIX, { live: true, name: row.name });
+      category.games.push(game);
+      GAME_CATEGORIES[0].games.push(game);
+    }
+    return true;
+  };
 
   // Module games from games/catalog.json: a lobby tile with the same title becomes playable,
   // and a new title gets its own tile (with its cover art) in its category. Playable games
@@ -604,6 +635,13 @@
       this.load.image("gamish-game-icons", "assets/gamish-game-icons.png");
       // The game catalogue (generated from games/*/game.json) and any module game covers.
       this.load.json("games-catalog", "games/catalog.json");
+      // The registry: which games are on, their names, order and logos.
+      this.load.json("games-registry", "/api/game/spin");
+      this.load.once("filecomplete-json-games-registry", (key, type, registry) => {
+        (registry?.games || []).forEach((row) => {
+          if (row.logoUrl) this.load.image(`logo:${row.id}`, row.logoUrl);
+        });
+      });
       this.load.once("filecomplete-json-games-catalog", (key, type, catalog) => {
         (catalog?.games || []).forEach((entry) => {
           if (entry.cover) this.load.image(`cover:${entry.id}`, entry.cover);
@@ -625,7 +663,8 @@
           symbolTexture.add(frameName, 0, (index % 3) * cell, Math.floor(index / 3) * cell, cell, cell);
         }
       }
-      applyGameCatalog(this.cache.json.get("games-catalog"));
+      const catalog = this.cache.json.get("games-catalog");
+      if (!applyGameRegistry(this.cache.json.get("games-registry")?.games, catalog)) applyGameCatalog(catalog);
       document.getElementById("loading-fallback")?.classList.add("ready");
       this.scene.start("WaitForPlayer");
     }
@@ -985,7 +1024,8 @@
         this.chips.forEach(({ chip }) => chip.destroy());
         this.chips = [];
         let x = left;
-        GAME_CATEGORIES.forEach((category) => {
+        // Categories with no games switched on are left out (All Games always shows).
+        GAME_CATEGORIES.filter((category, index) => index === 0 || category.games.length).forEach((category) => {
           const text = this.add.text(0, 0, category.name.toUpperCase(), {
             fontFamily: BODY_FONT, fontSize: `${fontSize}px`, fontStyle: "700", color: "#f1dcc0", letterSpacing: 1.4,
           }).setOrigin(0, 0.5);
@@ -1041,7 +1081,7 @@
       this.velocity = 0;
       this.scrollX = 0;
 
-      const showFeatured = this.category === GAME_CATEGORIES[0] || this.category.name === "Slots";
+      const showFeatured = PHOENIX.live && (this.category === GAME_CATEGORIES[0] || this.category.name === "Slots");
       let x = Math.max(visibleLeft() + LOBBY.margin, LOBBY.margin);
       if (showFeatured) {
         this.addFeatured(x + LOBBY.featuredWidth / 2);
@@ -1084,7 +1124,7 @@
       const badgeText = this.add.text(-LOBBY.featuredWidth / 2 + 100, -height / 2 + 40, "★ FEATURED", {
         fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#2a0d06", letterSpacing: 1,
       }).setOrigin(0.5);
-      const title = this.add.text(-LOBBY.featuredWidth / 2 + 30, height / 2 - 86, "PHOENIX RUBY", {
+      const title = this.add.text(-LOBBY.featuredWidth / 2 + 30, height / 2 - 86, PHOENIX.name.toUpperCase(), {
         fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2",
         shadow: { offsetY: 3, color: "#000000", blur: 10, fill: true },
       }).setOrigin(0, 0.5);
@@ -1105,9 +1145,10 @@
     addGameCard(game, cx, cy) {
       const card = this.add.container(cx, cy);
       const halo = this.add.circle(0, 0, LOBBY.tile * 0.58, game.accent, 0.05).setBlendMode(Phaser.BlendModes.ADD);
-      const art = game.art
-        ? this.add.image(0, 0, "gamish-game-icons", game.art)
-        : this.add.image(0, 0, game.cover && this.textures.exists(game.cover) ? game.cover : "phoenix");
+      // An uploaded logo wins, then the lobby art sheet, then the Phoenix key art.
+      const art = game.cover && this.textures.exists(game.cover)
+        ? this.add.image(0, 0, game.cover)
+        : game.art ? this.add.image(0, 0, "gamish-game-icons", game.art) : this.add.image(0, 0, "phoenix");
       art.setDisplaySize(LOBBY.tile, LOBBY.tile);
       card.add([halo, art]);
       if (game.playable || game.module) {
@@ -1329,14 +1370,15 @@
         height: 420,
         accent: game.accent,
         build: () => [
-          (game.art ? this.add.image(-210, -40, "gamish-game-icons", game.art) : this.add.image(-210, -40, "phoenix")).setDisplaySize(230, 230),
+          (game.cover && this.textures.exists(game.cover) ? this.add.image(-210, -40, game.cover)
+            : game.art ? this.add.image(-210, -40, "gamish-game-icons", game.art) : this.add.image(-210, -40, "phoenix")).setDisplaySize(230, 230),
           this.add.text(-60, -110, game.category.toUpperCase(), { fontFamily: BODY_FONT, fontSize: "15px", fontStyle: "700", color: "#c7a984", letterSpacing: 3 }).setOrigin(0, 0.5),
           this.add.text(-60, -60, game.title.toUpperCase(), { fontFamily: DISPLAY_FONT, fontSize: "30px", color: "#fff0c2", wordWrap: { width: 380 } }).setOrigin(0, 0.5),
-          this.add.text(-60, 10, "Coming to Gamish777 soon.\nPhoenix Ruby is ready to play now.", { fontFamily: BODY_FONT, fontSize: "19px", color: "#cbb8bf", lineSpacing: 8 }).setOrigin(0, 0.5),
+          this.add.text(-60, 10, `Coming to Gamish777 soon.${PHOENIX.live ? `\n${PHOENIX.name} is ready to play now.` : ""}`, { fontFamily: BODY_FONT, fontSize: "19px", color: "#cbb8bf", lineSpacing: 8 }).setOrigin(0, 0.5),
         ],
         actions: [
           { label: "CLOSE", onTap: () => this.closeModal() },
-          { label: "PLAY PHOENIX RUBY", primary: true, onTap: () => { this.closeModal(); this.launchPhoenix(); } },
+          ...(PHOENIX.live ? [{ label: `PLAY ${PHOENIX.name.toUpperCase()}`, primary: true, onTap: () => { this.closeModal(); this.launchPhoenix(); } }] : []),
         ],
       });
     }
