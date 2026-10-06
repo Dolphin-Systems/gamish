@@ -1126,47 +1126,51 @@ const gameRow = (game) => {
   const target = settings.rtp ?? game.baseRtp;
   const usage = Math.min(1.2, live.usage);
   const throttled = live.throttle < 1;
+  const figure = (label, value, warn = false) => `<div><dt>${label}</dt><dd class="${warn ? "warn" : ""}">${value}</dd></div>`;
   return `
     <form class="nerd-game${settings.enabled ? "" : " paused"}" data-game="${game.id}">
-      <div class="ng-id">
-        <b>${escapeHtml(game.title)}</b>
-        <code>${game.id}</code>
-        <span class="ng-tags"><i>${game.runtime}</i><i>${game.model}</i><i>bets ${game.bets.join(" / ")}</i><i>max ${game.maxMultiplier}×</i></span>
-        <label class="switch"><input type="checkbox" name="enabled" ${settings.enabled ? "checked" : ""} /><span>${settings.enabled ? "Live" : "Paused"}</span></label>
-      </div>
-
-      <div class="ng-rtp">
-        <div class="ng-label"><span>Target RTP</span><output name="rtpOut">${pct(target)}</output></div>
-        <input type="range" name="rtp" min="${game.minRtp}" max="${game.maxRtp}" step="0.0025" value="${target}" aria-label="Target RTP for ${escapeHtml(game.title)}" />
-        <div class="ng-scale"><span>${pct(game.minRtp, 0)}</span><button type="button" class="link-reset" data-reset-rtp="${game.baseRtp}">Reset to game's ${pct(game.baseRtp)}</button><span>${pct(game.maxRtp, 0)}</span></div>
-        <dl class="ng-figures">
-          <div><dt>Now</dt><dd class="${throttled ? "warn" : ""}">${pct(live.effectiveRtp)}</dd></div>
-          <div><dt>Throttle</dt><dd class="${throttled ? "warn" : ""}">${throttled ? `×${live.throttle.toFixed(2)}` : "off"}</dd></div>
-          <div><dt>Seen 24h</dt><dd>${pct(day.observedRtp, 1)}</dd></div>
-          <div><dt>Seen all</dt><dd>${pct(all.observedRtp, 1)}</dd></div>
-        </dl>
-      </div>
-
-      <div class="ng-limits">
-        <label><span>Max single win</span><span class="money-input"><span>$</span><input name="maxWin" inputmode="decimal" value="${settings.maxWinCents / 100}" /></span></label>
-        <label><span>Daily payout limit</span><span class="money-input"><span>$</span><input name="dailyLimit" inputmode="decimal" value="${settings.dailyLimitCents / 100}" /></span></label>
-        <div class="usage" title="Net paid out in the last 24 hours vs the daily limit">
-          <div class="usage-bar"><i style="width:${Math.max(0, usage) / 1.2 * 100}%" class="${usage >= 1 ? "full" : usage > 0.5 ? "hot" : ""}"></i><b style="left:${(0.5 / 1.2) * 100}%"></b><b style="left:${(1 / 1.2) * 100}%"></b></div>
-          <small>${day.net > 0 ? `${money(day.net)} paid out net` : `${money(-day.net)} earned`} in 24h · ${pct(Math.max(0, live.usage), 0)} of limit</small>
+      <header class="ng-head">
+        <div class="ng-title"><b>${escapeHtml(game.title)}</b><code>${game.id}</code></div>
+        <span class="ng-tags"><i>${game.runtime === "builtin" ? "built in" : game.runtime}</i><i>${game.model}</i><i>bets ${game.bets.join(" · ")}</i><i>up to ${game.maxMultiplier}×</i></span>
+        <div class="ng-head-actions">
+          <label class="toggle"><input type="checkbox" name="enabled" ${settings.enabled ? "checked" : ""} /><span class="toggle-track"><i></i></span><b>${settings.enabled ? "Live" : "Paused"}</b></label>
+          <span class="ng-save"><button class="button primary" type="submit" disabled>Save</button></span>
         </div>
-      </div>
+      </header>
 
-      <div class="ng-stats">
-        <dl>
-          <div><dt>Rounds 24h</dt><dd>${day.rounds.toLocaleString("en-US")}</dd></div>
-          <div><dt>Wagered 24h</dt><dd>${money(day.wagered)}</dd></div>
-          <div><dt>Paid 24h</dt><dd>${money(day.paid)}</dd></div>
-          <div><dt>Rounds all</dt><dd>${all.rounds.toLocaleString("en-US")}</dd></div>
-        </dl>
-        <div class="winners"><small>Top winners 24h</small>${game.topWinners.length ? `<ol>${game.topWinners.map((winner) => `<li><button type="button" class="inline-link" data-player-details="${winner.playerId}">${escapeHtml(winner.loginId)}</button><code title="Player ID">${winner.playerId.slice(0, 8)}</code><b>+${money(winner.netCents)}</b></li>`).join("")}</ol>` : "<p>No one is ahead.</p>"}</div>
-      </div>
+      <div class="ng-body">
+        <section class="ng-rtp" aria-label="Return to player">
+          <div class="ng-label"><span>Target RTP</span><output name="rtpOut">${pct(target)}</output></div>
+          <input type="range" name="rtp" min="${game.minRtp}" max="${game.maxRtp}" step="0.0025" value="${target}" aria-label="Target RTP for ${escapeHtml(game.title)}" />
+          <div class="ng-scale"><span>${pct(game.minRtp, 0)}</span><button type="button" class="link-reset" data-reset-rtp="${game.baseRtp}">Reset to ${pct(game.baseRtp)}</button><span>${pct(game.maxRtp, 0)}</span></div>
+          <dl class="ng-grid">
+            ${figure("Now", pct(live.effectiveRtp), throttled)}
+            ${figure("Throttle", throttled ? `×${live.throttle.toFixed(2)}` : "Off", throttled)}
+            ${figure("Seen 24h", pct(day.observedRtp, 1))}
+            ${figure("Seen all time", pct(all.observedRtp, 1))}
+          </dl>
+        </section>
 
-      <div class="ng-save"><button class="button primary" type="submit" disabled>Save</button></div>
+        <section class="ng-limits" aria-label="Limits">
+          <label class="ng-field"><span>Max single win</span><span class="money-input"><span>$</span><input name="maxWin" inputmode="decimal" value="${settings.maxWinCents / 100}" /></span></label>
+          <label class="ng-field"><span>Daily payout limit</span><span class="money-input"><span>$</span><input name="dailyLimit" inputmode="decimal" value="${settings.dailyLimitCents / 100}" /></span></label>
+          <div class="usage" title="Net paid out in the last 24 hours vs the daily limit">
+            <div class="usage-row"><span>Used today</span><b>${pct(Math.max(0, live.usage), 0)}</b></div>
+            <div class="usage-bar"><i style="width:${(Math.max(0, usage) / 1.2) * 100}%" class="${usage >= 1 ? "full" : usage > 0.5 ? "hot" : ""}"></i><b style="left:${(0.5 / 1.2) * 100}%"></b><b style="left:${(1 / 1.2) * 100}%"></b></div>
+            <small>${day.net > 0 ? `${money(day.net)} paid out net` : `${money(-day.net)} earned`} in the last 24h</small>
+          </div>
+        </section>
+
+        <section class="ng-activity" aria-label="Activity">
+          <dl class="ng-grid">
+            ${figure("Rounds 24h", day.rounds.toLocaleString("en-US"))}
+            ${figure("Rounds all", all.rounds.toLocaleString("en-US"))}
+            ${figure("Wagered 24h", money(day.wagered))}
+            ${figure("Paid 24h", money(day.paid))}
+          </dl>
+          <div class="winners"><small>Top winners 24h</small>${game.topWinners.length ? `<ol>${game.topWinners.map((winner) => `<li><button type="button" class="inline-link" data-player-details="${winner.playerId}">${escapeHtml(winner.loginId)}</button><code title="Player ID">${winner.playerId.slice(0, 8)}</code><b>+${money(winner.netCents)}</b></li>`).join("")}</ol>` : "<p>No one is ahead.</p>"}</div>
+        </section>
+      </div>
     </form>`;
 };
 
@@ -1232,7 +1236,7 @@ nerdGames.addEventListener("click", (event) => {
 });
 nerdGames.addEventListener("change", (event) => {
   if (event.target.name !== "enabled") return;
-  event.target.nextElementSibling.textContent = event.target.checked ? "Live" : "Paused";
+  event.target.closest(".toggle").querySelector("b").textContent = event.target.checked ? "Live" : "Paused";
 });
 nerdGames.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -1320,6 +1324,7 @@ const renderGames = () => {
   const ordering = gamesFilter === "all" && !gamesSearch.value.trim();
   gamesList.classList.toggle("no-order", !ordering);
   gamesList.innerHTML = list.map(gameRowHtml).join("") || "<p class='helper'>No games match.</p>";
+  renderTrash();
   document.getElementById("games-add-category").innerHTML = registry.categories.map((category) => `<option>${category}</option>`).join("");
 };
 
@@ -1400,10 +1405,7 @@ gamesList.addEventListener("click", (event) => {
     if (window.confirm("Remove this logo? The lobby goes back to the built-in art.")) gamesPost({ action: "game_logo", id, logo: null });
     return;
   }
-  if (event.target.closest("[data-delete-game]")) {
-    const game = registry.games.find((item) => item.id === id);
-    if (window.confirm(`Delete "${game.name}" from the lobby?`)) gamesPost({ action: "game_delete", id });
-  }
+  if (event.target.closest("[data-delete-game]")) askTrash(registry.games.find((item) => item.id === id));
 });
 
 // Logos are cropped to a centred square and shrunk in the browser before upload (≤ 200 KB).
@@ -1443,4 +1445,50 @@ logoInput.addEventListener("change", async () => {
   } catch (error) {
     window.alert(error.message);
   }
+});
+
+
+// Deleting: confirm by typing the ID, then the game waits 24 hours in the trash.
+const trashDialog = document.getElementById("trash-dialog");
+const trashConfirm = document.getElementById("trash-confirm");
+const trashSubmit = document.getElementById("trash-submit");
+let trashTarget = null;
+const askTrash = (game) => {
+  trashTarget = game;
+  document.getElementById("trash-name").textContent = `"${game.name}"`;
+  document.getElementById("trash-id").textContent = game.id;
+  trashConfirm.value = "";
+  trashSubmit.disabled = true;
+  trashDialog.showModal();
+  trashConfirm.focus();
+};
+trashConfirm.addEventListener("input", () => { trashSubmit.disabled = trashConfirm.value.trim() !== trashTarget?.id; });
+trashDialog.addEventListener("close", () => {
+  if (trashDialog.returnValue === "delete" && trashTarget && trashConfirm.value.trim() === trashTarget.id) {
+    gamesPost({ action: "game_delete", id: trashTarget.id, confirmId: trashConfirm.value.trim() });
+  }
+  trashTarget = null;
+});
+
+const timeLeft = (iso) => {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "any moment now";
+  const hours = Math.floor(ms / 3_600_000);
+  const minutes = Math.floor((ms % 3_600_000) / 60_000);
+  return hours ? `in ${hours}h ${minutes}m` : `in ${minutes}m`;
+};
+function renderTrash() {
+  const trash = registry.trash || [];
+  document.getElementById("games-trash").hidden = trash.length === 0;
+  document.getElementById("games-trash-list").innerHTML = trash.map((game) => `
+    <div class="trash-row" data-game-id="${game.id}">
+      <span class="logo-box small" style="${logoStyle(game, 40)}"></span>
+      <div class="trash-name"><b>${escapeHtml(game.name)}</b><code>${game.id}</code></div>
+      <span class="trash-when">Deleted ${inboxTime(game.deletedAt)} · removed for good ${timeLeft(game.purgeAt)}</span>
+      <button type="button" class="button dark" data-restore-game>Restore</button>
+    </div>`).join("");
+}
+document.getElementById("games-trash-list").addEventListener("click", (event) => {
+  const id = event.target.closest("[data-restore-game]") && rowId(event.target);
+  if (id) gamesPost({ action: "game_restore", id });
 });

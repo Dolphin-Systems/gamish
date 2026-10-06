@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=13" />
+  <link rel="stylesheet" href="admin.css?v=14" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -273,6 +273,26 @@
           <div id="games-list" class="games-list"><p class="helper">Loading…</p></div>
           <input id="games-logo-input" type="file" accept="image/png,image/jpeg,image/webp" hidden />
         </section>
+
+        <section id="games-trash" class="content-section trash-section" hidden>
+          <div class="section-heading">
+            <div><p class="eyebrow">TRASH</p><h2>Deleted games</h2></div>
+            <p class="helper">Deleted games wait here for 24 hours, then they are removed for good. Restore one to bring it back (it comes back switched off).</p>
+          </div>
+          <div id="games-trash-list" class="trash-list"></div>
+        </section>
+
+        <dialog id="trash-dialog" class="trash-dialog">
+          <form method="dialog" id="trash-form">
+            <h3>Move <span id="trash-name"></span> to the trash?</h3>
+            <p>It leaves the lobby now. You can restore it for <b>24 hours</b>; after that it is deleted for good.</p>
+            <label>Type <code id="trash-id"></code> to confirm<input id="trash-confirm" autocomplete="off" spellcheck="false" /></label>
+            <div class="trash-actions">
+              <button class="button" value="cancel" type="submit" formnovalidate>Cancel</button>
+              <button id="trash-submit" class="button danger-button" value="delete" type="submit" disabled>Move to trash</button>
+            </div>
+          </form>
+        </dialog>
       </section>
       <section class="tab-panel nerd" data-panel="nerd" hidden>
         <section class="nerd-bank" aria-labelledby="bank-title">
@@ -377,6 +397,6 @@
     <p id="chat-image-viewer-title">Chat image</p>
   </dialog>
   <script src="chat-images.js?v=1"></script>
-  <script type="module" src="admin.js?v=14"></script>
+  <script type="module" src="admin.js?v=15"></script>
 </body>
 </html>
