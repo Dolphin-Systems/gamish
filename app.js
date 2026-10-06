@@ -918,8 +918,17 @@
   const lockLandscape = () => {
     try { window.screen?.orientation?.lock?.("landscape")?.catch?.(() => {}); } catch { /* not supported */ }
   };
+  // Hide the phone's status bar (time, battery) and navigation bar. The installed app asks for
+  // fullscreen in its manifest; this also covers Chrome tabs and Android dropping fullscreen
+  // after an app switch. Browsers only allow it from a tap, so retry on taps while it's off.
+  const isPhone = window.matchMedia("(pointer: coarse)").matches;
+  const enterFullscreen = () => {
+    const root = document.documentElement;
+    if (!isPhone || document.fullscreenElement || !root.requestFullscreen) return lockLandscape();
+    root.requestFullscreen({ navigationUI: "hide" }).then(lockLandscape, lockLandscape);
+  };
   lockLandscape();
-  window.addEventListener("pointerdown", lockLandscape, { once: true });
+  window.addEventListener("pointerup", enterFullscreen);
 
   // ---------- In-app back ----------
   // The phone's back button or gesture never leaves the app: a guard history entry turns it
