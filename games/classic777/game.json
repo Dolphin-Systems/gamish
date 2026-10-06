@@ -2,7 +2,7 @@
   "id": "classic777",
   "title": "Classic 777",
   "category": "Slots",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "runtime": "module",
   "entry": "index.html",
   "cover": "cover.webp",
