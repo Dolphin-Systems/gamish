@@ -173,6 +173,12 @@
     showView(item.dataset.view);
   }));
   window.addEventListener("gamish:navigate", (event) => showView(event.detail));
+  // Wallet and profile are pop-ups over the lobby: the backdrop and × close them.
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-close-sheet]")) return;
+    audio?.play("nav");
+    showView("arcade");
+  });
 
   const refreshSoundToggle = () => {
     const isEnabled = audio?.isEnabled() ?? false;
@@ -348,31 +354,67 @@
 
   const handlesList = document.getElementById("handles-list");
   const handlesForm = document.getElementById("handles-form");
+  const handleRow = (name, value = "", custom = false) => {
+    const row = document.createElement("div");
+    const logo = document.createElement("span");
+    const input = document.createElement("input");
+    row.className = `handle-row${custom ? " custom" : ""}`;
+    logo.className = `method-logo ${paymentTone(name || "?")}`;
+    logo.textContent = (name || "+").charAt(0).toUpperCase();
+    row.append(logo);
+    if (custom) {
+      // A payment app of the player's own: they name it.
+      const nameInput = document.createElement("input");
+      nameInput.className = "handle-app";
+      nameInput.maxLength = 32;
+      nameInput.placeholder = "App name";
+      nameInput.setAttribute("aria-label", "Payment app name");
+      nameInput.addEventListener("input", () => {
+        logo.textContent = (nameInput.value.trim() || "+").charAt(0).toUpperCase();
+        logo.className = `method-logo ${paymentTone(nameInput.value || "?")}`;
+      });
+      row.append(nameInput);
+    } else {
+      const title = document.createElement("b");
+      title.textContent = name;
+      row.dataset.app = name;
+      row.append(title);
+    }
+    input.className = "handle-value";
+    input.maxLength = 100;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.placeholder = custom ? "Your username" : handleHint(name);
+    input.setAttribute("aria-label", `${name || "New app"} username`);
+    input.value = value;
+    row.append(input);
+    return row;
+  };
   const renderHandles = () => {
     const saved = savedHandles();
-    handlesList.replaceChildren(...payoutMethodNames().map((name) => {
-      const row = document.createElement("label");
-      const logo = document.createElement("span");
-      const title = document.createElement("b");
-      const input = document.createElement("input");
-      row.className = "handle-row";
-      logo.className = `method-logo ${paymentTone(name)}`;
-      logo.textContent = name.charAt(0).toUpperCase();
-      title.textContent = name;
-      input.name = name;
-      input.maxLength = 100;
-      input.autocomplete = "off";
-      input.spellcheck = false;
-      input.placeholder = handleHint(name);
-      input.value = saved[name] || "";
-      row.append(logo, title, input);
-      return row;
-    }));
+    handlesList.replaceChildren(...payoutMethodNames().map((name) => handleRow(name, saved[name] || "")));
   };
+  document.getElementById("add-handle").addEventListener("click", () => {
+    const row = handleRow("", "", true);
+    handlesList.append(row);
+    row.querySelector(".handle-app").focus();
+    row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
   handlesForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = document.getElementById("save-handles");
-    const payoutHandles = Object.fromEntries([...handlesList.querySelectorAll("input")].map((input) => [input.name, input.value]));
+    const payoutHandles = {};
+    for (const row of handlesList.querySelectorAll(".handle-row")) {
+      const app = row.dataset.app ?? row.querySelector(".handle-app").value.trim();
+      const value = row.querySelector(".handle-value").value.trim();
+      if (!value) continue;
+      if (!app) {
+        showToast("Name the payment app first");
+        row.querySelector(".handle-app").focus();
+        return;
+      }
+      payoutHandles[app] = value;
+    }
     button.disabled = true;
     try {
       const data = await request("/api/player/wallet", { method: "POST", body: JSON.stringify({ payoutHandles }) });
