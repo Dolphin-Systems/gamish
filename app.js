@@ -170,14 +170,27 @@
   };
 
   viewTriggers.forEach((item) => item.addEventListener("click", () => {
-    audio?.play("nav");
     showView(item.dataset.view);
   }));
   window.addEventListener("gamish:navigate", (event) => showView(event.detail));
+
+  // ---------- Click sounds ----------
+  // Every tap on a button, link, tab, toggle or option plays the click the moment the finger
+  // lands; moving to another screen plays the navigation sound instead. (The game canvas has its
+  // own sounds, and module games play theirs inside their frame.)
+  const TAPPABLE = "button, a[href], [role=tab], select, summary, label.toggle, input[type=checkbox], input[type=radio], .method-card, .amount-chip";
+  document.addEventListener("pointerdown", (event) => {
+    if (event.button > 0) return;
+    const target = event.target.closest?.(TAPPABLE);
+    if (!target || target.disabled || target.getAttribute("aria-disabled") === "true" || target.closest("[data-silent]")) return;
+    const navigates = target.matches(".view-trigger, [data-close-sheet], #game-host-back, .back-to-arcade");
+    audio?.play(navigates ? "nav" : "tap");
+  }, { capture: true, passive: true });
+  // iOS only starts audio from a completed tap: unlock on the first one.
+  ["touchend", "click"].forEach((type) => document.addEventListener(type, () => audio?.unlock?.(), { capture: true, passive: true }));
   // Wallet and profile are pop-ups over the lobby: the backdrop and × close them.
   document.addEventListener("click", (event) => {
     if (!event.target.closest("[data-close-sheet]")) return;
-    audio?.play("nav");
     showView("arcade");
   });
 
@@ -243,7 +256,6 @@
   };
 
   amountButtons.forEach((button) => button.addEventListener("click", () => {
-    audio?.play("tap");
     customAmount.value = button.dataset.amount;
     updateAmount(button.dataset.amount, button);
   }));
@@ -315,7 +327,6 @@
         check.textContent = "✓";
         card.append(logo, name, paymentId, check);
         card.addEventListener("click", () => {
-          audio?.play("tap");
           selectMethod(card);
           setPaySheet(true);
         });
@@ -422,7 +433,6 @@
       window.GamishAccount.player = { ...window.GamishAccount.player, ...data.player };
       renderHandles();
       fillCashoutHandle();
-      audio?.play("tap");
       showToast("Payment usernames saved");
     } catch (error) {
       showToast(error.message);
@@ -445,11 +455,9 @@
     } catch {
       showToast(handle);
     }
-    audio?.play("tap");
   });
 
   document.querySelectorAll("[data-wallet-tab]").forEach((tab) => tab.addEventListener("click", () => {
-    audio?.play("tap");
     document.querySelectorAll("[data-wallet-tab]").forEach((item) => {
       const active = item === tab;
       item.classList.toggle("active", active);
@@ -473,7 +481,6 @@
   });
 
   document.querySelectorAll("[data-cashout-fraction]").forEach((button) => button.addEventListener("click", () => {
-    audio?.play("tap");
     const cents = Math.floor(refreshCashable() * Number(button.dataset.cashoutFraction));
     cashoutAmount.value = (cents / 100).toFixed(2).replace(/\.00$/, "");
   }));
@@ -578,7 +585,6 @@
     }
   });
   document.getElementById("refresh-requests").addEventListener("click", () => {
-    audio?.play("tap");
     Promise.all([loadRequests(), refreshWallet()]).catch((error) => showToast(error.message));
   });
 
@@ -866,7 +872,6 @@
   };
   supportToggle.addEventListener("click", (event) => {
     event.stopPropagation();
-    audio?.play("tap");
     setSupportInfo(supportInfo.hidden);
   });
   document.addEventListener("click", (event) => {
@@ -874,7 +879,6 @@
   });
 
   messageAttach.addEventListener("click", () => {
-    audio?.play("tap");
     messageImageInput.click();
   });
   messageImageInput.addEventListener("change", async () => {
@@ -1012,7 +1016,6 @@
     if (event.detail !== "game") closeModuleGame();
   });
   document.getElementById("game-host-back").addEventListener("click", () => {
-    audio?.play("nav");
     showView("arcade");
   });
 

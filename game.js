@@ -1133,11 +1133,7 @@
       const meta = this.add.text(-LOBBY.featuredWidth / 2 + 30, height / 2 - 46, "3-reel slot  ·  wins up to 3×", {
         fontFamily: BODY_FONT, fontSize: "17px", color: "#d9c0b4",
       }).setOrigin(0, 0.5);
-      const play = addSoftPanel(this, LOBBY.featuredWidth / 2 - 92, height / 2 - 64, 140, 60, { fill: COLORS.ember, alpha: 1, radius: 30 });
-      const playText = this.add.text(LOBBY.featuredWidth / 2 - 92, height / 2 - 66, "PLAY ›", {
-        fontFamily: BODY_FONT, fontSize: "22px", fontStyle: "700", color: "#2a0d06",
-      }).setOrigin(0.5);
-      card.add([glow, plate, art, shade, badge, badgeText, title, meta, play, playText]);
+      card.add([glow, plate, art, shade, badge, badgeText, title, meta]);
       this.tweens.add({ targets: glow, alpha: { from: 0.04, to: 0.12 }, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
       this.makeTappable(card, LOBBY.featuredWidth, height, () => this.launchPhoenix());
       this.content.add(card);
@@ -1153,11 +1149,6 @@
         : game.art ? this.add.image(0, 0, "gamish-game-icons", game.art) : this.add.image(0, 0, "phoenix");
       art.setDisplaySize(LOBBY.tile, LOBBY.tile);
       card.add([halo, art]);
-      if (game.playable || game.module) {
-        const tag = addSoftPanel(this, 0, LOBBY.tile / 2 - 6, 120, 34, { fill: COLORS.ember, alpha: 1, radius: 17 });
-        const tagText = this.add.text(0, LOBBY.tile / 2 - 7, "PLAY ›", { fontFamily: BODY_FONT, fontSize: "16px", fontStyle: "700", color: "#2a0d06" }).setOrigin(0.5);
-        card.add([tag, tagText]);
-      }
       this.makeTappable(card, LOBBY.tile, LOBBY.tile, () => {
         if (game.playable) this.launchPhoenix();
         else if (game.module) this.launchModule(game.module);
@@ -1173,6 +1164,7 @@
       card.setSize(width, height).setInteractive({ useHandCursor: true });
       card.on("pointerdown", () => {
         if (this.suppressTap || this.modal) return;
+        card.setData("pressed", true);
         this.tweens.killTweensOf(card);
         this.tweens.add({ targets: card, scale: 0.95, duration: 90, ease: "Quad.Out" });
       });
@@ -1180,10 +1172,15 @@
         this.tweens.killTweensOf(card);
         this.tweens.add({ targets: card, scale: 1, duration: 160, ease: "Back.Out" });
       };
-      card.on("pointerout", release);
+      card.on("pointerout", () => {
+        card.setData("pressed", false);
+        release();
+      });
       card.on("pointerup", () => {
         release();
-        if (this.suppressTap || this.modal) return;
+        const pressed = card.getData("pressed");
+        card.setData("pressed", false);
+        if (!pressed || this.suppressTap || this.modal) return;
         window.GamishAudio?.play("tap");
         action();
       });
@@ -2495,8 +2492,12 @@
     // resume where it left off.
     let currentView = "arcade";
     const syncLoop = () => {
-      if (currentView === "arcade" && !PORTRAIT_PROMPT.matches) game.loop.wake();
+      const showing = currentView === "arcade" && !PORTRAIT_PROMPT.matches;
+      if (showing) game.loop.wake();
       else game.loop.sleep();
+      // Phaser hears finger-ups on the whole window, so taps on a pop-up or page covering the
+      // lobby would otherwise reach the tiles underneath. The lobby takes input only when shown.
+      game.input.enabled = showing;
     };
     window.addEventListener("gamish:view", (event) => {
       currentView = event.detail;
