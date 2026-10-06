@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
   <title>Gamish777 — Game Lobby</title>
 </head>
 <body data-view="arcade">
@@ -47,35 +47,26 @@
       <p id="scene-status" class="sr-only" aria-live="polite">Loading Gamish777.</p>
     </section>
 
-    <section id="payments-view" class="app-view page-view" aria-labelledby="payments-title" aria-hidden="true">
-      <div class="page-shell payment-shell">
-        <header class="page-header">
-          <button class="back-to-arcade view-trigger" type="button" data-view="arcade" aria-label="Back to the game lobby">
-            <span aria-hidden="true">‹</span> Lobby
-          </button>
-          <h1 id="payments-title" class="page-title">Wallet</h1>
+    <section id="payments-view" class="app-view sheet-view" aria-labelledby="payments-title" aria-hidden="true">
+      <div class="sheet-backdrop" data-close-sheet aria-hidden="true"></div>
+      <div class="sheet-card wallet-card" role="dialog" aria-modal="true" aria-labelledby="payments-title">
+        <header class="sheet-header">
+          <h1 id="payments-title" class="sheet-title">Wallet</h1>
+          <div class="sheet-balance">
+            <strong id="wallet-balance">$0.00</strong>
+            <small><span id="wallet-split" class="wallet-split">$0.00 cashable · $0.00 bonus</span> · ID <b id="wallet-player-id">—</b></small>
+          </div>
+          <div class="wallet-tabs" role="tablist" aria-label="Wallet actions">
+            <button id="wallet-tab-deposit" class="wallet-tab active" type="button" role="tab" aria-selected="true" aria-controls="deposit-panel" data-wallet-tab="deposit">Add funds</button>
+            <button id="wallet-tab-cashout" class="wallet-tab" type="button" role="tab" aria-selected="false" aria-controls="cashout-panel" data-wallet-tab="cashout">Cash out</button>
+            <button id="wallet-tab-history" class="wallet-tab" type="button" role="tab" aria-selected="false" aria-controls="history-panel" data-wallet-tab="history">History</button>
+          </div>
+          <button class="sheet-close" type="button" data-close-sheet aria-label="Close wallet">×</button>
         </header>
 
-        <article class="wallet-summary">
-          <div>
-            <span>Balance</span>
-            <strong id="wallet-balance">$0.00</strong>
-            <small id="wallet-split" class="wallet-split">$0.00 cashable · $0.00 bonus</small>
-          </div>
-          <div class="player-id"><span>Player ID</span><strong id="wallet-player-id">—</strong></div>
-        </article>
-
-        <div class="wallet-tabs" role="tablist" aria-label="Wallet actions">
-          <button id="wallet-tab-deposit" class="wallet-tab active" type="button" role="tab" aria-selected="true" aria-controls="deposit-panel" data-wallet-tab="deposit">Add funds</button>
-          <button id="wallet-tab-cashout" class="wallet-tab" type="button" role="tab" aria-selected="false" aria-controls="cashout-panel" data-wallet-tab="cashout">Cash out</button>
-        </div>
-
-        <div id="deposit-panel" role="tabpanel" aria-labelledby="wallet-tab-deposit" data-wallet-panel="deposit">
-          <section class="surface amount-entry-panel" aria-labelledby="reload-heading">
-            <div class="amount-entry-heading">
-              <h2 id="reload-heading"><i class="step-dot">1</i>Choose amount</h2>
-              <span id="amount-label" class="selection-label">$5 selected</span>
-            </div>
+        <div id="deposit-panel" class="wallet-pane deposit-pane" role="tabpanel" aria-labelledby="wallet-tab-deposit" data-wallet-panel="deposit">
+          <section class="pane-col amount-col" aria-labelledby="reload-heading">
+            <h2 id="reload-heading" class="pane-title"><i class="step-dot">1</i>Amount <span id="amount-label" class="selection-label">$5 selected</span></h2>
             <label class="cash-amount-entry" for="custom-amount"><span>$</span><input id="custom-amount" inputmode="decimal" aria-label="Custom amount" value="5" /></label>
             <div class="amount-grid" role="group" aria-label="Reload amount">
               <button class="amount-chip selected" type="button" data-amount="5" data-bonus="0"><strong>$5</strong></button>
@@ -85,15 +76,41 @@
               <button class="amount-chip featured" type="button" data-amount="50" data-bonus="10"><strong>$50</strong><small>+$10 bonus</small></button>
               <button class="amount-chip featured" type="button" data-amount="100" data-bonus="25"><strong>$100</strong><small>+$25 bonus</small></button>
             </div>
-
-            <div class="surface-heading method-heading">
-              <h2 id="method-heading"><i class="step-dot">2</i>Pay with</h2>
-              <span class="selection-label" id="method-label">Choose a method</span>
-            </div>
+          </section>
+          <section class="pane-col method-col" aria-labelledby="method-heading">
+            <h2 id="method-heading" class="pane-title"><i class="step-dot">2</i>Pay with <span class="selection-label" id="method-label">Choose a method</span></h2>
             <div id="payment-method-grid" class="method-grid" role="group" aria-labelledby="method-heading"><p class="payment-method-empty">Payment methods are being updated.</p></div>
           </section>
-
         </div>
+
+        <div id="cashout-panel" class="wallet-pane cashout-pane" role="tabpanel" aria-labelledby="wallet-tab-cashout" data-wallet-panel="cashout" hidden>
+          <section class="pane-col" aria-labelledby="cashout-heading">
+            <h2 id="cashout-heading" class="pane-title">Amount <span id="cashout-available" class="selection-label">Up to $0.00</span></h2>
+            <label class="cash-amount-entry" for="cashout-amount"><span>$</span><input id="cashout-amount" inputmode="decimal" aria-label="Cash out amount" placeholder="0" /></label>
+            <div class="cashout-quick" role="group" aria-label="Quick amounts">
+              <button type="button" data-cashout-fraction="0.25">25%</button>
+              <button type="button" data-cashout-fraction="0.5">50%</button>
+              <button type="button" data-cashout-fraction="1">All</button>
+            </div>
+            <p class="demo-note"><span>i</span>Bonus cash can be played but not cashed out.</p>
+          </section>
+          <section class="pane-col" aria-label="Where to send it">
+            <label class="field-label">Receive with
+              <select id="cashout-method"></select>
+            </label>
+            <label class="field-label">Your username, phone or email
+              <input id="cashout-handle" maxlength="100" autocomplete="off" placeholder="$yourname" />
+            </label>
+            <button class="link-button view-trigger" type="button" data-view="profile">Manage my payment methods ›</button>
+            <button id="submit-cashout" class="primary-action" type="button"><span>Request cash out</span><b>→</b></button>
+          </section>
+        </div>
+
+        <div id="history-panel" class="wallet-pane history-pane" role="tabpanel" aria-labelledby="wallet-tab-history" data-wallet-panel="history" hidden>
+          <div class="pane-title history-title"><h2 id="requests-heading">Your requests</h2><button id="refresh-requests" class="icon-chip" type="button" aria-label="Refresh requests">↻</button></div>
+          <div id="request-list" class="request-list" aria-live="polite"><p class="request-empty">No requests yet.</p></div>
+        </div>
+      </div>
 
         <div id="pay-sheet" class="pay-sheet" hidden>
           <div class="pay-sheet-backdrop" data-close-pay-sheet></div>
@@ -119,68 +136,30 @@
               <p class="demo-note"><span>i</span>We add your credits as soon as the team confirms the payment. You'll see it update below.</p>
             </section>
         </div>
-
-        <div id="cashout-panel" role="tabpanel" aria-labelledby="wallet-tab-cashout" data-wallet-panel="cashout" hidden>
-          <section class="surface cashout-panel-surface" aria-labelledby="cashout-heading">
-            <div class="amount-entry-heading">
-              <h2 id="cashout-heading">Cash out</h2>
-              <span id="cashout-available" class="selection-label">Up to $0.00</span>
-            </div>
-            <label class="cash-amount-entry" for="cashout-amount"><span>$</span><input id="cashout-amount" inputmode="decimal" aria-label="Cash out amount" placeholder="0" /></label>
-            <div class="cashout-quick" role="group" aria-label="Quick amounts">
-              <button type="button" data-cashout-fraction="0.25">25%</button>
-              <button type="button" data-cashout-fraction="0.5">50%</button>
-              <button type="button" data-cashout-fraction="1">All</button>
-            </div>
-            <label class="field-label">Receive with
-              <select id="cashout-method"></select>
-            </label>
-            <label class="field-label">Your $Cashtag, phone or email
-              <input id="cashout-handle" maxlength="100" autocomplete="off" placeholder="$yourname" />
-            </label>
-            <button class="link-button view-trigger" type="button" data-view="profile">Saved usernames ›</button>
-            <button id="submit-cashout" class="primary-action" type="button"><span>Request cash out</span><b>→</b></button>
-            <p class="demo-note"><span>i</span>Bonus cash can be played but not cashed out. Requests are reviewed by the team.</p>
-          </section>
-        </div>
-
-        <section class="surface requests-panel" aria-labelledby="requests-heading">
-          <div class="surface-heading">
-            <h2 id="requests-heading">Your requests</h2>
-            <button id="refresh-requests" class="icon-chip" type="button" aria-label="Refresh requests">↻</button>
-          </div>
-          <div id="request-list" class="request-list" aria-live="polite"><p class="request-empty">No requests yet.</p></div>
-        </section>
-      </div>
     </section>
 
-    <section id="profile-view" class="app-view page-view" aria-labelledby="profile-title" aria-hidden="true">
-      <div class="page-shell profile-shell">
-        <header class="page-header">
-          <button class="back-to-arcade view-trigger" type="button" data-view="arcade" aria-label="Back to the game lobby">
-            <span aria-hidden="true">‹</span> Lobby
-          </button>
-          <h1 id="profile-title" class="page-title">Profile</h1>
-        </header>
-
-        <article class="surface profile-card">
+    <section id="profile-view" class="app-view sheet-view" aria-labelledby="profile-title" aria-hidden="true">
+      <div class="sheet-backdrop" data-close-sheet aria-hidden="true"></div>
+      <div class="sheet-card profile-sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <header class="sheet-header profile-header">
           <div class="profile-avatar" aria-hidden="true"><span id="profile-initial">P</span></div>
-          <div class="profile-name"><small>Player ID</small><strong id="profile-login">—</strong></div>
+          <div class="profile-name"><h1 id="profile-title" class="sheet-title">Profile</h1><strong id="profile-login">—</strong></div>
           <dl class="profile-balances">
             <div><dt>Balance</dt><dd id="profile-total">$0.00</dd></div>
             <div><dt>Cashable</dt><dd id="profile-cashable">$0.00</dd></div>
             <div><dt>Bonus</dt><dd id="profile-bonus">$0.00</dd></div>
           </dl>
           <button id="logout-button" class="ghost-action" type="button">Sign out</button>
-        </article>
+          <button class="sheet-close" type="button" data-close-sheet aria-label="Close profile">×</button>
+        </header>
 
-        <form id="handles-form" class="surface handles-panel" aria-labelledby="handles-heading">
-          <div class="surface-heading">
-            <h2 id="handles-heading">Payment usernames</h2>
-            <span class="selection-label">Used to fill in cash outs</span>
-          </div>
+        <form id="handles-form" class="handles-pane" aria-labelledby="handles-heading">
+          <div class="pane-title"><h2 id="handles-heading">My payment methods</h2><span class="selection-label">Where you get paid · filled in when you cash out</span></div>
           <div id="handles-list" class="handles-list"></div>
-          <button id="save-handles" class="primary-action" type="submit"><span>Save usernames</span><b>✓</b></button>
+          <div class="handles-actions">
+            <button id="add-handle" class="ghost-action" type="button">＋ Add a payment app</button>
+            <button id="save-handles" class="primary-action" type="submit"><span>Save</span><b>✓</b></button>
+          </div>
         </form>
       </div>
     </section>
@@ -263,8 +242,8 @@
   <script src="safe-area.js?v=1"></script>
   <script defer src="audio.js?v=3"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
-  <script defer src="game.js?v=20"></script>
+  <script defer src="game.js?v=21"></script>
   <script src="chat-images.js?v=1"></script>
-  <script defer src="app.js?v=13"></script>
+  <script defer src="app.js?v=14"></script>
 </body>
 </html>

@@ -726,8 +726,7 @@
 
   // Category chips: a lacquered pill with a gold rim and, for the chosen one, a glowing gold face.
   // Drawn with the 2D canvas (gradients, glow) at twice the stage size, once per width.
-  const CHIP_HEIGHT = 46;
-  const cssColor = (hex) => `#${hex.toString(16).padStart(6, "0")}`;
+  const CHIP_HEIGHT = 48;
   const chipPlateTexture = (scene, width, on, accent) => {
     const scale = textureScale();
     const key = `chip-plate:${width}:${on ? 1 : 0}:${accent}:${scale}`;
@@ -782,129 +781,68 @@
       ctx.strokeStyle = rim;
       ctx.stroke();
     }
-    // The icon medallion, tinted with the category's colour.
-    const cx = x + 27;
-    const cy = y + CHIP_HEIGHT / 2;
-    const glow = ctx.createRadialGradient(cx, cy - 4, 2, cx, cy, 17);
-    glow.addColorStop(0, on ? "rgba(255, 255, 255, 0.45)" : cssColor(accent));
-    glow.addColorStop(1, on ? "rgba(120, 40, 0, 0.2)" : "rgba(30, 10, 25, 0.9)");
-    ctx.beginPath();
-    ctx.arc(cx, cy, 16.5, 0, Math.PI * 2);
-    ctx.globalAlpha = on ? 1 : 0.55;
-    ctx.fillStyle = glow;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = on ? "rgba(90, 30, 0, 0.45)" : "rgba(255, 214, 140, 0.75)";
-    ctx.stroke();
     texture.refresh();
     return key;
   };
 
-  // Category icons, drawn on a 64px grid and shown at half size.
-  const CATEGORY_ICONS = {
-    "All Games": (ctx) => {
-      [[14, 14], [34, 14], [14, 34], [34, 34]].forEach(([x, y], index) => {
-        ctx.beginPath();
-        if (index === 3) {
-          // A sparkle in the last cell.
-          ctx.moveTo(42, 32); ctx.quadraticCurveTo(43, 41, 52, 42); ctx.quadraticCurveTo(43, 43, 42, 52);
-          ctx.quadraticCurveTo(41, 43, 32, 42); ctx.quadraticCurveTo(41, 41, 42, 32);
-        } else roundRectPath(ctx, x, y, 16, 16, 4);
-        ctx.fill();
-      });
-    },
-    Slots: (ctx) => {
-      ctx.beginPath();
-      ctx.moveTo(23, 37); ctx.quadraticCurveTo(27, 20, 40, 12);
-      ctx.moveTo(43, 39); ctx.quadraticCurveTo(41, 22, 40, 12);
-      ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(46, 13, 9, 4.5, -0.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(21, 44, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(43, 46, 10, 0, Math.PI * 2); ctx.fill();
-    },
-    Instant: (ctx) => {
-      ctx.beginPath();
-      ctx.moveTo(37, 6); ctx.lineTo(15, 36); ctx.lineTo(30, 36); ctx.lineTo(25, 58); ctx.lineTo(49, 26);
-      ctx.lineTo(34, 26); ctx.closePath();
-      ctx.fill();
-    },
-    Cards: (ctx) => {
-      ctx.save();
-      ctx.translate(26, 34); ctx.rotate(-0.28);
-      ctx.beginPath(); roundRectPath(ctx, -12, -18, 24, 34, 4); ctx.stroke();
-      ctx.restore();
-      ctx.save();
-      ctx.translate(38, 32); ctx.rotate(0.18);
-      ctx.beginPath(); roundRectPath(ctx, -13, -19, 26, 37, 4); ctx.fill();
-      // Spade, cut out of the front card.
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath();
-      ctx.moveTo(0, -10); ctx.bezierCurveTo(4, -5, 9, -2, 9, 3); ctx.bezierCurveTo(9, 8, 3, 9, 0, 5);
-      ctx.bezierCurveTo(-3, 9, -9, 8, -9, 3); ctx.bezierCurveTo(-9, -2, -4, -5, 0, -10);
-      ctx.moveTo(0, 4); ctx.lineTo(4, 12); ctx.lineTo(-4, 12); ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    },
-    "Table Games": (ctx) => {
-      ctx.beginPath(); ctx.arc(32, 32, 23, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(32, 32, 12, 0, Math.PI * 2); ctx.stroke();
-      for (let i = 0; i < 8; i += 1) {
-        const angle = (i / 8) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(32 + Math.cos(angle) * 12, 32 + Math.sin(angle) * 12);
-        ctx.lineTo(32 + Math.cos(angle) * 23, 32 + Math.sin(angle) * 23);
-        ctx.stroke();
-      }
-      ctx.beginPath(); ctx.arc(32, 32, 4.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(46, 15, 4, 0, Math.PI * 2); ctx.fill();
-    },
-    Numbers: (ctx) => {
-      ctx.beginPath(); ctx.arc(32, 33, 24, 0, Math.PI * 2); ctx.fill();
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.beginPath(); ctx.arc(32, 33, 13.5, 0, Math.PI * 2); ctx.fill();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.font = "bold 20px Arial, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("7", 32, 34);
-    },
-    Arcade: (ctx) => {
-      ctx.beginPath();
-      ctx.moveTo(18, 20); ctx.lineTo(46, 20);
-      ctx.bezierCurveTo(56, 20, 61, 40, 58, 47); ctx.bezierCurveTo(55, 54, 47, 51, 42, 42);
-      ctx.lineTo(22, 42); ctx.bezierCurveTo(17, 51, 9, 54, 6, 47); ctx.bezierCurveTo(3, 40, 8, 20, 18, 20);
-      ctx.fill();
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.fillRect(14, 28, 11, 4); ctx.fillRect(17.5, 24.5, 4, 11);
-      ctx.beginPath(); ctx.arc(44, 27, 3, 0, Math.PI * 2); ctx.arc(50, 33, 3, 0, Math.PI * 2); ctx.fill();
-    },
-    "Quick Games": (ctx) => {
-      ctx.beginPath(); ctx.arc(32, 36, 21, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillRect(27, 6, 10, 6);
-      ctx.beginPath(); ctx.moveTo(32, 12); ctx.lineTo(32, 15); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(32, 36); ctx.lineTo(32, 23); ctx.moveTo(32, 36); ctx.lineTo(41, 41); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(48, 15); ctx.lineTo(52, 19); ctx.stroke();
-    },
+  // Category icons are real game art from the lobby sheet, cropped into a gold-ringed medallion.
+  const CATEGORY_ART = {
+    "All Games": null, // the Phoenix Ruby key art
+    Slots: "Classic 777",
+    Instant: "Crash",
+    Cards: "Blackjack",
+    "Table Games": "Roulette",
+    Numbers: "Keno",
+    Arcade: "Fishing",
+    "Quick Games": "Scratch Card",
   };
-
-  const categoryIconTexture = (scene, category, on) => {
-    const key = `category-icon:${category.name}:${on ? 1 : 0}`;
+  const MEDALLION = 60;
+  const categoryArtTexture = (scene, category) => {
+    const scale = textureScale();
+    const key = `category-art:${category.name}:${scale}`;
     if (scene.textures.exists(key)) return key;
-    const texture = scene.textures.createCanvas(key, 64, 64);
+    const size = MEDALLION + 6;
+    const texture = scene.textures.createCanvas(key, Math.ceil(size * scale), Math.ceil(size * scale));
     const ctx = texture.getContext();
-    const paint = on ? "#3a1305" : (() => {
-      const gold = ctx.createLinearGradient(0, 6, 0, 58);
-      gold.addColorStop(0, "#fff3c8");
-      gold.addColorStop(1, "#f2b14a");
-      return gold;
-    })();
-    ctx.fillStyle = paint;
-    ctx.strokeStyle = paint;
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    (CATEGORY_ICONS[category.name] ?? CATEGORY_ICONS["All Games"])(ctx);
+    ctx.scale(scale, scale);
+    const c = size / 2;
+    const r = MEDALLION / 2;
+    const title = CATEGORY_ART[category.name];
+    const frame = title ? scene.textures.getFrame("gamish-game-icons", GAME_ART_BY_TITLE.get(title)) : scene.textures.getFrame("phoenix");
+    // Square crop from the upper part of the tile, above the printed game title.
+    const side = title ? Math.min(frame.cutWidth, frame.cutHeight) * 0.74 : Math.min(frame.cutWidth, frame.cutHeight) * 0.62;
+    const sx = frame.cutX + (frame.cutWidth - side) / 2;
+    const sy = frame.cutY + (title ? frame.cutHeight * 0.05 : frame.cutHeight * 0.16);
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 1.5;
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, Math.PI * 2);
+    ctx.fillStyle = "#140a12";
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c, c, r - 1.5, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(frame.source.image, sx, sy, side, side, c - r, c - r, MEDALLION, MEDALLION);
+    // A little glassy light across the top.
+    const gloss = ctx.createLinearGradient(0, c - r, 0, c);
+    gloss.addColorStop(0, "rgba(255, 255, 255, 0.28)");
+    gloss.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = gloss;
+    ctx.fillRect(c - r, c - r, MEDALLION, r);
+    ctx.restore();
+    const ring = ctx.createLinearGradient(0, c - r, 0, c + r);
+    ring.addColorStop(0, "#fff1c2");
+    ring.addColorStop(0.5, "#e9a640");
+    ring.addColorStop(1, "#8a4b12");
+    ctx.beginPath();
+    ctx.arc(c, c, r - 1, 0, Math.PI * 2);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ring;
+    ctx.stroke();
     texture.refresh();
     return key;
   };
@@ -1018,13 +956,14 @@
           const text = this.add.text(0, 0, category.name.toUpperCase(), {
             fontFamily: BODY_FONT, fontSize: `${fontSize}px`, fontStyle: "700", color: "#f1dcc0", letterSpacing: 1.4,
           }).setOrigin(0, 0.5);
-          const width = Math.ceil(text.width) + 70;
+          const width = Math.ceil(text.width) + 86;
           const chip = this.add.container(x + width / 2, LOBBY.chipsY);
           const plate = this.add.image(0, 0, chipPlateTexture(this, width, false, category.accent)).setScale(1 / textureScale());
           const active = this.add.image(0, 0, chipPlateTexture(this, width, true, category.accent)).setScale(1 / textureScale()).setAlpha(0);
-          const icon = this.add.image(-width / 2 + 27, 0, categoryIconTexture(this, category, false)).setScale(0.5);
-          text.setX(-width / 2 + 50);
-          chip.add([plate, active, icon, text]).setSize(width, 56).setInteractive({ useHandCursor: true });
+          // The art medallion sits like a badge on the pill's left end, a little larger than it.
+          const icon = this.add.image(-width / 2 + 26, 0, categoryArtTexture(this, category)).setScale(1 / textureScale());
+          text.setX(-width / 2 + 64);
+          chip.add([plate, active, icon, text]).setSize(width, 64).setInteractive({ useHandCursor: true });
           chip.on("pointerdown", () => pressFeedback(this, chip, 0.94));
           chip.on("pointerup", () => this.selectCategory(category));
           this.chips.push({ category, chip, active, icon, text });
@@ -1043,7 +982,7 @@
       this.chips.forEach(({ category, active, icon, text }) => {
         const on = category === this.category;
         this.tweens.add({ targets: active, alpha: on ? 1 : 0, duration: 160 });
-        icon.setTexture(categoryIconTexture(this, category, on));
+        this.tweens.add({ targets: icon, scale: (on ? 1.08 : 1) / textureScale(), duration: 180, ease: "Back.Out" });
         text.setColor(on ? "#2a0e05" : "#f1dcc0");
       });
     }
