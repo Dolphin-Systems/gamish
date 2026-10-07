@@ -61,8 +61,45 @@
       emitWallet(message.wallet);
     } else if (message.type === "sound") {
       setSound(message.on);
+    } else if (message.type === "upright") {
+      upright = message.on === true;
     }
   });
+
+  // ---------- Taps while the app is shown turned ----------
+  // Upright phones show the app rotated a quarter turn, and some browsers then lose the click
+  // that should follow a tap inside this frame. A short, still tap that brings no click within
+  // a moment gets one here; a late real click for the same tap is swallowed so nothing fires twice.
+  let upright = false;
+  let tapStart = null;
+  let gotClick = false;
+  let filledAt = -Infinity;
+  document.addEventListener("pointerdown", (event) => {
+    tapStart = upright && event.pointerType === "touch" && event.isPrimary
+      ? { x: event.clientX, y: event.clientY, at: event.timeStamp } : null;
+  }, true);
+  document.addEventListener("click", (event) => {
+    if (!event.isTrusted) return;
+    gotClick = true;
+    if (performance.now() - filledAt < 700) {
+      filledAt = -Infinity;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+  document.addEventListener("pointerup", (event) => {
+    const start = tapStart;
+    tapStart = null;
+    if (!start || event.pointerType !== "touch") return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12 || event.timeStamp - start.at > 800) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY) || event.target;
+    gotClick = false;
+    setTimeout(() => {
+      if (gotClick || !target?.isConnected || target.closest?.(":disabled")) return;
+      filledAt = performance.now();
+      target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window, clientX: event.clientX, clientY: event.clientY }));
+    }, 60);
+  }, true);
 
   // ---------- On its own: a local preview with practice credits ----------
   const startPreview = async () => {

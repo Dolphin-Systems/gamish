@@ -10,8 +10,8 @@
   // Hard ceiling on canvas pixels. iOS kills a page whose WebGL buffers outgrow its memory
   // allowance ("A problem repeatedly occurred"), so the render scale bends to fit this budget.
   const MAX_CANVAS_PIXELS = 2_600_000;
-  // Phones held upright see the rotate prompt; the game behind it stays landscape-sized and asleep.
-  const PORTRAIT_PROMPT = window.matchMedia("(orientation: portrait) and (max-width: 900px) and (pointer: coarse)");
+  // Phones held upright show the whole app turned sideways (styles.css), so it stays landscape.
+  const UPRIGHT = window.matchMedia("(orientation: portrait) and (max-width: 900px) and (pointer: coarse)");
   const VIEW = { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
 
   // Notch-aware safe margins (see safe-area.js): full margin on the notch side only.
@@ -22,7 +22,7 @@
     let cssWidth = shell?.clientWidth || window.innerWidth;
     let cssHeight = shell?.clientHeight || window.innerHeight;
     if (!cssWidth || !cssHeight) return { width: WIDTH, height: HEIGHT, left: 0, top: 0, zoom: 1 };
-    const portrait = PORTRAIT_PROMPT.matches;
+    const portrait = UPRIGHT.matches;
     // Upright, measure as if the phone were already turned: no tall, memory-hungry canvas.
     if (portrait) [cssWidth, cssHeight] = [Math.max(cssWidth, cssHeight), Math.min(cssWidth, cssHeight)];
     const insets = portrait ? { top: 0, right: 0, bottom: 0, left: 0 } : readSafeInsets();
@@ -2561,6 +2561,45 @@
     };
 
     const game = new Phaser.Game(config);
+    // Upright, the page is rotated a quarter turn, so on-screen rectangles and touch points are
+    // sideways. Size the canvas from layout boxes and turn touches back into layout coordinates.
+    const scaler = game.scale;
+    const parentBounds = scaler.getParentBounds;
+    scaler.getParentBounds = function getParentBounds() {
+      if (!UPRIGHT.matches || !this.parent || this.parentIsWindow) return parentBounds.call(this);
+      const width = this.parent.clientWidth;
+      const height = this.parent.clientHeight;
+      if (this.parentSize.width === width && this.parentSize.height === height) return false;
+      this.parentSize.setSize(width, height);
+      return true;
+    };
+    const updateCenter = scaler.updateCenter;
+    scaler.updateCenter = function updateCenterInLayout() {
+      if (!UPRIGHT.matches) return updateCenter.call(this);
+      this.canvas.style.marginLeft = `${Math.floor((this.parentSize.width - this.canvas.offsetWidth) / 2)}px`;
+      this.canvas.style.marginTop = `${Math.floor((this.parentSize.height - this.canvas.offsetHeight) / 2)}px`;
+    };
+    const updateBounds = scaler.updateBounds;
+    scaler.updateBounds = function updateBoundsInLayout() {
+      if (!UPRIGHT.matches) return updateBounds.call(this);
+      let x = 0;
+      let y = 0;
+      for (let node = this.canvas; node; node = node.offsetParent) {
+        x += node.offsetLeft + node.clientLeft;
+        y += node.offsetTop + node.clientTop;
+      }
+      this.canvasBounds.setTo(x, y, this.canvas.offsetWidth, this.canvas.offsetHeight);
+    };
+    const transformPointer = game.input.transformPointer;
+    game.input.transformPointer = function transformUpright(pointer, pageX, pageY, wasMove) {
+      // Layout x runs down the screen; layout y runs right to left.
+      if (UPRIGHT.matches) [pageX, pageY] = [pageY, window.innerWidth - pageX];
+      return transformPointer.call(this, pointer, pageX, pageY, wasMove);
+    };
+    // The scale manager may have measured before these were in place; measure again.
+    const remeasure = () => { scaler.getParentBounds(); scaler.refresh(); };
+    if (game.isBooted) remeasure();
+    else game.events.once("ready", remeasure);
     window.addEventListener("gamish:signedout", () => game.scene.start("WaitForPlayer"));
     // The phone's back button, routed here by app.js, steps back inside the game.
     window.addEventListener("gamish:back", () => {
@@ -2586,11 +2625,11 @@
     window.visualViewport?.addEventListener("resize", refit);
     window.addEventListener("orientationchange", refit);
 
-    // Stop drawing while the wallet or messages page, or the rotate prompt, covers the game;
+    // Stop drawing while the wallet or messages page covers the game;
     // resume where it left off.
     let currentView = "arcade";
     const syncLoop = () => {
-      const showing = currentView === "arcade" && !PORTRAIT_PROMPT.matches;
+      const showing = currentView === "arcade";
       if (showing) game.loop.wake();
       else game.loop.sleep();
       // Phaser hears finger-ups on the whole window, so taps on a pop-up or page covering the
@@ -2601,7 +2640,7 @@
       currentView = event.detail;
       syncLoop();
     });
-    PORTRAIT_PROMPT.addEventListener?.("change", () => {
+    UPRIGHT.addEventListener?.("change", () => {
       syncLoop();
       refit();
     });

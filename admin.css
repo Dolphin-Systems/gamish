@@ -192,6 +192,8 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .side-panel-backdrop { position: fixed; inset: 0; z-index: 39; border: 0; background: rgba(4, 7, 5, .48); backdrop-filter: blur(5px); }
 .admin-side-panel { position: fixed; inset: 10px 10px 10px auto; z-index: 40; display: flex; flex-direction: column; width: min(520px, calc(100% - 20px)); padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid var(--line); border-radius: 30px; background: #fff; box-shadow: -24px 0 80px rgba(0,0,0,.24); }
 .side-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.chat-alerts { margin-left: auto; white-space: nowrap; }
+.chat-alerts.on { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); }
 .side-panel-title { display: flex; align-items: center; gap: 13px; min-width: 0; }
 .side-panel-title .eyebrow { margin-top: 0; }
 .side-panel-title h2 { font-size: 26px; }
