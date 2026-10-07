@@ -251,8 +251,7 @@
   const ui = {
     app: $("app"), machine: $("machine"), message: $("message"), balance: $("balance"), win: $("win"),
     betDown: $("betDown"), betUp: $("betUp"), betValue: $("betValue"), spin: $("spin"), auto: $("auto"),
-    pays: $("pays"), sound: $("sound"), banner: $("banner"), bannerTitle: $("bannerTitle"),
-    bannerAmount: $("bannerAmount"), sheet: $("sheet"), paytable: $("paytable"), closeSheet: $("closeSheet"),
+    sound: $("sound"), banner: $("banner"), bannerTitle: $("bannerTitle"), bannerAmount: $("bannerAmount"),
   };
   const reels = [...document.querySelectorAll(".reel")].map((el, i) => new Reel(el, i));
 
@@ -299,7 +298,6 @@
     ui.spin.disabled = locked || !session;
     ui.betDown.disabled = locked || betIndex === 0;
     ui.betUp.disabled = locked || betIndex === bets.length - 1;
-    ui.pays.disabled = busy;
     ui.auto.disabled = !session || (busy && autoLeft === 0);
     ui.auto.classList.toggle("on", autoLeft > 0);
     ui.auto.querySelector(".pill-label").textContent = autoLeft > 0 ? `STOP ${autoLeft}` : "AUTO";
@@ -437,26 +435,6 @@
     syncControls();
   }
 
-  // ---------- paytable ----------
-  function buildPaytable(outcomes) {
-    const rows = outcomes.filter((o) => o.multiplier > 0 && NAMES[o.id]).sort((a, b) => b.multiplier - a.multiplier);
-    ui.paytable.replaceChildren(...rows.map((o) => {
-      const li = document.createElement("li");
-      const icons = document.createElement("span");
-      icons.className = "icons";
-      for (let i = 0; i < 5; i++) {
-        const img = document.createElement("img");
-        img.src = src(o.id);
-        img.alt = i === 0 ? NAMES[o.id] : "";
-        icons.append(img);
-      }
-      const pay = document.createElement("b");
-      pay.textContent = `${fmt(o.multiplier)}×`;
-      li.append(icons, pay);
-      return li;
-    }));
-  }
-
   // ---------- controls ----------
   const SOUND_MODES = {
     all: { icon: "♫", label: "Music and sound on", text: "Music and sound on" },
@@ -490,16 +468,13 @@
     syncControls();
     spin();
   });
-  ui.pays.addEventListener("click", () => { Sound.click(); ui.sheet.hidden = false; });
-  ui.closeSheet.addEventListener("click", () => { Sound.click(); ui.sheet.hidden = true; });
-  ui.sheet.addEventListener("click", (e) => { if (e.target === ui.sheet) ui.sheet.hidden = true; });
   ui.sound.addEventListener("click", () => {
     Sound.unlock();
     showSoundMode(Sound.cycle());
     if (!busy) say(SOUND_MODES[Sound.mode].text);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.code === "Space" && ui.sheet.hidden) { e.preventDefault(); Sound.unlock(); if (!ui.spin.disabled) spin(); }
+    if (e.code === "Space") { e.preventDefault(); Sound.unlock(); if (!ui.spin.disabled) spin(); }
   });
 
   // ---------- start ----------
@@ -518,7 +493,6 @@
     betIndex = 0;
     showWallet(session.wallet);
     Gamish.onWallet(showWallet);
-    buildPaytable(session.math.outcomes || []);
     say(session.preview ? "Preview mode — practice credits" : "Set your bet and press SPIN");
     syncControls();
     layout();

@@ -1388,39 +1388,37 @@ noscript {
 #game-shell, #game-shell canvas { touch-action: none; }
 body[data-view="arcade"] .utility-nav { display: none; }
 
-.rotate-prompt { display: none; }
-@media (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
-  .rotate-prompt {
-    position: fixed;
-    z-index: 5000;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 32px;
-    background: radial-gradient(circle at 50% 40%, rgba(255, 110, 30, 0.18), transparent 46%), #09050d;
-    color: #fff0c8;
-    text-align: center;
-  }
-  .rotate-prompt b { font-family: "Cinzel Decorative", Georgia, serif; font-size: 24px; }
-  .rotate-prompt span:last-child { color: #c9b4bd; font-size: 15px; }
-  .rotate-phone {
-    width: 64px;
-    height: 108px;
-    margin-bottom: 18px;
-    border: 3px solid #ffc96b;
-    border-radius: 14px;
-    box-shadow: 0 0 32px rgba(255, 140, 40, 0.35), inset 0 -10px 0 -7px #ffc96b;
-    animation: rotate-hint 2.2s ease-in-out infinite;
-  }
+/* Launch intro: the Gamish777 logo for three seconds, then it fades into the app. */
+.intro {
+  position: fixed; z-index: 6000; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vmin;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 96, 24, 0.24), transparent 48%), #07040b;
+  animation: intro-out 0.35s ease-in 2.65s forwards;
 }
-@keyframes rotate-hint {
-  0%, 20% { transform: rotate(0deg); }
-  55%, 80% { transform: rotate(-90deg); }
-  100% { transform: rotate(0deg); }
+.intro-logo { position: relative; width: min(34vmin, 210px); aspect-ratio: 1; animation: intro-logo 1.1s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.intro-logo img { position: relative; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.intro-ring {
+  position: absolute; inset: -6%; border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 201, 107, 0.85), 0 0 40px 6px rgba(255, 110, 30, 0.55);
+  animation: intro-ring 1.6s ease-out 0.4s infinite;
 }
+.intro-title {
+  font-family: "Cinzel Decorative", Georgia, serif; font-weight: 900; font-size: min(9vmin, 54px); letter-spacing: 0.08em;
+  background: linear-gradient(100deg, #b8761d 0%, #ffe08a 30%, #fffbe6 45%, #ffcf5a 60%, #b8761d 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 3px 0 #3b1a06) drop-shadow(0 0 14px rgba(255, 150, 50, 0.45));
+  animation: intro-rise 0.7s ease-out 0.45s both, intro-shine 1.8s ease-in-out 0.9s both;
+}
+.intro-tag { color: #e9c58a; font-size: min(2.6vmin, 14px); font-weight: 700; letter-spacing: 0.32em; animation: intro-rise 0.7s ease-out 0.75s both; }
+.intro-bar { width: min(36vmin, 220px); height: 4px; margin-top: 1.4vmin; border-radius: 4px; overflow: hidden; background: rgba(255, 201, 107, 0.16); animation: intro-rise 0.5s ease-out 0.9s both; }
+.intro-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #b8761d, #ffe08a, #fff6d0); box-shadow: 0 0 10px rgba(255, 200, 90, 0.8); transform-origin: left; animation: intro-load 1.7s ease-in-out 0.9s both; }
+@keyframes intro-logo { from { opacity: 0; transform: scale(0.55) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@keyframes intro-ring { from { transform: scale(0.95); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes intro-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes intro-load { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes intro-out { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@media (prefers-reduced-motion: reduce) { .intro-logo, .intro-ring, .intro-title, .intro-tag, .intro-bar, .intro-bar i { animation: none; } }
 
 /* ---------- Profile ---------- */
 .profile-avatar {
