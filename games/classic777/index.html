@@ -33,25 +33,29 @@
 
     <aside class="panel">
       <div class="meter">
-        <span class="label">Balance</span>
+        <span class="label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="7" rx="8" ry="3.4"/><path d="M4 7v5c0 1.9 3.6 3.4 8 3.4s8-1.5 8-3.4V7M4 12v5c0 1.9 3.6 3.4 8 3.4s8-1.5 8-3.4v-5"/></svg>Balance</span>
         <strong id="balance">—</strong>
       </div>
       <div class="meter win">
-        <span class="label">Win</span>
+        <span class="label"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7Z"/></svg>Win</span>
         <strong id="win">0</strong>
       </div>
       <div class="bet">
         <span class="label">Bet</span>
         <div class="stepper">
-          <button id="betDown" type="button" aria-label="Lower bet">−</button>
+          <button id="betDown" class="coin-btn" type="button" aria-label="Lower bet"><span aria-hidden="true">−</span></button>
           <output id="betValue">10</output>
-          <button id="betUp" type="button" aria-label="Raise bet">+</button>
+          <button id="betUp" class="coin-btn" type="button" aria-label="Raise bet"><span aria-hidden="true">+</span></button>
         </div>
       </div>
-      <button id="spin" class="spin" type="button">SPIN</button>
+      <button id="spin" class="spin" type="button" aria-label="Spin">
+        <span class="spin-glow" aria-hidden="true"></span>
+        <svg class="spin-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M38.5 19A15.5 15.5 0 0 0 10.3 15"/><path d="M9 7.5V16h8.5"/><path d="M9.5 29a15.5 15.5 0 0 0 28.2 4"/><path d="M39 40.5V32h-8.5"/></svg>
+        <span class="spin-label">SPIN</span>
+      </button>
       <div class="row">
-        <button id="auto" class="pill" type="button">AUTO</button>
-        <button id="pays" class="pill" type="button">PAYS</button>
+        <button id="auto" class="pill" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></svg><span class="pill-label">AUTO</span></button>
+        <button id="pays" class="pill" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4a4 4 0 0 1-8 0Z"/><path d="M8 5H5v1.5A3.5 3.5 0 0 0 8.5 10M16 5h3v1.5A3.5 3.5 0 0 1 15.5 10M12 12v4M8.5 20h7M10 16h4l.8 4H9.2Z"/></svg><span class="pill-label">PAYS</span></button>
         <button id="sound" class="pill icon" type="button" aria-label="Music and sound on" title="Music and sound on">♫</button>
       </div>
     </aside>

@@ -302,7 +302,8 @@
     ui.pays.disabled = busy;
     ui.auto.disabled = !session || (busy && autoLeft === 0);
     ui.auto.classList.toggle("on", autoLeft > 0);
-    ui.auto.textContent = autoLeft > 0 ? `STOP ${autoLeft}` : "AUTO";
+    ui.auto.querySelector(".pill-label").textContent = autoLeft > 0 ? `STOP ${autoLeft}` : "AUTO";
+    ui.spin.classList.toggle("spinning", busy);
     ui.betValue.textContent = bets.length ? fmt(bet()) : "—";
   }
 

@@ -533,3 +533,99 @@ body::before {
 }
 
 .pill.icon[hidden] { display: none; }
+
+
+/* ---------- Casino controls (panel) ---------- */
+.panel { gap: clamp(6px, 1.9vh, 10px); }
+.panel .label { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #e9c58a; }
+.panel .ico { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Balance and Win: recessed display windows with glowing gold digits. */
+.panel .meter {
+  position: relative; padding: 6px 12px 7px; border-radius: 14px;
+  background: linear-gradient(180deg, #2a0f2a, #12061a);
+  box-shadow:
+    0 0 0 1.5px #6b3a0d, 0 0 0 3px #d8a443, 0 0 0 4px #5b2a0c,
+    inset 0 3px 10px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 210, 120, 0.12),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.panel .meter strong {
+  margin-top: 1px; color: #ffd66b; font-size: clamp(18px, 5.6vh, 24px); letter-spacing: 0.02em;
+  text-shadow: 0 0 10px rgba(255, 180, 60, 0.55), 0 1px 0 #6b3a0d;
+}
+.panel .meter.win strong { color: #fff3d6; text-shadow: 0 0 8px rgba(255, 210, 140, 0.35); }
+.panel .meter.win.lit { box-shadow: 0 0 0 1.5px #6b3a0d, 0 0 0 3px #ffe08a, 0 0 0 4px #5b2a0c, inset 0 3px 10px rgba(0, 0, 0, 0.6), 0 0 22px rgba(255, 190, 60, 0.75); }
+.panel .meter.win.lit strong { color: #fff7c8; text-shadow: 0 0 14px rgba(255, 200, 80, 1); animation: win-flash 0.5s ease-in-out 3 alternate; }
+@keyframes win-flash { to { transform: scale(1.06); } }
+
+/* Bet: domed coin buttons around a recessed display. */
+.panel .bet { padding: 6px 10px 8px; border-radius: 14px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.28)); box-shadow: inset 0 0 0 1px rgba(255, 193, 79, 0.28); }
+.panel .stepper { grid-template-columns: 38px 1fr 38px; gap: 8px; margin-top: 3px; }
+.panel .coin-btn {
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #fff3c4 0 8%, #ffcf5a 30%, #c8861f 62%, #7a4410 100%);
+  box-shadow: 0 0 0 2px #5b2a0c, 0 3px 0 #3d1a06, 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 -3px 6px rgba(90, 40, 0, 0.55);
+  color: #4a1606; font-size: 24px; font-weight: 800; line-height: 1;
+  transition: transform 0.08s, filter 0.15s;
+}
+.panel .coin-btn span { margin-top: -2px; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6); }
+.panel .coin-btn:not(:disabled):active { transform: translateY(2px); box-shadow: 0 0 0 2px #5b2a0c, 0 1px 0 #3d1a06, 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 -2px 4px rgba(90, 40, 0, 0.55); }
+.panel .coin-btn:disabled { opacity: 1; filter: grayscale(0.85) brightness(0.55); }
+.panel .stepper output {
+  display: grid; place-items: center; height: 34px; border-radius: 10px;
+  background: linear-gradient(180deg, #12061a, #241028);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 193, 79, 0.45);
+  color: #ffd66b; font-size: clamp(17px, 5vh, 21px); text-shadow: 0 0 8px rgba(255, 180, 60, 0.5);
+}
+
+/* SPIN: a big glossy red dome with a gold ring. */
+.panel .spin {
+  position: relative; display: grid; place-items: center; align-content: center; gap: 0;
+  justify-self: center; align-self: center; width: clamp(92px, 30vh, 118px); height: clamp(92px, 30vh, 118px);
+  margin: 2px auto; padding: 0; border-radius: 50%;
+  background:
+    radial-gradient(60% 35% at 50% 18%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(circle at 50% 60%, #ff5a3c 0%, #e01d2a 48%, #8c0912 82%, #5a050c 100%);
+  box-shadow:
+    0 0 0 3px #6b3a0d, 0 0 0 6px #ffcf5a, 0 0 0 8px #8a5214, 0 0 0 9px #3b1a06,
+    0 7px 0 8px #3b0408, 0 12px 26px rgba(0, 0, 0, 0.55), inset 0 -8px 16px rgba(60, 0, 8, 0.65);
+  color: #fff7e2; font-family: "Cinzel", serif; text-shadow: 0 2px 0 #6a0810, 0 0 10px rgba(255, 220, 160, 0.6);
+  animation: none;
+}
+.panel .spin-glow { position: absolute; inset: -14px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255, 110, 40, 0.55), rgba(255, 110, 40, 0) 68%); animation: spin-breathe 2.2s ease-in-out infinite; pointer-events: none; }
+@keyframes spin-breathe { 50% { transform: scale(1.12); opacity: 0.55; } }
+.panel .spin-icon { width: 42%; height: 42%; fill: none; stroke: #fff3d0; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 0 #6a0810); }
+.panel .spin-label { margin-top: -2px; font-size: clamp(15px, 4.6vh, 19px); font-weight: 900; letter-spacing: 0.1em; }
+.panel .spin.spinning .spin-icon { animation: spin-turn 0.7s linear infinite; }
+@keyframes spin-turn { to { transform: rotate(360deg); } }
+.panel .spin:not(:disabled):active { transform: translateY(4px) scale(0.97); box-shadow: 0 0 0 3px #6b3a0d, 0 0 0 6px #ffcf5a, 0 0 0 8px #8a5214, 0 0 0 9px #3b1a06, 0 3px 0 8px #3b0408, 0 6px 16px rgba(0, 0, 0, 0.55), inset 0 -6px 14px rgba(60, 0, 8, 0.65); }
+.panel .spin:disabled { filter: none; }
+.panel .spin:disabled:not(.spinning) { filter: saturate(0.35) brightness(0.65); }
+.panel .spin:disabled .spin-glow { animation: none; opacity: 0; }
+
+/* AUTO and PAYS: jewel pills with icons. */
+.panel .row { gap: 8px; }
+.panel .pill {
+  display: flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 10px;
+  border-radius: 999px; font-size: 12.5px; letter-spacing: 0.1em; color: #f6e2bf; white-space: nowrap;
+  background: linear-gradient(180deg, #5a2050 0%, #2c0f30 55%, #1a0820 100%);
+  box-shadow: 0 0 0 1.5px #6b3a0d, 0 0 0 3px #d8a443, 0 3px 0 3px #2a0d0a, 0 6px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 220, 170, 0.25);
+  transition: transform 0.08s;
+}
+.panel .row .pill { flex: 1 1 0; min-width: 0; }
+.panel .pill .ico { width: 15px; height: 15px; }
+.panel .pill:not(:disabled):active { transform: translateY(2px); }
+.panel .pill.on {
+  color: #2a0e05;
+  background: linear-gradient(180deg, #fff3c4 0%, #ffcf5a 45%, #d8941f 100%);
+  box-shadow: 0 0 0 1.5px #6b3a0d, 0 0 0 3px #ffe08a, 0 3px 0 3px #5b2a0c, 0 0 18px rgba(255, 190, 60, 0.6);
+}
+.panel .pill:disabled { opacity: 0.45; }
+
+@media (max-width: 720px) {
+  .panel .coin-btn { width: 32px; height: 32px; font-size: 20px; }
+  .panel .stepper { grid-template-columns: 32px 1fr 32px; gap: 6px; }
+  .panel .pill { height: 32px; padding: 0 6px; font-size: 11px; gap: 4px; letter-spacing: 0.04em; }
+  .panel .pill .ico { width: 13px; height: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .panel .spin-glow, .panel .spin.spinning .spin-icon { animation: none; } }
