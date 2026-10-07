@@ -9,17 +9,26 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="game-intro" id="gameIntro" role="status" aria-label="Gamish777 is loading">
+    <div class="intro-mark" aria-hidden="true">G</div>
+    <div class="intro-name">GAMISH<span>777</span></div>
+    <div class="intro-line" aria-hidden="true"><i></i></div>
+  </div>
   <!-- The platform draws the back button in the top-left corner: keep that area free. -->
   <div class="glow" aria-hidden="true"></div>
   <main class="app" id="app">
     <section class="cabinet">
+      <div class="scene-art" aria-hidden="true"><img src="cover.webp" alt="" /></div>
       <img class="logo" src="img/logo.webp" alt="Classic 777" />
       <div class="machine" id="machine">
         <div class="bulbs" aria-hidden="true"></div>
+        <div class="machine-plate" aria-hidden="true"><span>CLASSIC PAYLINE</span><b>5 REELS</b><span>MAX 50×</span></div>
         <div class="window" id="window">
           <div class="reel" data-reel="0"><div class="strip"></div></div>
           <div class="reel" data-reel="1"><div class="strip"></div></div>
           <div class="reel" data-reel="2"><div class="strip"></div></div>
+          <div class="reel" data-reel="3"><div class="strip"></div></div>
+          <div class="reel" data-reel="4"><div class="strip"></div></div>
           <div class="payline" aria-hidden="true"><i></i><i></i></div>
           <div class="shade" aria-hidden="true"></div>
         </div>
@@ -48,7 +57,7 @@
       <div class="row">
         <button id="auto" class="pill" type="button">AUTO</button>
         <button id="pays" class="pill" type="button">PAYS</button>
-        <button id="sound" class="pill icon" type="button" aria-label="Sound on">♪</button>
+        <button id="sound" class="pill icon" type="button" aria-label="Music and sound on" title="Music and sound on">♫</button>
       </div>
     </aside>
   </main>
@@ -62,13 +71,14 @@
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-card" role="dialog" aria-label="Paytable">
       <h2>Paytable</h2>
-      <p class="sheet-note">Three matching symbols on the centre line pay the bet × the multiplier. WILD stands in for any fruit, bell or BAR.</p>
+      <p class="sheet-note">Five matching symbols on the centre line pay the bet × the multiplier. WILD can stand in for fruit, bell, or BAR symbols.</p>
       <ul class="paytable" id="paytable"></ul>
       <button id="closeSheet" class="pill" type="button">CLOSE</button>
     </div>
   </div>
 
   <script src="/platform/gamish-sdk.js"></script>
+  <script src="audio.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

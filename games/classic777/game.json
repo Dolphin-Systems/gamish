@@ -2,10 +2,10 @@
   "id": "classic777",
   "title": "Classic 777",
   "category": "Slots",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "runtime": "module",
   "entry": "index.html",
   "cover": "cover.webp",
-  "description": "A golden three-reel classic: line up three red 7s for 50× your bet.",
+  "description": "A five-reel classic: line up five red 7s for 50× your bet.",
   "accent": "#ffc14f"
 }

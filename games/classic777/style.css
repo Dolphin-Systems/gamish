@@ -35,6 +35,95 @@ html, body {
 button { font: inherit; color: inherit; cursor: pointer; }
 button:disabled { cursor: default; }
 
+/* A short, brand-first opening replaces any in-game orientation prompt. */
+.game-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(145, 36, 45, .45), transparent 26%),
+    radial-gradient(circle at 50% 50%, rgba(255, 167, 58, .16), transparent 43%),
+    #12061a;
+  transition: opacity .38s ease, visibility .38s step-end;
+}
+
+.game-intro::before,
+.game-intro::after {
+  content: "";
+  position: absolute;
+  width: min(74vh, 500px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 196, 79, .22);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(255, 122, 47, .18), inset 0 0 36px rgba(255, 122, 47, .12);
+}
+
+.game-intro::before { transform: scale(.78); }
+.game-intro::after { transform: scale(1.15); opacity: .46; }
+
+.game-intro.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.intro-mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: clamp(58px, 14vh, 82px);
+  aspect-ratio: 1;
+  border: 2px solid var(--gold);
+  border-radius: 28%;
+  background: radial-gradient(circle at 35% 24%, #ff8252, #bd1723 54%, #570812 100%);
+  box-shadow: 0 0 0 5px rgba(255, 193, 79, .12), 0 0 30px rgba(255, 118, 41, .65);
+  color: #fff4d3;
+  font-family: "Cinzel", serif;
+  font-size: clamp(34px, 9vh, 52px);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 0 #6a0710;
+  animation: intro-mark 1.15s ease-in-out infinite alternate;
+}
+
+.intro-name {
+  position: relative;
+  z-index: 1;
+  color: #fff1c8;
+  font-family: "Cinzel", serif;
+  font-size: clamp(25px, 7vh, 42px);
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-shadow: 0 2px 0 #671019, 0 0 18px rgba(255, 133, 43, .55);
+}
+
+.intro-name span { color: var(--gold); }
+
+.intro-line {
+  position: relative;
+  z-index: 1;
+  width: clamp(126px, 30vh, 185px);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 226, 161, .17);
+}
+
+.intro-line i {
+  display: block;
+  width: 48%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--gold-hi), var(--ember));
+  box-shadow: 0 0 10px var(--ember);
+  animation: intro-loader 1.05s ease-in-out infinite;
+}
+
+@keyframes intro-mark { to { transform: translateY(-4px) scale(1.035); filter: brightness(1.12); } }
+@keyframes intro-loader { from { transform: translateX(-115%); } to { transform: translateX(225%); } }
+
 .glow {
   position: fixed;
   inset: -20%;
@@ -42,6 +131,16 @@ button:disabled { cursor: default; }
     radial-gradient(40% 35% at 42% 38%, rgba(255, 122, 47, 0.22), transparent 70%),
     radial-gradient(25% 30% at 85% 60%, rgba(255, 193, 79, 0.10), transparent 70%);
   animation: breathe 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(18, 6, 26, .88) 0%, rgba(18, 6, 26, .26) 53%, rgba(18, 6, 26, .86) 100%), url("cover.webp") 57% 52% / min(78vh, 620px) auto no-repeat;
+  opacity: .42;
+  filter: saturate(1.15) contrast(1.1);
   pointer-events: none;
 }
 
@@ -62,18 +161,32 @@ button:disabled { cursor: default; }
 
 /* ---------- cabinet ---------- */
 .cabinet {
+  position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 0;
   /* stays clear of the platform's 72 × 72 back button */
   padding-left: max(0px, calc(76px - var(--safe-l) - 12px));
 }
 
+.scene-art {
+  position: absolute;
+  inset: 8% 0 2% 5%;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  opacity: .16;
+  pointer-events: none;
+}
+
+.scene-art img { width: min(76%, 510px); max-height: 95%; object-fit: contain; filter: saturate(1.3); }
+
 .logo {
-  height: clamp(56px, 20vh, 86px);
+  height: clamp(48px, 16vh, 72px);
   width: auto;
   margin-bottom: -18px;
   position: relative;
@@ -84,8 +197,9 @@ button:disabled { cursor: default; }
 
 .machine {
   position: relative;
-  padding: 14px;
-  border-radius: 22px;
+  z-index: 1;
+  padding: 25px 12px 13px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, #c22a1e 0%, #7e0f16 55%, #4a0710 100%);
   box-shadow:
@@ -94,6 +208,15 @@ button:disabled { cursor: default; }
     0 0 0 7px #5b2a0c,
     0 18px 40px rgba(0, 0, 0, 0.6),
     0 0 50px rgba(255, 122, 47, 0.25);
+}
+
+.machine::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255, 236, 161, .38);
+  border-radius: 17px;
+  pointer-events: none;
 }
 
 .bulbs {
@@ -115,22 +238,59 @@ button:disabled { cursor: default; }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, calc(var(--cell) * 1.08));
-  gap: 6px;
-  padding: 6px;
+  grid-template-columns: repeat(5, calc(var(--cell) * 1.03));
+  gap: clamp(3px, .65vw, 6px);
+  padding: 5px;
   border-radius: 12px;
   background: linear-gradient(180deg, #8a5a14, #ffd77a 50%, #8a5a14);
   box-shadow: inset 0 0 0 2px #5b3509;
 }
 
+.machine-plate {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 18px);
+  width: max-content;
+  min-width: 64%;
+  height: 20px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 220, 120, .65);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4b121b, #240914);
+  box-shadow: inset 0 1px rgba(255, 240, 190, .25), 0 3px 8px rgba(0, 0, 0, .35);
+  color: #ffe6a5;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-shadow: 0 1px 1px #560611;
+  transform: translateX(-50%);
+}
+.machine-plate b { color: #fff5c9; font-size: 9px; }
+
 .reel {
   position: relative;
   height: calc(var(--cell) * 3);
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 7px;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.55), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.55)),
     radial-gradient(120% 70% at 50% 50%, #3b1442 0%, #1c0a24 70%, #0f0514 100%);
+}
+
+.reel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 1px solid rgba(255, 225, 145, .18);
+  border-radius: inherit;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, .45);
+  pointer-events: none;
 }
 
 .strip {
@@ -140,8 +300,6 @@ button:disabled { cursor: default; }
   top: 0;
   will-change: transform;
 }
-
-.strip.blur { filter: blur(2.5px) brightness(1.1); }
 
 .cell {
   height: var(--cell);
@@ -176,8 +334,8 @@ button:disabled { cursor: default; }
 .payline::before {
   content: "";
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 3px;
+  right: 3px;
   top: -1.5px;
   height: 3px;
   border-radius: 3px;
@@ -213,7 +371,9 @@ button:disabled { cursor: default; }
 }
 
 .message {
-  margin: 8px 0 0;
+  position: relative;
+  z-index: 1;
+  margin: 7px 0 0;
   min-height: 1.4em;
   font-size: clamp(14px, 4vh, 18px);
   letter-spacing: 0.04em;
@@ -226,6 +386,8 @@ button:disabled { cursor: default; }
 
 /* ---------- panel ---------- */
 .panel {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -442,5 +604,19 @@ button:disabled { cursor: default; }
 .sheet-card .pill { width: 140px; flex: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .glow, .bulbs, .spin:not(:disabled) { animation: none; }
+  .glow, .bulbs, .spin:not(:disabled), .intro-mark, .intro-line i { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: minmax(0, 1fr) 154px; gap: 7px; padding-right: max(8px, var(--safe-r)); padding-left: max(8px, var(--safe-l)); }
+  .cabinet { padding-left: max(64px, calc(76px - var(--safe-l) - 8px)); }
+  .machine { padding-inline: 10px; }
+  .machine-plate { min-width: 72%; gap: 7px; padding-inline: 9px; font-size: 7px; }
+  .machine-plate b { font-size: 8px; }
+  .panel { gap: 5px; }
+  .meter, .bet { padding-inline: 9px; }
+  .stepper { grid-template-columns: 28px 1fr 28px; gap: 3px; }
+  .stepper button { height: 28px; }
+  .row { gap: 4px; }
+  .pill { padding-inline: 5px; font-size: 11px; }
 }
