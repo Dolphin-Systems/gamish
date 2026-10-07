@@ -919,7 +919,10 @@
     if (document.visibilityState === "visible") pollSummary();
   });
 
-  // Installed on Android, the app can hold landscape itself; elsewhere the rotate prompt guides it.
+  // The launch intro plays for three seconds (its fade is in CSS), then leaves the page.
+  setTimeout(() => document.getElementById("intro")?.remove(), 3000);
+
+  // The installed app is held in landscape by its manifest; this also asks for it in the browser.
   const lockLandscape = () => {
     try { window.screen?.orientation?.lock?.("landscape")?.catch?.(() => {}); } catch { /* not supported */ }
   };

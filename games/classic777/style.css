@@ -182,6 +182,9 @@ body::before {
   transform: translateX(-50%);
 }
 .machine-plate b { color: #fff5c9; font-size: 9px; }
+/* The logo sits over the middle of the plate, so the side labels part around it. */
+.machine-plate { gap: calc(clamp(48px, 16vh, 72px) * 1.55); }
+.machine-plate b { display: none; }
 
 .reel {
   position: relative;
@@ -457,63 +460,6 @@ body::before {
   text-shadow: 0 0 14px rgba(255, 190, 80, 0.9);
 }
 
-/* ---------- paytable ---------- */
-.sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: calc(var(--safe-t) + 10px) calc(var(--safe-r) + 12px) calc(var(--safe-b) + 10px) calc(var(--safe-l) + 80px);
-  background: rgba(8, 2, 12, 0.75);
-}
-
-.sheet[hidden] { display: none; }
-
-.sheet-card {
-  width: min(560px, 100%);
-  max-height: 100%;
-  overflow: auto;
-  padding: 12px 18px 14px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--plum-700), var(--plum-900));
-  box-shadow: 0 0 0 2px var(--gold), 0 20px 50px rgba(0, 0, 0, 0.6);
-  text-align: center;
-}
-
-.sheet-card h2 {
-  margin: 0;
-  font-family: "Cinzel", serif;
-  font-size: 22px;
-  color: var(--gold);
-}
-
-.sheet-note { margin: 4px 0 10px; font-size: 13px; color: var(--muted); }
-
-.paytable {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 6px;
-}
-
-.paytable li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.paytable .icons { display: flex; }
-.paytable img { width: 26px; height: 26px; object-fit: contain; margin-right: -4px; }
-.paytable b { color: var(--gold); font-size: 17px; }
-.sheet-card .pill { width: 140px; flex: none; }
-
 @media (prefers-reduced-motion: reduce) {
   .glow, .bulbs, .spin:not(:disabled) { animation: none; }
 }
@@ -522,7 +468,7 @@ body::before {
   .app { grid-template-columns: minmax(0, 1fr) 154px; gap: 7px; padding-right: max(8px, var(--safe-r)); padding-left: max(8px, var(--safe-l)); }
   .cabinet { padding-left: 0; }
   .machine { padding-inline: 10px; }
-  .machine-plate { min-width: 72%; gap: 7px; padding-inline: 9px; font-size: 7px; }
+  .machine-plate { min-width: 72%; padding-inline: 9px; font-size: 7px; }
   .machine-plate b { font-size: 8px; }
   .panel { gap: 5px; }
   .meter, .bet { padding-inline: 9px; }
@@ -536,13 +482,14 @@ body::before {
 
 
 /* ---------- Casino controls (panel) ---------- */
-.panel { gap: clamp(6px, 1.9vh, 10px); }
+.panel { gap: clamp(5px, 1.7vh, 9px); }
 .panel .label { display: flex; align-items: center; gap: 6px; font-weight: 700; color: #e9c58a; }
 .panel .ico { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Balance and Win: recessed display windows with glowing gold digits. */
 .panel .meter {
-  position: relative; padding: 6px 12px 7px; border-radius: 14px;
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 0 12px; height: clamp(32px, 10vh, 40px); border-radius: 14px;
   background: linear-gradient(180deg, #2a0f2a, #12061a);
   box-shadow:
     0 0 0 1.5px #6b3a0d, 0 0 0 3px #d8a443, 0 0 0 4px #5b2a0c,
@@ -550,7 +497,7 @@ body::before {
     0 6px 14px rgba(0, 0, 0, 0.45);
 }
 .panel .meter strong {
-  margin-top: 1px; color: #ffd66b; font-size: clamp(18px, 5.6vh, 24px); letter-spacing: 0.02em;
+  min-width: 0; margin: 0; color: #ffd66b; font-size: clamp(16px, 5vh, 22px); letter-spacing: 0.02em;
   text-shadow: 0 0 10px rgba(255, 180, 60, 0.55), 0 1px 0 #6b3a0d;
 }
 .panel .meter.win strong { color: #fff3d6; text-shadow: 0 0 8px rgba(255, 210, 140, 0.35); }
@@ -562,15 +509,18 @@ body::before {
 .panel .bet { padding: 6px 10px 8px; border-radius: 14px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.28)); box-shadow: inset 0 0 0 1px rgba(255, 193, 79, 0.28); }
 .panel .stepper { grid-template-columns: 38px 1fr 38px; gap: 8px; margin-top: 3px; }
 .panel .coin-btn {
-  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, #fff3c4 0 8%, #ffcf5a 30%, #c8861f 62%, #7a4410 100%);
-  box-shadow: 0 0 0 2px #5b2a0c, 0 3px 0 #3d1a06, 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 -3px 6px rgba(90, 40, 0, 0.55);
-  color: #4a1606; font-size: 24px; font-weight: 800; line-height: 1;
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 3px solid transparent; border-radius: 50%;
+  background:
+    radial-gradient(70% 45% at 50% 22%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%) padding-box,
+    radial-gradient(circle at 50% 60%, #e8343a 0%, #b0101f 55%, #5e050d 100%) padding-box,
+    conic-gradient(from 210deg, #fff3c4, #d8962a, #ffe08a, #8a5214, #ffd36b, #b8761d, #fff3c4) border-box;
+  box-shadow: 0 0 0 1px #3b1a06, 0 3px 0 1px #2a0806, 0 6px 12px rgba(0, 0, 0, 0.5);
+  color: #ffe9a8; font-size: 24px; font-weight: 800; line-height: 1;
   transition: transform 0.08s, filter 0.15s;
 }
-.panel .coin-btn span { margin-top: -2px; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6); }
-.panel .coin-btn:not(:disabled):active { transform: translateY(2px); box-shadow: 0 0 0 2px #5b2a0c, 0 1px 0 #3d1a06, 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 -2px 4px rgba(90, 40, 0, 0.55); }
-.panel .coin-btn:disabled { opacity: 1; filter: grayscale(0.85) brightness(0.55); }
+.panel .coin-btn span { margin-top: -2px; text-shadow: 0 1px 0 #5a050c, 0 0 6px rgba(255, 210, 120, 0.6); }
+.panel .coin-btn:not(:disabled):active { transform: translateY(2px); box-shadow: 0 0 0 1px #3b1a06, 0 1px 0 1px #2a0806, 0 3px 8px rgba(0, 0, 0, 0.5); }
+.panel .coin-btn:disabled { opacity: 1; filter: saturate(0.55) brightness(0.62); }
 .panel .stepper output {
   display: grid; place-items: center; height: 34px; border-radius: 10px;
   background: linear-gradient(180deg, #12061a, #241028);
@@ -578,32 +528,49 @@ body::before {
   color: #ffd66b; font-size: clamp(17px, 5vh, 21px); text-shadow: 0 0 8px rgba(255, 180, 60, 0.5);
 }
 
-/* SPIN: a big glossy red dome with a gold ring. */
+/* SPIN: a ruby gem in a gold bezel ringed by marquee bulbs, like the reel cabinet. */
 .panel .spin {
   position: relative; display: grid; place-items: center; align-content: center; gap: 0;
-  justify-self: center; align-self: center; width: clamp(92px, 30vh, 118px); height: clamp(92px, 30vh, 118px);
-  margin: 2px auto; padding: 0; border-radius: 50%;
+  justify-self: center; align-self: center; width: clamp(84px, 25vh, 116px); height: clamp(84px, 25vh, 116px);
+  margin: 3px auto 7px; padding: 0; border: 9px solid transparent; border-radius: 50%;
   background:
-    radial-gradient(60% 35% at 50% 18%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
-    radial-gradient(circle at 50% 60%, #ff5a3c 0%, #e01d2a 48%, #8c0912 82%, #5a050c 100%);
+    radial-gradient(62% 36% at 50% 17%, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0) 72%) padding-box,
+    repeating-conic-gradient(from 11.25deg, rgba(255, 255, 255, 0.07) 0 22.5deg, rgba(0, 0, 0, 0.1) 22.5deg 45deg) padding-box,
+    radial-gradient(circle at 50% 58%, #ff5844 0%, #d3132a 46%, #7a0610 82%, #430309 100%) padding-box,
+    conic-gradient(from 200deg, #fff3c4, #d8962a, #ffe08a, #8a5214, #ffd36b, #b8761d, #fff1b8, #8a5214, #fff3c4) border-box;
   box-shadow:
-    0 0 0 3px #6b3a0d, 0 0 0 6px #ffcf5a, 0 0 0 8px #8a5214, 0 0 0 9px #3b1a06,
-    0 7px 0 8px #3b0408, 0 12px 26px rgba(0, 0, 0, 0.55), inset 0 -8px 16px rgba(60, 0, 8, 0.65);
-  color: #fff7e2; font-family: "Cinzel", serif; text-shadow: 0 2px 0 #6a0810, 0 0 10px rgba(255, 220, 160, 0.6);
+    0 0 0 2px #3b1a06, inset 0 0 0 2px rgba(80, 30, 0, 0.7), inset 0 -10px 18px rgba(50, 0, 6, 0.7),
+    0 7px 0 2px #2a0806, 0 12px 26px rgba(0, 0, 0, 0.6), 0 0 26px rgba(255, 120, 40, 0.35);
+  color: #fff7e2; font-family: "Cinzel", serif;
   animation: none;
 }
-.panel .spin-glow { position: absolute; inset: -14px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255, 110, 40, 0.55), rgba(255, 110, 40, 0) 68%); animation: spin-breathe 2.2s ease-in-out infinite; pointer-events: none; }
+/* Marquee bulbs sitting on the gold bezel; they chase while the reels spin. */
+.panel .spin::before {
+  content: ""; position: absolute; inset: -9px; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, #fff8d6 0 4deg, rgba(255, 210, 110, 0.35) 4deg 6deg, transparent 6deg 30deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 7.5px), #000 calc(100% - 7px), #000 calc(100% - 2.5px), transparent calc(100% - 2px));
+          mask: radial-gradient(circle closest-side, transparent calc(100% - 7.5px), #000 calc(100% - 7px), #000 calc(100% - 2.5px), transparent calc(100% - 2px));
+  filter: drop-shadow(0 0 3px rgba(255, 220, 140, 0.9));
+  animation: bulb-chase 1.4s steps(2) infinite;
+}
+@keyframes bulb-chase { to { transform: rotate(15deg); } }
+.panel .spin.spinning::before { animation: spin-turn 1.6s linear infinite; }
+.panel .spin-glow { position: absolute; inset: -22px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255, 110, 40, 0.5), rgba(255, 110, 40, 0) 68%); animation: spin-breathe 2.2s ease-in-out infinite; pointer-events: none; }
 @keyframes spin-breathe { 50% { transform: scale(1.12); opacity: 0.55; } }
-.panel .spin-icon { width: 42%; height: 42%; fill: none; stroke: #fff3d0; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 0 #6a0810); }
-.panel .spin-label { margin-top: -2px; font-size: clamp(15px, 4.6vh, 19px); font-weight: 900; letter-spacing: 0.1em; }
+.panel .spin-icon { width: clamp(24px, 8vh, 36px); height: clamp(24px, 8vh, 36px); fill: none; stroke: #ffe7a0; stroke-width: 4.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 0 #5a050c); }
+.panel .spin-label {
+  margin-top: 0; font-size: clamp(14px, 4.4vh, 19px); font-weight: 900; letter-spacing: 0.08em; line-height: 1.1;
+  color: #ffe6a0; text-shadow: 0 2px 0 #4a0309, 0 0 8px rgba(255, 190, 80, 0.55);
+}
 .panel .spin.spinning .spin-icon { animation: spin-turn 0.7s linear infinite; }
 @keyframes spin-turn { to { transform: rotate(360deg); } }
-.panel .spin:not(:disabled):active { transform: translateY(4px) scale(0.97); box-shadow: 0 0 0 3px #6b3a0d, 0 0 0 6px #ffcf5a, 0 0 0 8px #8a5214, 0 0 0 9px #3b1a06, 0 3px 0 8px #3b0408, 0 6px 16px rgba(0, 0, 0, 0.55), inset 0 -6px 14px rgba(60, 0, 8, 0.65); }
+.panel .spin:not(:disabled):active { transform: translateY(4px) scale(0.97); box-shadow: 0 0 0 2px #3b1a06, inset 0 0 0 2px rgba(80, 30, 0, 0.7), inset 0 -8px 14px rgba(50, 0, 6, 0.7), 0 3px 0 2px #2a0806, 0 6px 16px rgba(0, 0, 0, 0.6); }
 .panel .spin:disabled { filter: none; }
-.panel .spin:disabled:not(.spinning) { filter: saturate(0.35) brightness(0.65); }
+.panel .spin:disabled:not(.spinning) { filter: saturate(0.45) brightness(0.68); }
+.panel .spin:disabled:not(.spinning)::before { animation: none; }
 .panel .spin:disabled .spin-glow { animation: none; opacity: 0; }
 
-/* AUTO and PAYS: jewel pills with icons. */
+/* AUTO: a jewel pill with an icon. */
 .panel .row { gap: 8px; }
 .panel .pill {
   display: flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 10px;
@@ -627,5 +594,8 @@ body::before {
   .panel .stepper { grid-template-columns: 32px 1fr 32px; gap: 6px; }
   .panel .pill { height: 32px; padding: 0 6px; font-size: 11px; gap: 4px; letter-spacing: 0.04em; }
   .panel .pill .ico { width: 13px; height: 13px; }
+  .panel .meter { padding: 0 9px; gap: 4px; }
+  .panel .meter .label { font-size: 10px; letter-spacing: 0.08em; gap: 4px; }
+  .panel .meter .ico { width: 12px; height: 12px; }
 }
-@media (prefers-reduced-motion: reduce) { .panel .spin-glow, .panel .spin.spinning .spin-icon { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .panel .spin-glow, .panel .spin::before, .panel .spin.spinning::before, .panel .spin.spinning .spin-icon { animation: none; } }
