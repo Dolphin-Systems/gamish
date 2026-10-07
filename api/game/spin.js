@@ -2,6 +2,7 @@ import { getSessionPlayer } from "../../lib/auth.js";
 import { getSql } from "../../lib/db.js";
 import { playRound } from "../../lib/game-engine.js";
 import { getGameLogo, lobbyGames } from "../../lib/game-registry.js";
+import { contributeToJackpots, jackpotView, recordJackpotWin, refundJackpot, rollJackpot } from "../../lib/jackpots.js";
 import { buildResultMarks } from "../../lib/game-math.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { recordGameRound } from "../../lib/ledger.js";
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
     requireMethod(req, ["GET", "POST"]);
     if (req.method === "GET") {
       // Public: the lobby's games (those switched on) and their logos.
+      if (req.query?.jackpots) return json(res, 200, { jackpots: await jackpotView() }, { "Cache-Control": "no-store" });
       const logoId = req.query?.logo;
       if (logoId) {
         const logo = await getGameLogo(String(logoId));
@@ -52,13 +54,18 @@ export default async function handler(req, res) {
     let round;
     for (let attempt = 0; ; attempt += 1) {
       drawn = await playRound(gameId, body);
+      // The shared jackpots: claimed before paying, handed back if the round doesn't go through.
+      const jackpot = await rollJackpot(drawn.bet);
       try {
-        round = await recordGameRound({ playerId: player.id, gameId, outcome: drawn.outcome, bet: drawn.bet, multiplier: drawn.multiplier });
+        round = await recordGameRound({ playerId: player.id, gameId, outcome: drawn.outcome, bet: drawn.bet, multiplier: drawn.multiplier, jackpot });
         break;
       } catch (error) {
+        await refundJackpot(jackpot).catch(() => {});
         if (error.code !== "house_moved" || attempt >= 1) throw error;
       }
     }
+    await contributeToJackpots(round.bet);
+    if (round.jackpot) await recordJackpotWin(round.jackpot, player.id);
     const { outcome, multiplier, value } = drawn;
     // Phoenix Ruby's built-in reels draw the symbol grid the server picks for its outcome.
     const marks = gameId === "phoenix-ruby" ? buildResultMarks(multiplier) : undefined;
@@ -66,7 +73,10 @@ export default async function handler(req, res) {
       round: {
         roundId: round.roundId, gameId, bet: round.bet, outcome, multiplier: round.multiplier, payout: round.payout,
         ...(value === undefined ? {} : { value }), ...(marks ? { marks } : {}), wallet: round.wallet,
+        // Paid on top of the game's own payout; the platform's top bar celebrates it.
+        jackpot: round.jackpot,
       },
+      jackpots: await jackpotView(),
     });
   } catch (error) {
     return handleApiError(res, error);

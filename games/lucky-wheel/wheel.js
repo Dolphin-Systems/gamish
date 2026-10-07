@@ -95,6 +95,7 @@
   // ---------- Sound: a soft tick per segment, a chord on wins ----------
   let audio = null;
   const tone = (frequency, duration, gain = 0.05) => {
+    if (!Gamish.sound) return; // the platform's sound switch
     try {
       audio ??= new AudioContext();
       const oscillator = audio.createOscillator();

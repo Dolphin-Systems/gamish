@@ -79,8 +79,8 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 0;
-  /* stays clear of the platform's 72 × 72 back button */
-  padding-left: max(0px, calc(76px - var(--safe-l) - 12px));
+  /* The platform's game bar sits above the game, so no corner needs to stay clear. */
+  padding-left: 0;
 }
 
 .scene-art {
@@ -520,7 +520,7 @@ body::before {
 
 @media (max-width: 720px) {
   .app { grid-template-columns: minmax(0, 1fr) 154px; gap: 7px; padding-right: max(8px, var(--safe-r)); padding-left: max(8px, var(--safe-l)); }
-  .cabinet { padding-left: max(64px, calc(76px - var(--safe-l) - 8px)); }
+  .cabinet { padding-left: 0; }
   .machine { padding-inline: 10px; }
   .machine-plate { min-width: 72%; gap: 7px; padding-inline: 9px; font-size: 7px; }
   .machine-plate b { font-size: 8px; }
@@ -531,3 +531,5 @@ body::before {
   .row { gap: 4px; }
   .pill { padding-inline: 5px; font-size: 11px; }
 }
+
+.pill.icon[hidden] { display: none; }

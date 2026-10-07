@@ -469,6 +469,11 @@
     ui.sound.title = SOUND_MODES[mode].label;
   }
   showSoundMode(Sound.mode);
+  // Sound is switched in the platform's game bar, the same for every game.
+  const followPlatformSound = (on) => showSoundMode(Sound.setMode(on ? "all" : "off"));
+  followPlatformSound(Gamish.sound);
+  Gamish.onSound(followPlatformSound);
+  ui.sound.hidden = true;
 
   document.addEventListener("pointerdown", () => Sound.unlock(), { passive: true });
 

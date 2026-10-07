@@ -134,3 +134,15 @@ static lobby; games added in code later appear automatically, switched **off**.
 * Deleting moves a game to the trash (`deleted_at`): it leaves the lobby at once and is
   switched off, can be restored for 24 hours, and is then removed for good (purged on the next
   admin read). Its id stays reserved while it is in the trash.
+
+## Jackpots (MINOR · MAJOR · MEGA)
+
+`lib/jackpots.js` (rules in `lib/jackpot-rules.js`). Shared by every game and shown in the game
+bar. 1% of every bet grows the pots (50 / 30 / 20). Together they never show or pay more than a
+fifth of the house bank's profit (split 20 / 30 / 50); with no profit they are $0. Each round
+rolls once (MEGA first; odds scale with the bet). A hit claims the pot with an optimistic lock
+(its win counter) and is paid as cashable credits from the house bank in the same statement as
+the round (`recordGameRound({ jackpot })`, ledger entry `game_win` with reference
+`jackpot:<tier>:round:<id>`, `game_rounds.jackpot_cents`); if the round fails the claim is
+handed back. `GET /api/game/spin?jackpots=1` returns the current amounts; spin responses carry
+`round.jackpot` and `jackpots`.

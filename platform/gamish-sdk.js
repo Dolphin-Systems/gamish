@@ -6,10 +6,11 @@
  *   const round = await Gamish.play({ bet: 10 }); // { roundId, outcome, multiplier, payout, value?, wallet }
  *   Gamish.onWallet((wallet) => …);             // balance changes
  *   Gamish.track("bonus_seen", { level: 2 });   // send information back to the server
+ *   Gamish.sound / Gamish.onSound((on) => …);   // follow the platform's sound switch
  *
  * Inside the app a game runs in a sandboxed frame: it cannot see the player's session, cookies
  * or wallet API. The platform plays rounds on the server (central math and randomness) and
- * draws the one back button to the lobby. Opened on its own (/games/<id>/index.html) the SDK
+ * draws the game bar above the game: back to the lobby, the shared jackpots and sound. Opened on its own (/games/<id>/index.html) the SDK
  * runs a local preview with practice credits, using the game's own math.json, so a game can
  * be designed and tested without the server.
  */
@@ -18,6 +19,8 @@
   const VERSION = 1;
   const inHost = window.parent !== window;
   const walletListeners = new Set();
+  const soundListeners = new Set();
+  let soundOn = true;
   const pending = new Map();
   let nextId = 1;
   let session = null;
@@ -27,6 +30,13 @@
     if (session) session.wallet = wallet;
     walletListeners.forEach((listener) => {
       try { listener(wallet); } catch (error) { console.error(error); }
+    });
+  };
+
+  const setSound = (on) => {
+    soundOn = on !== false;
+    soundListeners.forEach((listener) => {
+      try { listener(soundOn); } catch (error) { console.error(error); }
     });
   };
 
@@ -49,6 +59,8 @@
       else waiting.reject(Object.assign(new Error(message.error?.message || "Something went wrong"), { code: message.error?.code }));
     } else if (message.type === "wallet") {
       emitWallet(message.wallet);
+    } else if (message.type === "sound") {
+      setSound(message.on);
     }
   });
 
@@ -99,6 +111,7 @@
     connect() {
       connecting ??= (inHost ? ask("connect") : startPreview()).then((data) => {
         session = { ...data, preview: !inHost };
+        if (data.sound !== undefined) setSound(data.sound);
         return session;
       });
       return connecting;
@@ -116,6 +129,14 @@
     onWallet(listener) {
       walletListeners.add(listener);
       return () => walletListeners.delete(listener);
+    },
+    // The platform's sound switch (in its game bar). Games play sound only while it's on.
+    get sound() {
+      return soundOn;
+    },
+    onSound(listener) {
+      soundListeners.add(listener);
+      return () => soundListeners.delete(listener);
     },
     track(name, data = {}) {
       if (inHost) ask("event", { name: String(name).slice(0, 40), data }).catch(() => {});

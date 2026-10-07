@@ -33,8 +33,9 @@ SCOPE — hard rules, no exceptions:
 
 BUILD:
 - Start with `npm run game:new -- <game-id> "<Title>" "<Category>"`.
-- Landscape phone layout (640–950 × 360–430 CSS px), respect env(safe-area-inset-*), keep the
-  top-left 72 × 72 px empty for the platform's back button.
+- Landscape phone layout (640–950 × 310–380 CSS px: the platform's game bar with back, jackpots
+  and sound sits above the game). Respect env(safe-area-inset-*). No back, wallet, chat or
+  sound-toggle buttons of your own; play sound only while Gamish.sound is true (Gamish.onSound).
 - Polished art, motion and sound in the Gamish777 style (dark plum and ember gold, warm glow).
   Link /platform/gamish-ui.css and give every button and panel class="gamish-frame" (inputs
   class="gamish-field"): the platform's default gold frame.
