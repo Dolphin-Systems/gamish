@@ -998,6 +998,12 @@
     refreshWallet().catch(() => {});
   };
 
+  // Held upright, the app is shown turned (styles.css). Some browsers then drop the click that
+  // should follow a tap inside a game's frame, so the game's SDK is told and fills it in.
+  const upright = window.matchMedia("(orientation: portrait) and (max-width: 900px) and (pointer: coarse)");
+  const tellUpright = () => moduleGame?.frame.contentWindow?.postMessage({ gamish: 1, type: "upright", on: upright.matches }, "*");
+  upright.addEventListener?.("change", tellUpright);
+
   const openModuleGame = (entry) => {
     if (!entry || entry.runtime !== "module" || typeof entry.url !== "string" || !entry.url.startsWith("/games/")) return;
     closeModuleGame();
@@ -1009,7 +1015,7 @@
     frame.src = `${entry.url}?v=${encodeURIComponent(entry.version)}`;
     moduleGame = { entry, frame, busy: false };
     hostLoading.hidden = false;
-    frame.addEventListener("load", () => { hostLoading.hidden = true; }, { once: true });
+    frame.addEventListener("load", () => { hostLoading.hidden = true; tellUpright(); }, { once: true });
     frameSlot.append(frame);
     showView("game");
   };

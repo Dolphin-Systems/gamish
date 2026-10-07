@@ -492,6 +492,86 @@ const openAdminChat = async (playerId) => {
 };
 
 document.getElementById("admin-chat-toggle").addEventListener("click", () => openAdminChat());
+
+// ---------- Chat alerts (Web Push) ----------
+// Each admin device opts in once; a player's message then shows a phone/laptop notification
+// even with the dashboard closed, and tapping it opens that conversation.
+const alertsButton = document.getElementById("admin-chat-alerts");
+const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const pushKey = (base64url) => {
+  const raw = atob(base64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(base64url.length / 4) * 4, "="));
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+};
+const pushRegistration = () => navigator.serviceWorker.register("/admin-sw.js", { scope: "/admin", updateViaCache: "none" })
+  .then(() => navigator.serviceWorker.ready);
+const showAlertsState = (state) => {
+  alertsButton.hidden = false;
+  alertsButton.disabled = state === "blocked" || state === "unsupported";
+  alertsButton.classList.toggle("on", state === "on");
+  alertsButton.textContent = { on: "🔔 Alerts on", off: "🔕 Alerts off", blocked: "🔕 Alerts blocked", unsupported: "🔕 No alerts here" }[state];
+  alertsButton.title = {
+    on: "Chat notifications are on for this device. Tap to turn them off.",
+    off: "Get a notification on this device when a player sends a message.",
+    blocked: "Notifications are blocked for this site. Allow them in the browser's site settings.",
+    unsupported: "This browser can't show notifications. On iPhone, add the admin app to the Home Screen first.",
+  }[state];
+};
+const syncChatAlerts = async () => {
+  if (!pushSupported) return showAlertsState("unsupported");
+  if (Notification.permission === "denied") return showAlertsState("blocked");
+  try {
+    const subscription = await (await pushRegistration()).pushManager.getSubscription();
+    if (subscription && Notification.permission === "granted") {
+      // Re-send so the server always has this device, even after a database reset.
+      await request("/api/messages", { method: "POST", body: JSON.stringify({ push: "subscribe", subscription }) });
+      return showAlertsState("on");
+    }
+  } catch { /* fall through to off */ }
+  showAlertsState("off");
+};
+alertsButton.addEventListener("click", async () => {
+  alertsButton.disabled = true;
+  try {
+    const registration = await pushRegistration();
+    const current = await registration.pushManager.getSubscription();
+    if (alertsButton.classList.contains("on")) {
+      if (current) {
+        await request("/api/messages", { method: "POST", body: JSON.stringify({ push: "unsubscribe", endpoint: current.endpoint }) }).catch(() => {});
+        await current.unsubscribe();
+      }
+      setNotice("Chat alerts are off on this device.");
+      return showAlertsState("off");
+    }
+    if (await Notification.requestPermission() !== "granted") return showAlertsState(Notification.permission === "denied" ? "blocked" : "off");
+    const { publicKey } = await request("/api/messages?push=key");
+    if (current) await current.unsubscribe();
+    const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushKey(publicKey) });
+    await request("/api/messages", { method: "POST", body: JSON.stringify({ push: "subscribe", subscription }) });
+    showAlertsState("on");
+    setNotice("Chat alerts are on. You'll get a notification when a player writes in.");
+  } catch (error) {
+    setNotice(`Couldn't turn on chat alerts on this device${error.message ? ` (${error.message})` : ""}.`, true);
+    syncChatAlerts();
+  } finally {
+    if (alertsButton.textContent !== "🔕 Alerts blocked" && pushSupported) alertsButton.disabled = false;
+  }
+});
+navigator.serviceWorker?.addEventListener("message", (event) => {
+  if (event.data?.type === "open-chat") openAdminChat(event.data.playerId || undefined);
+  if (event.data?.type === "chat-push") {
+    if (!chatPanel.hidden) pollAdminChat().catch(() => {});
+    else request("/api/messages?summary=1").then(({ unreadCount }) => setChatBadge(unreadCount)).catch(() => {});
+  }
+});
+// A tapped alert opens the admin app at /admin.html?chat=<player id>.
+const openChatFromLink = () => {
+  const url = new URL(window.location.href);
+  const playerId = url.searchParams.get("chat");
+  if (!playerId) return;
+  url.searchParams.delete("chat");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  openAdminChat(playerId);
+};
 document.getElementById("admin-chat-close").addEventListener("click", closeAdminChat);
 chatBackdrop.addEventListener("click", closeAdminChat);
 chatSearch.addEventListener("input", renderChatInbox);
@@ -958,6 +1038,8 @@ const showDashboard = async (admin) => {
   openTab(window.location.hash.slice(1), false);
   await refresh();
   pollChatSummary();
+  openChatFromLink();
+  syncChatAlerts();
   // Keep the queue and numbers fresh while the dashboard is open.
   setInterval(() => {
     if (document.visibilityState === "visible") refresh().catch(() => {});

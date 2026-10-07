@@ -3,6 +3,7 @@ import { ensureSchema, getSql } from "../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../lib/http.js";
 import { MAX_MESSAGE_REQUEST_BYTES, parseImageAttachment } from "../lib/message-images.js";
 import { randomUUID } from "../lib/security.js";
+import { getVapid, notifyAdmins, removePushSubscription, savePushSubscription } from "../lib/push.js";
 
 const normalizeMessage = (row) => ({
   id: row.id,
@@ -68,6 +69,13 @@ export default async function handler(req, res) {
       return await serveMessageImage({ req, res, sql, account, id: imageId });
     }
 
+    // Chat notifications (admin devices): the public key to subscribe with.
+    if (req.method === "GET" && url.searchParams.get("push")) {
+      if (account.role !== "admin") throw new HttpError(403, "Admins only", "forbidden");
+      const { publicKey } = await getVapid(sql);
+      return json(res, 200, { publicKey });
+    }
+
     // Cheap unread counter for badges; polled while chat is closed and never marks anything read.
     if (req.method === "GET" && url.searchParams.get("summary")) {
       const [row] = account.role === "admin"
@@ -116,6 +124,14 @@ export default async function handler(req, res) {
     }
 
     const body = req.method === "POST" ? await readJson(req, MAX_MESSAGE_REQUEST_BYTES) : {};
+    if (req.method === "POST" && body.push) {
+      requireBrowserAction(req);
+      if (account.role !== "admin") throw new HttpError(403, "Admins only", "forbidden");
+      if (body.push === "subscribe") await savePushSubscription(sql, account.id, body.subscription);
+      else if (body.push === "unsubscribe") await removePushSubscription(sql, account.id, body.endpoint);
+      else throw new HttpError(400, "Unknown notification action", "invalid_push_action");
+      return json(res, 200, { ok: true });
+    }
     const requestedPlayerId = req.method === "GET" ? url.searchParams.get("playerId") : body.playerId;
     const playerId = account.role === "admin" ? requestedPlayerId : account.id;
     if (!playerId) throw new HttpError(400, "Choose a player", "player_required");
@@ -153,6 +169,15 @@ export default async function handler(req, res) {
         VALUES (${randomUUID()}, ${player.id}, ${account.id}, ${storedBody}, ${attachment?.type || null}, ${attachment?.name || null}, ${attachment?.data || null})
         RETURNING id, player_id, sender_id, body, attachment_type, attachment_name, created_at, read_at
       `;
+      // A player wrote in: alert every admin device. Tapping the alert opens this conversation.
+      if (account.role === "player") {
+        await notifyAdmins(sql, {
+          title: player.login_id,
+          body: storedBody.length > 140 ? `${storedBody.slice(0, 137)}…` : storedBody,
+          playerId: player.id,
+          url: `/admin.html?chat=${encodeURIComponent(player.id)}`,
+        });
+      }
       return json(res, 201, {
         message: normalizeMessage({ ...created, sender_role: account.role }),
       });

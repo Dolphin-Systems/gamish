@@ -50,7 +50,7 @@ body {
 #app,
 #game-shell {
   width: 100%;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
 }
 
 #app {
@@ -234,7 +234,7 @@ button {
 .arcade-view,
 .arcade-view #game-shell {
   width: 100%;
-  height: 100dvh;
+  height: var(--app-h, 100dvh);
 }
 
 .page-view {
@@ -1150,16 +1150,24 @@ noscript {
 }
 
 /* Desktop only: a landscape phone is wider than 820px but must stay edge to edge. */
-@media (min-width: 820px) and (min-height: 561px) {
+@media (min-width: 820px) and (min-height: 561px) and (orientation: landscape),
+       (min-width: 820px) and (min-height: 561px) and (min-width: 901px),
+       (min-width: 820px) and (min-height: 561px) and (pointer: fine),
+       (min-width: 820px) and (min-height: 561px) and (pointer: none),
+       (min-height: 820px) and (min-width: 561px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   #game-shell canvas {
     border: 1px solid rgba(238, 181, 92, 0.24);
     border-radius: 22px;
   }
 }
 
-@media (max-width: 819px) {
+@media (max-width: 819px) and (orientation: landscape),
+       (max-width: 819px) and (min-width: 901px),
+       (max-width: 819px) and (pointer: fine),
+       (max-width: 819px) and (pointer: none),
+       (max-height: 819px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .arcade-view #game-shell {
-    height: 100dvh;
+    height: var(--app-h, 100dvh);
     /* The canvas runs edge to edge; game.js keeps content inside the safe area. */
     padding: 0;
   }
@@ -1188,7 +1196,11 @@ noscript {
   }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 430px) and (orientation: landscape),
+       (max-width: 430px) and (min-width: 901px),
+       (max-width: 430px) and (pointer: fine),
+       (max-width: 430px) and (pointer: none),
+       (max-height: 430px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .page-shell { padding-right: 15px; padding-left: 15px; }
   .section-header { gap: 10px; }
   .secure-chip { padding: 7px 9px; font-size: 9px; }
@@ -1203,7 +1215,11 @@ noscript {
   .conversation { min-height: 540px; }
 }
 
-@media (max-width: 350px) {
+@media (max-width: 350px) and (orientation: landscape),
+       (max-width: 350px) and (min-width: 901px),
+       (max-width: 350px) and (pointer: fine),
+       (max-width: 350px) and (pointer: none),
+       (max-height: 350px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .method-grid { grid-template-columns: repeat(2, 1fr); }
   .amount-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -1376,7 +1392,11 @@ noscript {
 .request-cancel { padding: 0; border: 0; background: none; color: #c9b3bd; cursor: pointer; font-size: 11px; font-weight: 700; text-decoration: underline; }
 .message-row.pending .message-bubble { opacity: 0.7; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } }
-@media (max-width: 430px) {
+@media (max-width: 430px) and (orientation: landscape),
+       (max-width: 430px) and (min-width: 901px),
+       (max-width: 430px) and (pointer: fine),
+       (max-width: 430px) and (pointer: none),
+       (max-height: 430px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .pay-amount { font-size: 30px; }
   .request-row { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 11px; }
   .request-icon { width: 34px; height: 34px; }
@@ -1387,6 +1407,21 @@ noscript {
 /* The canvas owns every touch: no browser pan/zoom arbitration, so taps and drags respond at once. */
 #game-shell, #game-shell canvas { touch-action: none; }
 body[data-view="arcade"] .utility-nav { display: none; }
+
+/* Held upright, a phone shows the whole app turned a quarter turn, so it stays landscape
+   (top of the app along the phone's right edge, like a landscape game). The installed app and
+   fullscreen Android lock landscape instead, so this only shows in a browser tab or on iPhone.
+   game.js maps the lobby's touches through the same turn. */
+@media (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
+  :root { --app-h: 100dvw; }
+  html { height: 100dvh; }
+  body {
+    position: fixed; top: 0; left: 0;
+    width: 100dvh; height: 100dvw; min-height: 0;
+    transform-origin: 0 0;
+    transform: translateX(100dvw) rotate(90deg);
+  }
+}
 
 /* Launch intro: the Gamish777 logo for three seconds, then it fades into the app. */
 .intro {
@@ -1459,7 +1494,7 @@ body[data-view="arcade"] .utility-nav { display: none; }
 body.sheet-open .utility-nav { display: none; }
 .pay-sheet-backdrop { position: absolute; inset: 0; background: rgba(6, 3, 9, 0.72); backdrop-filter: blur(6px); animation: sheet-fade 160ms ease; }
 .pay-sheet-card {
-  position: relative; width: min(440px, 100%); max-height: calc(100dvh - 24px); margin: 0; overflow-y: auto;
+  position: relative; width: min(440px, 100%); max-height: calc(var(--app-h, 100dvh) - 24px); margin: 0; overflow-y: auto;
   background: linear-gradient(180deg, #24132a, #140b18); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
   animation: sheet-rise 200ms cubic-bezier(.2, .9, .3, 1.2);
 }
@@ -1473,7 +1508,8 @@ body.sheet-open .utility-nav { display: none; }
   color: #ffc56b; cursor: pointer; font-size: 12px; font-weight: 700; text-align: left;
 }
 
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 560px),
+       (orientation: portrait) and (max-width: 560px) and (max-width: 900px) and (pointer: coarse) {
   /* Login: brand on the left, form on the right, so it fits a phone held sideways. */
   .auth-gate { padding: max(12px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }
   .login-card {
@@ -1499,7 +1535,7 @@ body.sheet-open .utility-nav { display: none; }
   }
 
   /* Chat: the conversation takes the whole screen under the header. */
-  .messages-shell { display: flex; flex-direction: column; height: 100dvh; min-height: 0; }
+  .messages-shell { display: flex; flex-direction: column; height: var(--app-h, 100dvh); min-height: 0; }
   .messages-shell > .page-header { margin-bottom: 4px; }
   .messages-shell > .conversation { flex: 1; min-height: 0; margin-top: 0; padding: 4px 12px 8px; border-radius: 20px; }
   .messages-shell .message-list { flex: 1; max-height: none; min-height: 0; padding-bottom: 6px; }
@@ -1578,14 +1614,19 @@ body.sheet-open .utility-nav { display: none; }
 .support-popover .agent-avatar { width: 46px; height: 46px; font-size: 18px; }
 .support-popover p { grid-column: 1 / -1; margin: 8px 0 0; color: #cdbbc5; font-size: 12px; line-height: 1.5; }
 .messages-shell .conversation { display: flex; flex-direction: column; }
-@media (max-width: 560px) {
+@media (max-width: 560px) and (orientation: landscape),
+       (max-width: 560px) and (min-width: 901px),
+       (max-width: 560px) and (pointer: fine),
+       (max-width: 560px) and (pointer: none),
+       (max-height: 560px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .page-header { padding-right: 190px; }
   .support-chip-copy { display: none; }
   .support-chip { padding-right: 4px; }
   .support-popover { right: 0; }
 }
 
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 560px),
+       (orientation: portrait) and (max-width: 560px) and (max-width: 900px) and (pointer: coarse) {
   .pay-sheet-card { width: min(460px, 100%); padding: 14px 16px; }
   .pay-sheet .demo-note { display: flex; justify-content: flex-start; margin: 8px 0 0; font-size: 10.5px; line-height: 1.35; text-align: left; }
 }
@@ -1688,10 +1729,15 @@ body[data-view="profile"] .utility-nav { display: none; }
 .handles-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .handles-actions .primary-action { width: auto; min-width: 180px; margin: 0; }
 
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 560px),
+       (orientation: portrait) and (max-width: 560px) and (max-width: 900px) and (pointer: coarse) {
   .sheet-card { max-height: 100%; }
 }
-@media (max-width: 700px) {
+@media (max-width: 700px) and (orientation: landscape),
+       (max-width: 700px) and (min-width: 901px),
+       (max-width: 700px) and (pointer: fine),
+       (max-width: 700px) and (pointer: none),
+       (max-height: 700px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .sheet-card { padding: 12px 12px 14px; }
   .sheet-header { gap: 9px; }
   .sheet-title { font-size: 17px; }
@@ -1812,7 +1858,11 @@ body[data-view="game"] .utility-nav { display: none; }
 .jackpot.mega b { color: #fff3c4; font-size: 18px; text-shadow: 0 0 10px rgba(255, 160, 60, 0.6); }
 .jackpot.rising b { animation: jackpot-rise 900ms ease-out; }
 @keyframes jackpot-rise { 30% { color: #fff; text-shadow: 0 0 14px rgba(255, 220, 140, 0.95); } }
-@media (max-width: 700px) {
+@media (max-width: 700px) and (orientation: landscape),
+       (max-width: 700px) and (min-width: 901px),
+       (max-width: 700px) and (pointer: fine),
+       (max-width: 700px) and (pointer: none),
+       (max-height: 700px) and (orientation: portrait) and (max-width: 900px) and (pointer: coarse) {
   .jackpots { gap: 6px; }
   .jackpot { padding: 0 9px; }
   .jackpot span { font-size: 9px; letter-spacing: 0.1em; }

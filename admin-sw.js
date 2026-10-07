@@ -1,8 +1,8 @@
-const CACHE_NAME = "gamish777-admin-v20";
+const CACHE_NAME = "gamish777-admin-v21";
 const ADMIN_SHELL = [
   "/admin.html",
-  "/admin.css?v=19",
-  "/admin.js?v=20",
+  "/admin.css?v=20",
+  "/admin.js?v=21",
   "/chat-images.js?v=1",
   "/admin.webmanifest",
   "/admin-favicon-32.png",
@@ -42,4 +42,35 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/admin.html")))
   );
+});
+
+// Chat alerts: a player wrote in. Tapping the alert opens that conversation.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = {}; }
+  const playerId = data.playerId || "";
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(data.title ? `💬 ${data.title}` : "💬 New player message", {
+      body: data.body || "New message",
+      icon: "/admin-icon-192.png",
+      tag: playerId ? `chat-${playerId}` : "chat",
+      renotify: true,
+      data: { url: data.url || "/admin.html", playerId },
+    }),
+    self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((windows) => windows.forEach((client) => client.postMessage({ type: "chat-push", playerId }))),
+  ]));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const { url = "/admin.html", playerId = "" } = event.notification.data || {};
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+    const open = windows.find((client) => new URL(client.url).pathname.startsWith("/admin"));
+    if (open) {
+      open.postMessage({ type: "open-chat", playerId });
+      return open.focus();
+    }
+    return self.clients.openWindow(url);
+  }));
 });
