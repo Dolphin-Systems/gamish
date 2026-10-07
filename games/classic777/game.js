@@ -159,7 +159,6 @@
       this.stopped = null;
       this.base = Array.from({ length: LOOP }, () => pick(SYMBOLS));
       this.render([...this.base, ...this.base, ...this.base]);
-      this.el?.classList.add("spinning");
       this.position = 0;
       let v = 0;
       let last = performance.now();
@@ -170,7 +169,6 @@
         last = now;
         if (now >= t0) {
           v = Math.min(20, v + 70 * dt);
-          if (v > 8) this.strip.classList.add("blur");
           this.position += v * dt;
           while (this.position >= LOOP) this.position -= LOOP;
           this.setPos(this.position);
@@ -193,8 +191,6 @@
       const target = visible.length + filler.length;
       this.render(list);
       this.setPos(0);
-      this.strip.classList.add("blur");
-      this.el?.classList.remove("spinning");
       return new Promise((resolve) => {
         const begin = performance.now();
         const ease = (t) => {
@@ -206,7 +202,6 @@
         const tick = (now) => {
           const t = Math.min(1, (now - begin) / duration);
           this.setPos(target * ease(t));
-          if (t > 0.72) this.strip.classList.remove("blur");
           if (t < 1) this.raf = requestAnimationFrame(tick);
           else {
             this.symbols = [...column];
