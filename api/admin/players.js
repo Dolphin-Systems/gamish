@@ -112,6 +112,8 @@ export default async function handler(req, res) {
     if (body.action === "credit") {
       const amount = Number(body.amountCents ?? body.amount);
       const balanceType = body.balanceType === "bonus" ? "bonus" : "regular";
+      const reason = String(body.reason || (balanceType === "bonus" ? "Admin bonus" : "Admin funding")).slice(0, 120);
+      const transferId = randomUUID();
       if (!Number.isInteger(amount) || amount < 1 || amount > MAX_CREDIT) {
         throw new HttpError(400, "Amount must be from $0.01 to $10,000.00", "invalid_amount");
       }
@@ -119,24 +121,46 @@ export default async function handler(req, res) {
       const result = balanceType === "bonus" ? await grantBonus({
         playerId: body.playerId,
         amount,
-        reference: String(body.reason || "Admin bonus").slice(0, 120),
+        reference: reason,
         createdBy: admin.id,
-        idempotencyKey: `admin:${randomUUID()}`,
+        idempotencyKey: `admin:${transferId}`,
       }) : await creditPlayer({
         playerId: body.playerId,
         regular: balanceType === "regular" ? amount : 0,
         bonus: balanceType === "bonus" ? amount : 0,
         entryType: balanceType === "bonus" ? "bonus_credit" : "admin_credit",
-        reference: String(body.reason || "Admin funding").slice(0, 120),
+        reference: reason,
         createdBy: admin.id,
-        idempotencyKey: `admin:${randomUUID()}`,
+        idempotencyKey: `admin:${transferId}`,
+        cashCents: amount,
+        flowLog: {
+          eventKey: `admin-credit:${transferId}`,
+          eventType: "admin_completion",
+          kind: "deposit",
+          amountCents: amount,
+          paymentId: "admin-manual",
+          methodName: "Admin balance",
+          remark: reason,
+          status: "approved",
+          walletDeltaCents: amount,
+        },
+        houseTransfer: {
+          deltaCents: -amount,
+          kind: "admin_credit",
+          reference: reason,
+        },
       });
-      if (!result.applied) throw new HttpError(404, "Player not found", "player_not_found");
+      if (!result.applied) {
+        if (!result.houseAvailable) throw new HttpError(409, "The admin bank does not have enough available balance", "insufficient_house_balance");
+        throw new HttpError(404, "Player not found", "player_not_found");
+      }
       return json(res, 200, result);
     }
 
     if (body.action === "cashout") {
       const amount = Number(body.amountCents);
+      const reason = String(body.reason || "Admin cash out record").slice(0, 120);
+      const transferId = randomUUID();
       if (!Number.isInteger(amount) || amount < 1 || amount > MAX_CREDIT) {
         throw new HttpError(400, "Cash out must be from $0.01 to $10,000.00", "invalid_cashout");
       }
@@ -144,12 +168,31 @@ export default async function handler(req, res) {
         playerId: body.playerId,
         regular: -amount,
         entryType: "withdrawal",
-        reference: String(body.reason || "Admin cash out record").slice(0, 120),
+        reference: reason,
         createdBy: admin.id,
-        idempotencyKey: `cashout:${randomUUID()}`,
+        idempotencyKey: `cashout:${transferId}`,
         cashCents: -amount,
+        flowLog: {
+          eventKey: `admin-cashout:${transferId}`,
+          eventType: "admin_completion",
+          kind: "cashout",
+          amountCents: amount,
+          paymentId: "admin-manual",
+          methodName: "Admin balance",
+          remark: reason,
+          status: "approved",
+          walletDeltaCents: -amount,
+        },
+        houseTransfer: {
+          deltaCents: -amount,
+          kind: "cashout",
+          reference: reason,
+        },
       });
-      if (!result.applied) throw new HttpError(409, "The available cash balance is too low", "insufficient_cash_balance");
+      if (!result.applied) {
+        if (!result.houseAvailable) throw new HttpError(409, "The admin bank does not have enough available balance", "insufficient_house_balance");
+        throw new HttpError(409, "The available cash balance is too low", "insufficient_cash_balance");
+      }
       return json(res, 200, result);
     }
 

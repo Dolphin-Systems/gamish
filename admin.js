@@ -1125,7 +1125,10 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-request("/api/auth/me").then(({ player }) => showDashboard(player)).catch(() => {});
+request("/api/auth/me")
+  .then(({ player }) => showDashboard(player))
+  .catch(() => {})
+  .finally(() => document.body.classList.remove("admin-booting"));
 
 
 // ---------- Nerd: central game math and the house bank ----------
@@ -1135,7 +1138,10 @@ const bankControls = document.getElementById("bank-controls");
 const bankLedger = document.getElementById("bank-ledger");
 let nerd = null;
 const pct = (value, digits = 2) => (value === null || value === undefined ? "—" : `${(Number(value) * 100).toFixed(digits)}%`);
-const LEDGER_KINDS = { start: "Starting bank", capital: "Capital added", withdraw: "Profit taken", bonus: "Bonus paid" };
+const LEDGER_KINDS = {
+  start: "Starting bank", capital: "Capital added", withdraw: "Profit taken", bonus: "Bonus paid",
+  admin_credit: "Player funded", payment_deposit: "Payment received", cashout: "Cash out sent",
+};
 
 const renderBank = () => {
   const { house } = nerd;

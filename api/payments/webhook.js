@@ -62,6 +62,11 @@ export default async function handler(req, res) {
         status: "succeeded",
         walletDeltaCents: creditAmount,
       },
+      houseTransfer: {
+        deltaCents: creditAmount,
+        kind: "payment_deposit",
+        reference: `Processor payment received: ${providerEventKey}`,
+      },
     });
 
     await sql`
