@@ -1012,7 +1012,7 @@ document.getElementById("players-table").addEventListener("click", async (event)
 document.getElementById("player-search").addEventListener("input", renderPlayers);
 document.getElementById("hard-reset-all").addEventListener("click", async (event) => {
   const playerCount = players.filter((player) => player.role === "player").length;
-  if (!window.confirm(`TESTING ONLY — PERMANENT\n\nDelete ALL ${playerCount} active and archived player accounts, lifetime totals, payments, ledger entries, game rounds, chats, sessions, and login-attempt data?\n\nOnly the admin account will remain. This cannot be undone.`)) return;
+  if (!window.confirm(`TESTING ONLY — PERMANENT\n\nDelete ALL ${playerCount} active and archived player accounts, lifetime totals, payments, ledger entries, game rounds, chats, sessions, and login-attempt data?\n\nAlso clear Nerd RTP/limit overrides and house history, reset the bank to its configured starting amount, and turn all games back on. Game names, logos, and order stay unchanged. Admin accounts and credentials remain. This cannot be undone.`)) return;
   const phrase = window.prompt('Type HARD RESET EVERYTHING to permanently continue:');
   if (phrase !== "HARD RESET EVERYTHING") {
     setNotice("Hard reset cancelled. Confirmation phrase did not match.", true);
@@ -1029,7 +1029,7 @@ document.getElementById("hard-reset-all").addEventListener("click", async (event
       }),
     });
     const deleted = Object.values(result.deleted).reduce((sum, count) => sum + count, 0);
-    window.alert(`Hard reset complete. ${deleted} records were deleted. Only the admin account remains. You have been signed out.`);
+    window.alert(`Hard reset complete. ${deleted} records were cleared. Nerd controls and the house bank were reset, and all games were turned on. Admin accounts remain. You have been signed out.`);
     window.location.replace("/admin.html");
   } catch (error) { setNotice(error.message, true); }
   finally { button.disabled = false; }

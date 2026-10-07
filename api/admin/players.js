@@ -1,5 +1,5 @@
 import { getSessionPlayer, publicPlayer } from "../../lib/auth.js";
-import { ensureSchema, getSql } from "../../lib/db.js";
+import { ensureSchema, getSql, HOUSE_START_CENTS } from "../../lib/db.js";
 import { handleApiError, HttpError, json, readJson, requireBrowserAction, requireMethod } from "../../lib/http.js";
 import { bonusBudget, grantBonus } from "../../lib/house.js";
 import { creditPlayer, resetPlayerBalance } from "../../lib/ledger.js";
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
       }
       const adminAccounts = await sql`SELECT id, login_id FROM players WHERE role = 'admin' ORDER BY login_id ASC`;
 
-      const [paymentRequests, paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, playerAccounts] = await sql.transaction([
+      const [paymentRequests, paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, gameSettings, houseLedger, houseBank, gameAvailability, playerAccounts] = await sql.transaction([
         sql`DELETE FROM payment_requests RETURNING id`,
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
@@ -212,6 +212,15 @@ export default async function handler(req, res) {
         sql`DELETE FROM payment_methods RETURNING id`,
         sql`DELETE FROM sessions RETURNING id`,
         sql`DELETE FROM login_attempts RETURNING attempt_key`,
+        sql`DELETE FROM game_settings RETURNING game_id`,
+        sql`DELETE FROM house_ledger RETURNING id`,
+        sql`
+          UPDATE house
+          SET capital_cents = ${HOUSE_START_CENTS}, balance_cents = ${HOUSE_START_CENTS}, created_at = NOW(), updated_at = NOW()
+          WHERE id = 1
+          RETURNING id
+        `,
+        sql`UPDATE games SET enabled = TRUE, updated_at = NOW() RETURNING id`,
         sql`DELETE FROM players WHERE role = 'player' RETURNING id`,
       ]);
       return json(res, 200, {
@@ -226,7 +235,14 @@ export default async function handler(req, res) {
           paymentMethods: paymentMethods.length,
           sessions: sessions.length,
           loginAttempts: loginAttempts.length,
+          gameSettings: gameSettings.length,
+          houseLedgerEntries: houseLedger.length,
           playerAccounts: playerAccounts.length,
+        },
+        reset: {
+          houseBankRows: houseBank.length,
+          gameAvailabilityRows: gameAvailability.length,
+          startingCapitalCents: HOUSE_START_CENTS,
         },
       });
     }
