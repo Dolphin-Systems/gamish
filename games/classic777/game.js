@@ -223,7 +223,7 @@
     app: $("app"), machine: $("machine"), message: $("message"), balance: $("balance"), win: $("win"),
     betDown: $("betDown"), betUp: $("betUp"), betValue: $("betValue"), spin: $("spin"), auto: $("auto"),
     pays: $("pays"), sound: $("sound"), banner: $("banner"), bannerTitle: $("bannerTitle"),
-    bannerAmount: $("bannerAmount"), sheet: $("sheet"), paytable: $("paytable"), closeSheet: $("closeSheet"),
+    bannerAmount: $("bannerAmount"), sheet: $("sheet"), paytable: $("paytable"), closeSheet: $("closeSheet"), gameIntro: $("gameIntro"),
   };
   const reels = [...document.querySelectorAll(".reel")].map((el, i) => new Reel(el, i));
 
@@ -242,6 +242,12 @@
   addEventListener("resize", layout);
   document.querySelector(".logo").addEventListener("load", layout);
   layout();
+
+  // Keep the opening focused on the Gamish777 mark, then reveal the ready game.
+  setTimeout(() => {
+    ui.gameIntro.classList.add("is-leaving");
+    ui.gameIntro.addEventListener("transitionend", () => ui.gameIntro.remove(), { once: true });
+  }, 3000);
 
   function say(text, isError = false) {
     ui.message.textContent = text;
