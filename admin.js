@@ -18,6 +18,7 @@ const pageCopy = {
   reports: ["Reports", "Review activity and download a PDF."],
   games: ["Games", "Every lobby game: logo, name, ID, order, and whether it's on."],
   nerd: ["Nerd", "Game math, RTP and the house bank."],
+  "api-flow": ["API Flow", "Trace player payment requests through processing and wallet updates."],
 };
 
 const request = async (url, options = {}) => {
@@ -61,6 +62,7 @@ const openTab = (name, updateHash = true) => {
   const tab = pageCopy[name] ? name : "overview";
   if (tab === "nerd") loadNerd();
   if (tab === "games") loadGames();
+  if (tab === "api-flow") loadApiFlow().catch((error) => setNotice(error.message, true));
   document.querySelectorAll("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
   document.querySelectorAll("[data-tab]").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   [pageTitle.textContent, pageDescription.textContent] = pageCopy[tab];
@@ -575,6 +577,8 @@ document.getElementById("admin-chat-image-remove").addEventListener("click", () 
 const requestList = document.getElementById("admin-requests");
 let adminRequests = [];
 let requestFilter = "pending";
+const apiFlowList = document.getElementById("api-flow-list");
+let apiFlowEvents = [];
 
 const requestAge = (value) => {
   const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60_000);
@@ -629,6 +633,53 @@ const loadRequests = async () => {
   adminRequests = data.requests;
   renderRequests();
 };
+
+const renderApiFlow = () => {
+  const count = document.getElementById("api-flow-count");
+  count.textContent = `${apiFlowEvents.length} events`;
+  apiFlowList.innerHTML = apiFlowEvents.map((item) => {
+    const completed = item.status === "approved" || item.status === "succeeded";
+    const pending = item.status === "pending";
+    const status = completed ? "Completed" : pending ? "Pending" : item.status.charAt(0).toUpperCase() + item.status.slice(1);
+    const statusClass = completed ? "completed" : pending ? "pending" : "closed";
+    const source = item.source === "processor_webhook" ? "Payment processor API" : "Player API request";
+    const direction = item.kind === "cashout" ? "Cash out" : "Deposit";
+    const settled = item.completedAmountCents === null
+      ? "Not settled"
+      : `${item.kind === "cashout" ? "−" : "+"}${money(item.completedAmountCents)}`;
+    const completion = item.completedAt
+      ? `${completed ? "Completed" : "Reviewed"} ${time(item.completedAt)}`
+      : "Awaiting review";
+    const remark = item.adminNote ? `${item.remark || "—"} · Admin: ${item.adminNote}` : item.remark || "—";
+    return `
+      <article class="api-flow-item">
+        <div class="api-flow-top">
+          <div class="api-flow-identity">
+            <span class="api-flow-status ${statusClass}">${escapeHtml(status)}</span>
+            <div><strong>${escapeHtml(item.player)}</strong><small>${escapeHtml(source)} · ${escapeHtml(direction)} · ${time(item.submittedAt)}</small></div>
+          </div>
+          <strong class="api-flow-amount">${money(item.amountCents)}</strong>
+        </div>
+        <div class="api-flow-fields">
+          <div><small>Payment ID</small><b>${escapeHtml(item.paymentId || "—")}</b></div>
+          <div><small>Payment method</small><b>${escapeHtml(item.methodName || "—")}</b></div>
+          <div><small>Remark</small><b>${escapeHtml(remark)}</b></div>
+          <div><small>Wallet update</small><b>${escapeHtml(settled)}</b></div>
+        </div>
+        <div class="api-flow-footer"><span>Request ${escapeHtml(item.id.slice(0, 8))}</span><span>${escapeHtml(completion)}</span></div>
+      </article>`;
+  }).join("") || `<p class="api-flow-empty">No player requests or processor transactions yet.</p>`;
+};
+
+const loadApiFlow = async () => {
+  const data = await request("/api/payment-methods?flow=1");
+  apiFlowEvents = data.events;
+  renderApiFlow();
+};
+
+document.getElementById("refresh-api-flow").addEventListener("click", () => {
+  loadApiFlow().then(() => setNotice("Payment API log refreshed.")).catch((error) => setNotice(error.message, true));
+});
 
 const openRequest = (id) => {
   requestFilter = "pending";
@@ -893,6 +944,7 @@ const refresh = async () => {
   report = reportData;
   renderPlayers();
   renderReport();
+  if (!document.querySelector('[data-panel="api-flow"]').hidden) await loadApiFlow();
   setChatBadge(report.attention.unreadMessages);
   if (drawerPlayerId) openPlayerDrawer(drawerPlayerId, { quiet: true });
 };

@@ -38,6 +38,59 @@ export default async function handler(req, res) {
       return json(res, 200, { requests });
     }
 
+    if (req.method === "GET" && new URL(req.url, "http://localhost").searchParams.get("flow")) {
+      if (account.role !== "admin") throw new HttpError(403, "Admin access required", "forbidden");
+      const [requests, processorEvents] = await Promise.all([
+        sql`
+          SELECT r.*, p.login_id
+          FROM payment_requests r JOIN players p ON p.id = r.player_id
+          WHERE p.role = 'player'
+          ORDER BY r.created_at DESC
+          LIMIT 300
+        `,
+        sql`
+          SELECT id, provider, provider_event_id, player_login_id, cash_cents,
+            credit_amount, status, created_at, processed_at
+          FROM payment_events
+          ORDER BY created_at DESC
+          LIMIT 300
+        `,
+      ]);
+      const events = [
+        ...requests.map((row) => ({
+          id: row.id,
+          source: "player_request",
+          player: row.login_id,
+          kind: row.kind,
+          amountCents: Number(row.amount_cents),
+          paymentId: row.payment_handle || "",
+          methodName: row.method_name,
+          remark: row.player_note || "",
+          status: row.status,
+          completedAmountCents: row.credited_cents == null ? null : Number(row.credited_cents),
+          submittedAt: row.created_at,
+          completedAt: row.decided_at,
+          adminNote: row.admin_note || "",
+        })),
+        ...processorEvents.map((row) => ({
+          id: row.id,
+          source: "processor_webhook",
+          player: row.player_login_id,
+          kind: "deposit",
+          amountCents: Number(row.cash_cents),
+          paymentId: row.provider_event_id,
+          methodName: row.provider,
+          remark: "Verified processor event; wallet credit applied.",
+          status: row.status,
+          completedAmountCents: Number(row.credit_amount),
+          submittedAt: row.created_at,
+          completedAt: row.processed_at,
+          adminNote: "",
+        })),
+      ].sort((left, right) => new Date(right.submittedAt) - new Date(left.submittedAt)).slice(0, 500);
+      return json(res, 200, { events });
+    }
+
     if (req.method === "GET") {
       if (account.role === "admin") {
         return json(res, 200, { methods: (await readAll(sql)).map(serialize) });
