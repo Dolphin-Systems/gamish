@@ -142,6 +142,10 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .money-icon { float: right; display: grid; place-items: center; width: 52px; height: 52px; margin-left: auto; border-radius: 18px; font-size: 27px; font-weight: 500; line-height: 1; text-align: center; }
 .money-icon.add { background: var(--green); }
 .money-icon.out { background: var(--ink); color: #fff; }
+.symbol-plus, .symbol-minus { position: relative; font-size: 0 !important; --symbol-size: 24px; --symbol-weight: 3px; }
+.symbol-plus::before, .symbol-plus::after, .symbol-minus::before { position: absolute; top: 50%; left: 50%; display: block; border-radius: 999px; background: currentColor; content: ""; transform: translate(-50%, -50%); }
+.symbol-plus::before, .symbol-minus::before { width: var(--symbol-size); height: var(--symbol-weight); }
+.symbol-plus::after { width: var(--symbol-weight); height: var(--symbol-size); }
 .helper { margin: 14px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
 .report-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 18px; border: 0; background: var(--ink); color: #fff; }
@@ -237,6 +241,7 @@ h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.035em; }
 .admin-chat-image-preview button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 11px; background: #fff; cursor: pointer; font-size: 18px; }
 .admin-chat-form { display: grid; grid-template-columns: 44px 1fr 52px; gap: 9px; padding: 12px; border-top: 1px solid var(--line); background: #fff; }
 .admin-chat-attach { display: grid; place-items: center; width: 44px; height: 52px; padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 21px; line-height: 1; text-align: center; }
+.admin-chat-attach.symbol-plus { --symbol-size: 16px; --symbol-weight: 2px; }
 .admin-chat-attach:disabled { color: #aab0ac; cursor: default; }
 .admin-chat-form input { min-height: 52px; border-radius: 17px; }
 .admin-chat-form .button { min-width: 52px; min-height: 52px; padding: 0; border-radius: 17px; font-size: 20px; }

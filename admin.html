@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/admin-favicon-32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/admin-icon-192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/admin-apple-touch-icon.png" />
-  <link rel="stylesheet" href="admin.css?v=16" />
+  <link rel="stylesheet" href="admin.css?v=17" />
 </head>
 <body>
   <section id="admin-login" class="login-screen" aria-labelledby="admin-login-title">
@@ -193,7 +193,7 @@
 
         <div class="form-grid">
           <form id="credit-player-form" class="content-section money-form">
-            <span class="money-icon add">+</span>
+            <span class="money-icon add symbol-plus" aria-hidden="true"></span>
             <p class="eyebrow">ADD MONEY</p>
             <h2>Fund a player</h2>
             <label>Player<select id="credit-player-id" required></select></label>
@@ -204,7 +204,7 @@
           </form>
 
           <form id="cashout-player-form" class="content-section money-form">
-            <span class="money-icon out">−</span>
+            <span class="money-icon out symbol-minus" aria-hidden="true"></span>
             <p class="eyebrow">CASH OUT RECORD</p>
             <h2>Debit available cash</h2>
             <label>Player<select id="cashout-player-id" required></select></label>
@@ -359,7 +359,7 @@
           </div>
           <form id="admin-chat-form" class="admin-chat-form">
             <input id="admin-chat-image-input" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" disabled />
-            <button id="admin-chat-attach" class="admin-chat-attach" type="button" aria-label="Attach an image" disabled>＋</button>
+            <button id="admin-chat-attach" class="admin-chat-attach symbol-plus" type="button" aria-label="Attach an image" disabled></button>
             <label><span class="sr-only">Message</span><input id="admin-chat-input" maxlength="500" autocomplete="off" placeholder="Write a message…" disabled /></label>
             <button class="button primary" type="submit" aria-label="Send message" disabled>↑</button>
           </form>
