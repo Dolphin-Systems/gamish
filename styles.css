@@ -1721,18 +1721,9 @@ body[data-view="profile"] .utility-nav { display: none; }
    A full-screen sandboxed frame with the platform's single back button on top. */
 body[data-view="game"] .utility-nav { display: none; }
 .game-host { z-index: 30; background: #07040b; transform: none; }
-.game-frame-slot, .game-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.game-frame-slot { position: absolute; inset: var(--game-bar-h) 0 0 0; border: 0; }
+.game-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .game-frame { display: block; background: #07040b; }
-.game-host-back {
-  position: absolute; z-index: 2;
-  top: max(10px, var(--edge-top, 0px)); left: calc(var(--edge-left, 0px) + 12px);
-  display: grid; place-items: center; width: 48px; height: 48px; padding: 0 0 3px;
-  border: 0; border-radius: 50%;
-  background: rgba(20, 10, 22, 0.72); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px rgba(255, 220, 160, 0.18);
-  backdrop-filter: blur(6px);
-  color: #ffe4a3; cursor: pointer; font-size: 34px; line-height: 1;
-}
-.game-host-back:active { transform: scale(0.92); }
 .game-host-loading {
   position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 12px;
   color: #d9c3b6; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none;
@@ -1752,13 +1743,13 @@ body[data-view="game"] .utility-nav { display: none; }
     .quick-replies button, .copy-button, .icon-chip, .sheet-close, .attach-button, .send-button, .support-chip,
     .wallet-tabs, .handle-row, .sheet-card, .pay-sheet-card, .conversation, .pay-instructions, .pay-handle,
     .profile-balances div, .request-row, .message-image-preview, .login-card button, .rotate-card,
-    .game-host-back) { position: relative; border-color: transparent; }
+    .game-bar-button, .jackpot) { position: relative; border-color: transparent; }
 :is(.utility-nav, .toast, .support-popover) { border-color: transparent; }
 :is(.primary-action, .ghost-action, .back-to-arcade, .amount-chip, .method-card, .cashout-quick button,
     .quick-replies button, .copy-button, .icon-chip, .sheet-close, .attach-button, .send-button, .support-chip,
     .wallet-tabs, .handle-row, .sheet-card, .pay-sheet-card, .conversation, .pay-instructions, .pay-handle,
     .profile-balances div, .request-row, .message-image-preview, .login-card button, .rotate-card,
-    .game-host-back, .utility-nav, .toast, .support-popover)::after {
+    .game-bar-button, .jackpot, .utility-nav, .toast, .support-popover, .jackpot-win)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1781,3 +1772,68 @@ body[data-view="game"] .utility-nav { display: none; }
   border: var(--gamish-frame-width) solid transparent !important;
   background: linear-gradient(var(--gamish-field-fill), var(--gamish-field-fill)) padding-box, var(--gamish-gold-edge) border-box !important;
 }
+
+
+/* ---------- The game bar: the same on top of every game ---------- */
+:root { --game-bar-h: calc(max(6px, var(--edge-top, 0px)) + 50px); }
+.game-bar {
+  position: fixed; inset: 0 0 auto 0; z-index: 60;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 12px;
+  height: var(--game-bar-h);
+  padding: max(6px, var(--edge-top, 0px)) calc(var(--edge-right, 0px) + 12px) 4px calc(var(--edge-left, 0px) + 12px);
+  background: linear-gradient(180deg, rgba(14, 6, 16, 0.96), rgba(14, 6, 16, 0.82) 75%, rgba(14, 6, 16, 0));
+  pointer-events: none;
+}
+.game-bar[hidden] { display: none; }
+.game-bar > * { pointer-events: auto; }
+.game-bar-button {
+  display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 50%;
+  background: linear-gradient(180deg, #4a1d3a, #2a1022); color: #ffe4a3; cursor: pointer; font-size: 30px; line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.game-bar-button span { margin-top: -3px; }
+.game-bar-button:active { transform: scale(0.92); }
+.game-bar-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.game-bar-button .sound-muted-mark { display: none; }
+.game-bar-button.muted .sound-waves { display: none; }
+.game-bar-button.muted .sound-muted-mark { display: inline; }
+.game-bar-button.muted { color: #b9a5af; }
+
+.jackpots { display: grid; grid-template-columns: 1fr 1.08fr 1.25fr; gap: 8px; justify-self: center; width: min(560px, 100%); }
+.jackpot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 38px; padding: 0 12px;
+  border-radius: 12px; background: linear-gradient(180deg, #3a1530, #1d0b1a);
+  box-shadow: inset 0 1px rgba(255, 230, 170, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.jackpot span { color: #e3c08a; font-size: 10px; font-weight: 900; letter-spacing: 0.14em; }
+.jackpot b { overflow: hidden; color: #fff0c0; font-family: "Cinzel Decorative", Georgia, serif; font-size: 16px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.jackpot.major { background: linear-gradient(180deg, #4a1730, #250b1c); }
+.jackpot.major b { color: #ffd88a; }
+.jackpot.mega { height: 42px; background: linear-gradient(180deg, #7a2416, #3a0d12); box-shadow: 0 0 18px rgba(255, 120, 40, 0.35), inset 0 1px rgba(255, 230, 170, 0.18); }
+.jackpot.mega span { color: #ffd88a; }
+.jackpot.mega b { color: #fff3c4; font-size: 18px; text-shadow: 0 0 10px rgba(255, 160, 60, 0.6); }
+.jackpot.rising b { animation: jackpot-rise 900ms ease-out; }
+@keyframes jackpot-rise { 30% { color: #fff; text-shadow: 0 0 14px rgba(255, 220, 140, 0.95); } }
+@media (max-width: 700px) {
+  .jackpots { gap: 6px; }
+  .jackpot { padding: 0 9px; }
+  .jackpot span { font-size: 9px; letter-spacing: 0.1em; }
+  .jackpot b { font-size: 14px; }
+  .jackpot.mega b { font-size: 16px; }
+}
+/* Phoenix (drawn by the lobby canvas) sits under the bar; module games start below it. */
+body.in-game .utility-nav { display: none; }
+
+.jackpot-win {
+  position: fixed; left: 50%; top: 50%; z-index: 70;
+  display: grid; justify-items: center; gap: 2px; min-width: min(380px, 80vw); padding: 18px 36px 22px;
+  border-radius: 24px; background: radial-gradient(120% 120% at 50% 0%, #8a2616, #2a0b1c 70%);
+  box-shadow: 0 0 80px rgba(255, 140, 40, 0.6), 0 30px 80px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, -50%); animation: jackpot-pop 420ms cubic-bezier(.2, 1.5, .4, 1); cursor: pointer;
+}
+.jackpot-win[hidden] { display: none; }
+.jackpot-win::after { padding: 3px !important; }
+.jackpot-win-kicker { color: #ffd88a; font-size: 12px; font-weight: 900; letter-spacing: 0.3em; }
+.jackpot-win strong { color: #fff3c4; font-family: "Cinzel Decorative", Georgia, serif; font-size: clamp(30px, 10vh, 48px); text-shadow: 0 0 20px rgba(255, 170, 60, 0.8); }
+.jackpot-win b { color: #fff; font-size: clamp(22px, 7vh, 32px); font-variant-numeric: tabular-nums; }
+@keyframes jackpot-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } }

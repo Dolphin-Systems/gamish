@@ -1590,7 +1590,9 @@
       fitBackground(this, "phoenix-gameplay-v3").setTint(0x958f94);
       addEdgeShade(this, 0.6, 0.85);
       addAtmosphere(this, 16, this.theme.particles);
-      addTopBar(this, { title: "PHOENIX RUBY", back: () => this.returnToHall() });
+      // Back, jackpots and sound live in the platform's game bar (app.js), the same in every game.
+      window.dispatchEvent(new CustomEvent("gamish:ingame", { detail: { active: true, game: "phoenix-ruby" } }));
+      this.events.once("shutdown", () => window.dispatchEvent(new CustomEvent("gamish:ingame", { detail: { active: false } })));
 
       this.createHud();
       this.createMachine();
@@ -1601,10 +1603,6 @@
       this.add.text(REEL.frameX, 700, "VIRTUAL CREDITS  •  NO CASH VALUE", {
         fontFamily: BODY_FONT, fontSize: "12px", fontStyle: "700", color: "#c4a486", letterSpacing: 3,
       }).setOrigin(0.5);
-      addIconButton(this, SIDE.right + 150, 64, "payments", () => {
-        window.dispatchEvent(new CustomEvent("gamish:navigate", { detail: "payments" }));
-      }, { label: "Wallet" });
-      addSoundButton(this, SIDE.right + 72, 64);
 
       this.refreshCollection(false);
       this.refreshHud();
@@ -2030,6 +2028,8 @@
           timeout: SPIN_TIMEOUT_MS,
         });
         round = response.round;
+        // The platform bar shows the shared jackpots and celebrates a jackpot win.
+        window.dispatchEvent(new CustomEvent("gamish:round", { detail: response }));
       } catch (error) {
         if (this.leaving || !this.sys.isActive()) {
           window.GamishAccount?.refreshWallet().catch(() => {});

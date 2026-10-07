@@ -8,7 +8,7 @@ A game is connected to the platform at exactly one point, the SDK. The platform 
 | Credits and wallet, deposits, cash-outs | Everything the player sees and hears |
 | **Randomness and the payout math** (server-side, `lib/game-models.js`) | How an outcome is presented (reels, a wheel, cards…) |
 | Recording every round and event | Which events to report (`Gamish.track`) |
-| The **back button** to the lobby (top-left) | Layout, animation, sound, rules screen |
+| The **game bar** above every game: back to the lobby, the shared **MINOR / MAJOR / MEGA** jackpots, and the sound switch | Layout, animation, sound effects, rules screen |
 
 A game never decides an outcome. It asks for a round, the server draws it with the crypto RNG
 from the game's `math.json`, moves the credits, records the round, and returns the result.
@@ -122,6 +122,7 @@ const round = await Gamish.play({ bet: 10, target: 2 }); // target
 
 Gamish.onWallet((wallet) => updateBalance(wallet.totalCredits));
 Gamish.track("bonus_seen", { level: 2 });   // name: 1–40 of A-Z a-z 0-9 _ . : -  data: ≤ 2 KB JSON
+Gamish.sound;  Gamish.onSound((on) => mute(!on));  // the platform's sound switch
 Gamish.exit();                               // optional: same as the platform's back button
 ```
 
@@ -147,7 +148,12 @@ the CSS variable `--gamish-gold-edge`, for anything you draw yourself (canvas, S
   to the app page. Keep state in memory. Load your own files with relative paths; fonts and
   scripts from public CDNs are fine.
 * **Landscape phones** (about 640–950 × 360–430 CSS px). Respect `env(safe-area-inset-*)`.
-* **Keep the top-left 72 × 72 px clear** — the platform's back button lives there.
+* **The platform's game bar sits above your game** (back, jackpots, sound); your page gets the
+  whole area below it. Don't add your own back, wallet, chat or sound-toggle buttons: wallet and
+  chat live in the lobby menu, sound in the bar. Play sound only while `Gamish.sound` is true
+  (`Gamish.onSound((on) => …)` tells you when it changes).
+* Jackpots are paid by the platform on top of a round's own payout (`round.jackpot`) and
+  celebrated in its bar; a game doesn't need to show them.
 * Audio may only start after a tap inside the game.
 * Never show an outcome before `play()` resolves, and always show the outcome it returned.
 

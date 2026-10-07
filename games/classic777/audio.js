@@ -257,6 +257,14 @@ window.Classic777Audio = (() => {
       return mode;
     },
 
+    // Follow the platform's sound switch (its game bar): "all" or "off".
+    setMode(next) {
+      if (!MODES.includes(next) || next === mode) return mode;
+      mode = next;
+      applyMode();
+      return mode;
+    },
+
     click(pitch = 1) {
       tone(1500 * pitch, 0.05, { type: "triangle", gain: 0.09 });
       tone(3000 * pitch, 0.02, { gain: 0.03 });

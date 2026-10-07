@@ -183,7 +183,7 @@
     if (event.button > 0) return;
     const target = event.target.closest?.(TAPPABLE);
     if (!target || target.disabled || target.getAttribute("aria-disabled") === "true" || target.closest("[data-silent]")) return;
-    const navigates = target.matches(".view-trigger, [data-close-sheet], #game-host-back, .back-to-arcade");
+    const navigates = target.matches(".view-trigger, [data-close-sheet], #game-bar-back, .back-to-arcade");
     audio?.play(navigates ? "nav" : "tap");
   }, { capture: true, passive: true });
   // iOS only starts audio from a completed tap: unlock on the first one.
@@ -1015,9 +1015,6 @@
   window.addEventListener("gamish:view", (event) => {
     if (event.detail !== "game") closeModuleGame();
   });
-  document.getElementById("game-host-back").addEventListener("click", () => {
-    showView("arcade");
-  });
 
   const replyTo = (game, id, ok, payload) => {
     game.frame.contentWindow?.postMessage(ok ? { gamish: 1, reply: id, ok: true, data: payload } : { gamish: 1, reply: id, ok: false, error: payload }, "*");
@@ -1045,6 +1042,7 @@
         player: { loginId: player.loginId },
         wallet: walletOf(player),
         math: game.entry.math,
+        sound: audio?.isEnabled() ?? true,
       });
     }
     if (type === "play") {
@@ -1053,7 +1051,9 @@
       game.busy = true;
       try {
         const body = { gameId: game.entry.id, bet: payload.bet, ...(payload.target === undefined ? {} : { target: payload.target }) };
-        const { round } = await request("/api/game/spin", { method: "POST", body: JSON.stringify(body), timeout: 15_000 });
+        const response = await request("/api/game/spin", { method: "POST", body: JSON.stringify(body), timeout: 15_000 });
+        const { round } = response;
+        window.dispatchEvent(new CustomEvent("gamish:round", { detail: response }));
         if (moduleGame !== game) return;
         pushWallet(round.wallet);
         replyTo(game, id, true, round);
@@ -1084,4 +1084,97 @@
     if (!game || !wallet) return;
     game.frame.contentWindow?.postMessage({ gamish: 1, type: "wallet", wallet: { regularCredits: wallet.regularCredits, bonusCredits: wallet.bonusCredits, totalCredits: wallet.totalCredits } }, "*");
   });
+
+  // ---------- The game bar ----------
+  // One bar on top of every game (module games and Phoenix): back to the lobby, the shared
+  // MINOR / MAJOR / MEGA jackpots, and sound. Wallet and chat stay in the lobby menu.
+  const gameBar = document.getElementById("game-bar");
+  const barSound = document.getElementById("game-bar-sound");
+  const jackpotCells = Object.fromEntries([...gameBar.querySelectorAll("[data-jackpot]")].map((cell) => [cell.dataset.jackpot, cell]));
+  const shownJackpots = { minor: 0, major: 0, mega: 0 };
+  let builtinGame = false;
+  let jackpotTimer = null;
+
+  const formatJackpot = (cents) => dollars(Math.max(0, Math.round(cents)));
+  // Numbers glide to their new values, like a live jackpot meter.
+  const animateJackpot = (tier, to) => {
+    const cell = jackpotCells[tier];
+    if (!cell) return;
+    const from = shownJackpots[tier];
+    shownJackpots[tier] = to;
+    if (from === to) { cell.textContent = formatJackpot(to); return; }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / 900);
+      cell.textContent = formatJackpot(from + (to - from) * (1 - (1 - t) ** 3));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    if (to > from) cell.closest(".jackpot").classList.add("rising");
+    window.setTimeout(() => cell.closest(".jackpot")?.classList.remove("rising"), 900);
+  };
+  const showJackpots = (list) => (list || []).forEach(({ tier, cents }) => animateJackpot(tier, Number(cents) || 0));
+  const loadJackpots = () => request("/api/game/spin?jackpots=1").then((data) => showJackpots(data.jackpots)).catch(() => {});
+
+  const syncGameBar = () => {
+    const visible = Boolean(window.GamishAccount.player) && (currentView === "game" || (currentView === "arcade" && builtinGame));
+    gameBar.hidden = !visible;
+    document.body.classList.toggle("in-game", visible);
+    window.clearInterval(jackpotTimer);
+    if (visible) {
+      loadJackpots();
+      jackpotTimer = window.setInterval(loadJackpots, 8_000);
+    }
+  };
+  window.addEventListener("gamish:view", syncGameBar);
+  window.addEventListener("gamish:ingame", (event) => {
+    builtinGame = Boolean(event.detail?.active);
+    syncGameBar();
+  });
+  document.getElementById("game-bar-back").addEventListener("click", () => {
+    if (currentView === "game") showView("arcade");
+    else window.dispatchEvent(new CustomEvent("gamish:back"));
+  });
+
+  const refreshBarSound = () => {
+    const on = audio?.isEnabled() ?? false;
+    barSound.classList.toggle("muted", !on);
+    barSound.setAttribute("aria-pressed", String(on));
+    barSound.setAttribute("aria-label", on ? "Mute sound" : "Turn sound on");
+    // Module games follow the platform's sound switch (Gamish.sound / Gamish.onSound).
+    moduleGame?.frame.contentWindow?.postMessage({ gamish: 1, type: "sound", on }, "*");
+  };
+  barSound.addEventListener("click", () => {
+    audio?.toggle();
+    refreshBarSound();
+  });
+  window.addEventListener("gamish:soundchange", refreshBarSound);
+  refreshBarSound();
+
+  // Every round (any game) brings the latest jackpots, and a win gets the big banner.
+  const jackpotWin = document.getElementById("jackpot-win");
+  let jackpotWinTimer = null;
+  window.addEventListener("gamish:round", (event) => {
+    const { round, jackpots } = event.detail || {};
+    const win = round?.jackpot;
+    if (win) {
+      // Show the pot it was won from, then the reset value.
+      animateJackpot(win.tier, win.cents);
+      document.getElementById("jackpot-win-tier").textContent = win.label;
+      document.getElementById("jackpot-win-amount").textContent = `+${dollars(win.cents)}`;
+      jackpotWin.dataset.tier = win.tier;
+      jackpotWin.hidden = false;
+      audio?.play("win-big");
+      window.setTimeout(() => audio?.play("coin-shower"), 160);
+      window.clearTimeout(jackpotWinTimer);
+      jackpotWinTimer = window.setTimeout(() => {
+        jackpotWin.hidden = true;
+        showJackpots(jackpots);
+      }, 3_600);
+      if (round.wallet) pushWallet(round.wallet);
+    } else {
+      showJackpots(jackpots);
+    }
+  });
+  jackpotWin.addEventListener("click", () => { jackpotWin.hidden = true; });
 })();

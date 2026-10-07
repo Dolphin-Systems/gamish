@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=DM+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="platform/gamish-ui.css?v=1" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
   <title>Gamish777 — Game Lobby</title>
 </head>
 <body data-view="arcade">
@@ -53,7 +53,6 @@
     <section id="game-host-view" class="app-view game-host" aria-label="Game" aria-hidden="true">
       <div id="game-frame-slot" class="game-frame-slot"></div>
       <div id="game-host-loading" class="game-host-loading" hidden><i></i><span>Loading game…</span></div>
-      <button id="game-host-back" class="game-host-back" type="button" aria-label="Back to the lobby"><span aria-hidden="true">‹</span></button>
     </section>
 
     <section id="payments-view" class="app-view sheet-view" aria-labelledby="payments-title" aria-hidden="true">
@@ -216,6 +215,29 @@
       </div>
     </section>
 
+    <!-- The platform's game bar: the same in every game. Back to the lobby, the shared jackpots
+         and sound. Wallet and chat stay in the lobby menu. -->
+    <header id="game-bar" class="game-bar" aria-label="Game controls" hidden>
+      <button id="game-bar-back" class="game-bar-button" type="button" aria-label="Back to the lobby"><span aria-hidden="true">‹</span></button>
+      <div class="jackpots" role="group" aria-label="Jackpots">
+        <div class="jackpot minor"><span>MINOR</span><b data-jackpot="minor">$0.00</b></div>
+        <div class="jackpot major"><span>MAJOR</span><b data-jackpot="major">$0.00</b></div>
+        <div class="jackpot mega"><span>MEGA</span><b data-jackpot="mega">$0.00</b></div>
+      </div>
+      <button id="game-bar-sound" class="game-bar-button sound-toggle" type="button" aria-label="Mute sound" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 10v4h3l4 3V7l-4 3H5Z"/>
+          <path class="sound-waves" d="M15 9.25a4 4 0 0 1 0 5.5M17.6 6.7a7.5 7.5 0 0 1 0 10.6"/>
+          <path class="sound-muted-mark" d="m15.5 9.5 5 5m0-5-5 5"/>
+        </svg>
+      </button>
+    </header>
+    <div id="jackpot-win" class="jackpot-win" role="alert" hidden>
+      <span class="jackpot-win-kicker">JACKPOT</span>
+      <strong id="jackpot-win-tier">MEGA</strong>
+      <b id="jackpot-win-amount">$0.00</b>
+    </div>
+
     <nav class="utility-nav" aria-label="Sound, wallet and messages">
       <button id="sound-toggle" class="utility-button sound-toggle" type="button" aria-label="Mute sound" aria-pressed="true" title="Sound on">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -251,8 +273,8 @@
   <script src="safe-area.js?v=1"></script>
   <script defer src="audio.js?v=4"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
-  <script defer src="game.js?v=27"></script>
+  <script defer src="game.js?v=28"></script>
   <script src="chat-images.js?v=1"></script>
-  <script defer src="app.js?v=17"></script>
+  <script defer src="app.js?v=18"></script>
 </body>
 </html>
