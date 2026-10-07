@@ -1,4 +1,4 @@
-// Classic 777 — a three-reel, one-line slot.
+// Classic 777 — a five-reel, one-line slot.
 // The server decides every round (Gamish.play); this file only presents the outcome it returns.
 (() => {
   "use strict";
@@ -20,27 +20,27 @@
   const fmt = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
   // A cosmetic row that is clearly not a line win.
-  function looseRow(pool) {
+  function looseRow(pool, count = 5) {
     for (;;) {
-      const row = [pick(pool), pick(pool), pick(pool)];
-      if (row[0] === row[1] && row[1] === row[2]) continue;
+      const row = Array.from({ length: count }, () => pick(pool));
+      if (row.every((symbol) => symbol === row[0])) continue;
       if (row.filter((s) => s === "scatter").length > 1) continue;
       return row;
     }
   }
 
-  // Turn the server's outcome into the 3 × 3 grid shown on the reels (columns of [top, mid, bottom]).
+  // Turn the server's outcome into the 5 × 3 grid shown on the reels (columns of [top, mid, bottom]).
   function gridFor(outcome) {
     let line;
     if (NAMES[outcome]) {
-      line = [outcome, outcome, outcome];
-      if (WILD_CAN_SUB.has(outcome) && Math.random() < 0.25) line[Math.floor(Math.random() * 3)] = "wild";
+      line = Array(5).fill(outcome);
+      if (WILD_CAN_SUB.has(outcome) && Math.random() < 0.32) line[Math.floor(Math.random() * 5)] = "wild";
     } else {
       line = looseRow(MISS_POOL);
     }
     const top = looseRow(SYMBOLS);
     const bottom = looseRow(SYMBOLS);
-    return [0, 1, 2].map((i) => [top[i], line[i], bottom[i]]);
+    return Array.from({ length: 5 }, (_, i) => [top[i], line[i], bottom[i]]);
   }
 
   // ---------- audio (starts only after a tap) ----------
@@ -212,7 +212,7 @@
   })();
 
   // ---------- reels ----------
-  const LOOP = 14;
+  const LOOP = 12;
   let cellPx = 72;
 
   function makeCell(symbol) {
@@ -228,9 +228,12 @@
 
   class Reel {
     constructor(el, index) {
+      this.el = el;
       this.index = index;
       this.strip = el.querySelector(".strip");
       this.symbols = ["lemon", "cherry", "bell"];
+      this.base = [...this.symbols, "seven", "orange", "bar2", "plum", "bell", "star", "melon", "cherry", "wild"];
+      this.position = 0;
       this.raf = 0;
       this.render(this.symbols);
     }
@@ -241,13 +244,14 @@
 
     setPos(p) { this.strip.style.transform = `translate3d(0, ${(-p * cellPx).toFixed(2)}px, 0)`; }
 
-    // Spin freely while the server draws the round.
+    // Spin a repeated physical strip while the server draws the round. The repeat lets
+    // the reel wrap with no visible jump, then the landing strip decelerates into the result.
     start(delay) {
       this.stopped = null;
-      const loop = [...this.symbols];
-      while (loop.length < LOOP) loop.push(pick(SYMBOLS));
-      this.render([...loop, ...this.symbols]);
-      let p = 0;
+      this.base = Array.from({ length: LOOP }, () => pick(SYMBOLS));
+      this.render([...this.base, ...this.base, ...this.base]);
+      this.el?.classList.add("spinning");
+      this.position = 0;
       let v = 0;
       let last = performance.now();
       const t0 = last + delay;
@@ -258,9 +262,9 @@
         if (now >= t0) {
           v = Math.min(20, v + 70 * dt);
           if (v > 8) this.strip.classList.add("blur");
-          p -= v * dt;
-          while (p < 0) p += LOOP;
-          this.setPos(p);
+          this.position += v * dt;
+          while (this.position >= LOOP) this.position -= LOOP;
+          this.setPos(this.position);
         } else {
           // small wind-up before the drop
           this.setPos(Math.sin(((now - (t0 - delay)) / Math.max(1, delay)) * Math.PI) * -0.08);
@@ -270,25 +274,32 @@
       this.raf = requestAnimationFrame(tick);
     }
 
-    // Land on the given column [top, middle, bottom].
+    // Land on the given column [top, middle, bottom] after several visible, slowing turns.
     land(column, duration) {
       cancelAnimationFrame(this.raf);
-      const filler = Array.from({ length: 7 }, () => pick(SYMBOLS));
-      const list = [...column, ...filler, pick(SYMBOLS), pick(SYMBOLS), pick(SYMBOLS)];
+      const baseOffset = Math.floor(this.position) % LOOP;
+      const visible = [...this.base.slice(baseOffset), ...this.base.slice(0, baseOffset)];
+      const filler = Array.from({ length: 10 + this.index * 3 }, () => pick(SYMBOLS));
+      const list = [...visible, ...filler, ...column, ...column];
+      const target = visible.length + filler.length;
       this.render(list);
-      const from = list.length - 3;
-      this.setPos(from);
+      this.setPos(0);
       this.strip.classList.add("blur");
+      this.el?.classList.remove("spinning");
       return new Promise((resolve) => {
         const begin = performance.now();
-        const ease = (t) => { const c = 1.35; return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2; }; // easeOutBack
+        const ease = (t) => {
+          const slow = 1 - (1 - Math.min(t, .88) / .88) ** 3;
+          if (t <= .88) return slow * .965;
+          const tail = (t - .88) / .12;
+          return .965 + (.035 * (1 + Math.sin(tail * Math.PI) * .18));
+        };
         const tick = (now) => {
           const t = Math.min(1, (now - begin) / duration);
-          this.setPos(from * (1 - ease(t)));
-          if (t > 0.55) this.strip.classList.remove("blur");
+          this.setPos(target * ease(t));
+          if (t > 0.72) this.strip.classList.remove("blur");
           if (t < 1) this.raf = requestAnimationFrame(tick);
           else {
-            this.setPos(0);
             this.symbols = [...column];
             this.render(this.symbols);
             this.setPos(0);
@@ -319,7 +330,7 @@
     const logo = document.querySelector(".logo").getBoundingClientRect().height - 18;
     const height = cabinet.clientHeight - logo - 40 - 58;
     const byHeight = height / 3;
-    const byWidth = (width - 64) / 3.24;
+    const byWidth = (width - 54) / 5.38;
     cellPx = Math.max(40, Math.min(112, Math.floor(Math.min(byHeight, byWidth))));
     document.documentElement.style.setProperty("--cell", `${cellPx}px`);
     reels.forEach((r) => r.setPos(0));
@@ -387,8 +398,8 @@
 
     const name = NAMES[round.outcome];
     const amount = fmt(round.payout);
-    if (mult === 1) say(`3 × ${name} — stake back (${amount})`);
-    else say(name ? `3 × ${name} — WIN ${amount} (${fmt(mult)}×)` : `WIN ${amount} (${fmt(mult)}×)`);
+    if (mult === 1) say(`5 × ${name} — stake back (${amount})`);
+    else say(name ? `5 × ${name} — WIN ${amount} (${fmt(mult)}×)` : `WIN ${amount} (${fmt(mult)}×)`);
 
     if (level >= 2) {
       ui.bannerTitle.textContent = round.outcome === "seven" ? "JACKPOT!" : level === 3 ? "MEGA WIN" : "BIG WIN";
@@ -463,12 +474,14 @@
     }
 
     const grid = gridFor(round.outcome);
-    for (let i = 0; i < 3; i++) {
-      const teasing = i === 2 && grid[0][1] === grid[1][1] && ["seven", "star", "wild"].includes(grid[0][1]);
+    for (let i = 0; i < reels.length; i++) {
+      const teasing = i === reels.length - 1
+        && grid.slice(0, -1).every((column) => column[1] === grid[0][1])
+        && ["seven", "star", "wild"].includes(grid[0][1]);
       if (teasing) { Sound.tease(); await sleep(650); }
-      await reels[i].land(grid[i], teasing ? 900 : 520);
+      await reels[i].land(grid[i], teasing ? 1150 : 620 + i * 45);
       Sound.reelStop(i);
-      if (i < 2) await sleep(90);
+      if (i < reels.length - 1) await sleep(105);
     }
     Sound.stopTicks();
     showWallet(round.wallet);
@@ -493,7 +506,7 @@
       const li = document.createElement("li");
       const icons = document.createElement("span");
       icons.className = "icons";
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const img = document.createElement("img");
         img.src = src(o.id);
         img.alt = i === 0 ? NAMES[o.id] : "";
