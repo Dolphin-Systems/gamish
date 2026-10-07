@@ -135,86 +135,115 @@
     return cell;
   }
 
+  // Reel motion: symbols roll downward at a steady speed, then brake evenly onto the result
+  // with a small mechanical settle. Position p is in cells; the window shows cells p..p+2.
+  const SPIN_SPEED = 17; // cells per second at full speed
+  const SETTLE = 0.16; // how far (in cells) the reel rolls past the line before settling back
+  const SETTLE_MS = 190;
+
   class Reel {
     constructor(el, index) {
       this.el = el;
       this.index = index;
       this.strip = el.querySelector(".strip");
       this.symbols = ["lemon", "cherry", "bell"];
-      this.base = [...this.symbols, "seven", "orange", "bar2", "plum", "bell", "star", "melon", "cherry", "wild"];
-      this.position = 0;
+      this.cells = [];
+      this.p = 0;
+      this.v = 0;
       this.raf = 0;
       this.render(this.symbols);
     }
 
-    render(list) {
+    render(list, middle = 1) {
+      this.cells = list;
+      this.middleIndex = middle;
       this.strip.replaceChildren(...list.map(makeCell));
     }
 
     setPos(p) { this.strip.style.transform = `translate3d(0, ${(-p * cellPx).toFixed(2)}px, 0)`; }
 
-    // Spin a repeated physical strip while the server draws the round. The repeat lets
-    // the reel wrap with no visible jump, then the landing strip decelerates into the result.
+    // Spin freely while the server draws the round. The strip is a loop whose first three
+    // cells are repeated at the end, so wrapping around is invisible.
     start(delay) {
-      this.stopped = null;
-      this.base = Array.from({ length: LOOP }, () => pick(SYMBOLS));
-      this.render([...this.base, ...this.base, ...this.base]);
-      this.position = 0;
-      let v = 0;
-      let last = performance.now();
-      const t0 = last + delay;
+      cancelAnimationFrame(this.raf);
+      const loop = [...this.symbols];
+      while (loop.length < LOOP) loop.push(pick(SYMBOLS));
+      this.render([...loop, ...loop.slice(0, 3)]);
+      this.p = 0;
+      this.v = 0;
       this.setPos(0);
+      const begin = performance.now();
+      let last = begin;
       const tick = (now) => {
         const dt = Math.min(0.05, (now - last) / 1000);
         last = now;
-        if (now >= t0) {
-          v = Math.min(20, v + 70 * dt);
-          this.position += v * dt;
-          while (this.position >= LOOP) this.position -= LOOP;
-          this.setPos(this.position);
+        const since = now - begin;
+        if (since < delay) {
+          // wind-up: the reel lifts slightly before it drops
+          this.setPos(Math.sin((since / Math.max(1, delay)) * Math.PI / 2) * 0.14);
         } else {
-          // small wind-up before the drop
-          this.setPos(Math.sin(((now - (t0 - delay)) / Math.max(1, delay)) * Math.PI) * -0.08);
+          if (this.p === 0 && this.v === 0) this.p = 0.14;
+          this.v = Math.min(SPIN_SPEED, this.v + SPIN_SPEED * 4 * dt); // ~0.25 s to full speed
+          this.p -= this.v * dt;
+          while (this.p < 0) this.p += LOOP;
+          this.setPos(this.p);
         }
         this.raf = requestAnimationFrame(tick);
       };
       this.raf = requestAnimationFrame(tick);
     }
 
-    // Land on the given column [top, middle, bottom] after several visible, slowing turns.
-    land(column, duration) {
+    // Stop on column [top, middle, bottom] about `ms` from now. Resolves at the moment the
+    // reel hits its stop (for the sound); the small settle back finishes just after.
+    land(column, ms, brakeCells = 2.4) {
       cancelAnimationFrame(this.raf);
-      const baseOffset = Math.floor(this.position) % LOOP;
-      const visible = [...this.base.slice(baseOffset), ...this.base.slice(0, baseOffset)];
-      const filler = Array.from({ length: 10 + this.index * 3 }, () => pick(SYMBOLS));
-      const list = [...visible, ...filler, ...column, ...column];
-      const target = visible.length + filler.length;
-      this.render(list);
-      this.setPos(0);
+      const v = Math.max(this.v, SPIN_SPEED * 0.6);
+      // Rebuild the strip without moving anything on screen: the cells now in view go to the
+      // bottom, the result goes on top (with one spare cell above it for the settle).
+      const whole = Math.floor(this.p);
+      const frac = this.p - whole;
+      const inView = this.cells.slice(whole, whole + 4);
+      const brake = Math.max(1.2, brakeCells);
+      const brakeTime = (2 * brake) / v; // even deceleration from v to 0 over `brake` cells
+      const cruiseCells = Math.max(0, v * (ms / 1000 - brakeTime));
+      const filler = Math.max(1, Math.round(cruiseCells + brake - SETTLE - 3 - frac));
+      const list = [pick(SYMBOLS), ...column, ...Array.from({ length: filler }, () => pick(SYMBOLS)), ...inView];
+      const start = 1 + 3 + filler + frac;
+      const stopAt = 1 - SETTLE; // just past the line
+      const distance = start - stopAt;
+      const brakeFrom = Math.min(distance, brake);
+      const cruise = distance - brakeFrom;
+      const cruiseTime = cruise / v;
+      const decel = (v * v) / (2 * brakeFrom);
+      const stopTime = cruiseTime + v / decel;
+      this.render(list, 2);
+      this.setPos(start);
+      this.symbols = [...column];
+
       return new Promise((resolve) => {
         const begin = performance.now();
-        const ease = (t) => {
-          const slow = 1 - (1 - Math.min(t, .88) / .88) ** 3;
-          if (t <= .88) return slow * .965;
-          const tail = (t - .88) / .12;
-          return .965 + (.035 * (1 + Math.sin(tail * Math.PI) * .18));
-        };
+        let stopped = false;
         const tick = (now) => {
-          const t = Math.min(1, (now - begin) / duration);
-          this.setPos(target * ease(t));
-          if (t < 1) this.raf = requestAnimationFrame(tick);
-          else {
-            this.symbols = [...column];
-            this.render(this.symbols);
-            this.setPos(0);
-            resolve();
+          const t = (now - begin) / 1000;
+          if (t < cruiseTime) {
+            this.setPos(start - v * t);
+          } else if (t < stopTime) {
+            const tb = t - cruiseTime;
+            this.setPos(start - cruise - (v * tb - 0.5 * decel * tb * tb));
+          } else {
+            if (!stopped) { stopped = true; resolve(); }
+            const k = Math.min(1, (t - stopTime) / (SETTLE_MS / 1000));
+            const eased = 0.5 - Math.cos(k * Math.PI) / 2;
+            this.setPos(stopAt + SETTLE * eased);
+            if (k >= 1) { this.p = 1; this.v = 0; return; }
           }
+          this.raf = requestAnimationFrame(tick);
         };
         this.raf = requestAnimationFrame(tick);
       });
     }
 
-    middleCell() { return this.strip.children[1]; }
+    middleCell() { return this.strip.children[this.middleIndex]; }
   }
 
   // ---------- DOM ----------
@@ -223,7 +252,7 @@
     app: $("app"), machine: $("machine"), message: $("message"), balance: $("balance"), win: $("win"),
     betDown: $("betDown"), betUp: $("betUp"), betValue: $("betValue"), spin: $("spin"), auto: $("auto"),
     pays: $("pays"), sound: $("sound"), banner: $("banner"), bannerTitle: $("bannerTitle"),
-    bannerAmount: $("bannerAmount"), sheet: $("sheet"), paytable: $("paytable"), closeSheet: $("closeSheet"), gameIntro: $("gameIntro"),
+    bannerAmount: $("bannerAmount"), sheet: $("sheet"), paytable: $("paytable"), closeSheet: $("closeSheet"),
   };
   const reels = [...document.querySelectorAll(".reel")].map((el, i) => new Reel(el, i));
 
@@ -237,17 +266,11 @@
     const byWidth = (width - 54) / 5.38;
     cellPx = Math.max(40, Math.min(112, Math.floor(Math.min(byHeight, byWidth))));
     document.documentElement.style.setProperty("--cell", `${cellPx}px`);
-    reels.forEach((r) => r.setPos(0));
+    reels.forEach((r) => r.setPos(r.p));
   }
   addEventListener("resize", layout);
   document.querySelector(".logo").addEventListener("load", layout);
   layout();
-
-  // Keep the opening focused on the Gamish777 mark, then reveal the ready game.
-  setTimeout(() => {
-    ui.gameIntro.classList.add("is-leaving");
-    ui.gameIntro.addEventListener("transitionend", () => ui.gameIntro.remove(), { once: true });
-  }, 3000);
 
   function say(text, isError = false) {
     ui.message.textContent = text;
@@ -372,7 +395,7 @@
 
     if (failure) {
       // No round was played: put the reels back where they were.
-      await Promise.all(reels.map((r, i) => r.land(previous[i], 380 + i * 60)));
+      await Promise.all(reels.map((r, i) => r.land(previous[i], 380 + i * 120)));
       Sound.stopSpin();
       Sound.error();
       const code = failure && failure.code;
@@ -391,11 +414,11 @@
         && grid.slice(0, -1).every((column) => column[1] === grid[0][1])
         && ["seven", "star", "wild"].includes(grid[0][1]);
       if (teasing) { Sound.tease(); await sleep(650); }
-      await reels[i].land(grid[i], teasing ? 1150 : 620 + i * 45);
+      await reels[i].land(grid[i], teasing ? 1500 : 380, teasing ? 6 : 2.4);
       const shown = grid.slice(0, i + 1).map((column) => column[1]);
       const lead = shown.find((s) => s !== "wild") || "wild";
       Sound.reelStop(i, shown.every((s) => s === lead || s === "wild") ? shown.length : 1);
-      if (i < reels.length - 1) await sleep(105);
+      if (i < reels.length - 1) await sleep(60);
     }
     Sound.stopSpin();
     showWallet(round.wallet);
