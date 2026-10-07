@@ -642,7 +642,8 @@ const renderApiFlow = () => {
     const pending = item.status === "pending";
     const status = completed ? "Completed" : pending ? "Pending" : item.status.charAt(0).toUpperCase() + item.status.slice(1);
     const statusClass = completed ? "completed" : pending ? "pending" : "closed";
-    const source = item.source === "processor_webhook" ? "Payment processor API" : "Player API request";
+    const source = item.source === "processor_webhook" ? "Payment processor API"
+      : item.source === "admin_completion" ? "Admin wallet update" : "Player API request";
     const direction = item.kind === "cashout" ? "Cash out" : "Deposit";
     const settled = item.completedAmountCents === null
       ? "Not settled"

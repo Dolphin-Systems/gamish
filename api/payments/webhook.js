@@ -51,6 +51,17 @@ export default async function handler(req, res) {
       reference: `${provider}:${providerEventId}`,
       idempotencyKey: `payment:${provider}:${providerEventId}`,
       cashCents,
+      flowLog: {
+        eventKey: `processor-completion:${providerEventKey}`,
+        eventType: "processor_completion",
+        kind: "deposit",
+        amountCents: cashCents,
+        paymentId: providerEventKey,
+        methodName: provider,
+        remark: "Verified processor event; wallet credit applied.",
+        status: "succeeded",
+        walletDeltaCents: creditAmount,
+      },
     });
 
     await sql`

@@ -203,8 +203,9 @@ export default async function handler(req, res) {
       }
       const adminAccounts = await sql`SELECT id, login_id FROM players WHERE role = 'admin' ORDER BY login_id ASC`;
 
-      const [paymentRequests, paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, gameSettings, houseLedger, houseBank, gameAvailability, playerAccounts] = await sql.transaction([
+      const [paymentRequests, paymentFlowLogs, paymentEvents, messages, rounds, ledger, paymentMethods, sessions, loginAttempts, gameSettings, houseLedger, houseBank, gameAvailability, playerAccounts] = await sql.transaction([
         sql`DELETE FROM payment_requests RETURNING id`,
+        sql`DELETE FROM payment_flow_logs RETURNING id`,
         sql`DELETE FROM payment_events RETURNING id`,
         sql`DELETE FROM support_messages RETURNING id`,
         sql`DELETE FROM game_rounds RETURNING id`,
@@ -228,6 +229,7 @@ export default async function handler(req, res) {
         preservedAdminAccounts: adminAccounts.map((account) => account.login_id),
         deleted: {
           paymentRequests: paymentRequests.length,
+          paymentFlowLogs: paymentFlowLogs.length,
           paymentEvents: paymentEvents.length,
           messages: messages.length,
           gameRounds: rounds.length,

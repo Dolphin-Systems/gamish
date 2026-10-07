@@ -40,54 +40,30 @@ export default async function handler(req, res) {
 
     if (req.method === "GET" && new URL(req.url, "http://localhost").searchParams.get("flow")) {
       if (account.role !== "admin") throw new HttpError(403, "Admin access required", "forbidden");
-      const [requests, processorEvents] = await Promise.all([
-        sql`
-          SELECT r.*, p.login_id
-          FROM payment_requests r JOIN players p ON p.id = r.player_id
-          WHERE p.role = 'player'
-          ORDER BY r.created_at DESC
-          LIMIT 300
-        `,
-        sql`
-          SELECT id, provider, provider_event_id, player_login_id, cash_cents,
-            credit_amount, status, created_at, processed_at
-          FROM payment_events
-          ORDER BY created_at DESC
-          LIMIT 300
-        `,
-      ]);
-      const events = [
-        ...requests.map((row) => ({
-          id: row.id,
-          source: "player_request",
-          player: row.login_id,
-          kind: row.kind,
-          amountCents: Number(row.amount_cents),
-          paymentId: row.payment_handle || "",
-          methodName: row.method_name,
-          remark: row.player_note || "",
-          status: row.status,
-          completedAmountCents: row.credited_cents == null ? null : Number(row.credited_cents),
-          submittedAt: row.created_at,
-          completedAt: row.decided_at,
-          adminNote: row.admin_note || "",
-        })),
-        ...processorEvents.map((row) => ({
-          id: row.id,
-          source: "processor_webhook",
-          player: row.player_login_id,
-          kind: "deposit",
-          amountCents: Number(row.cash_cents),
-          paymentId: row.provider_event_id,
-          methodName: row.provider,
-          remark: "Verified processor event; wallet credit applied.",
-          status: row.status,
-          completedAmountCents: Number(row.credit_amount),
-          submittedAt: row.created_at,
-          completedAt: row.processed_at,
-          adminNote: "",
-        })),
-      ].sort((left, right) => new Date(right.submittedAt) - new Date(left.submittedAt)).slice(0, 500);
+      const rows = await sql`
+        SELECT id, event_type, request_id, player_login_id, kind, amount_cents,
+          payment_id, method_name, remark, status, wallet_delta_cents, created_at
+        FROM payment_flow_logs
+        ORDER BY created_at DESC
+        LIMIT 500
+      `;
+      const events = rows.map((row) => ({
+        id: row.request_id || row.id,
+        eventId: row.id,
+        source: row.event_type === "processor_completion" ? "processor_webhook"
+          : row.event_type === "admin_completion" ? "admin_completion" : "player_request",
+        player: row.player_login_id,
+        kind: row.kind,
+        amountCents: Number(row.amount_cents),
+        paymentId: row.payment_id || "",
+        methodName: row.method_name,
+        remark: row.remark || "",
+        status: row.status,
+        completedAmountCents: Number(row.wallet_delta_cents) === 0 ? null : Math.abs(Number(row.wallet_delta_cents)),
+        submittedAt: row.created_at,
+        completedAt: Number(row.wallet_delta_cents) === 0 ? null : row.created_at,
+        adminNote: row.event_type === "admin_completion" ? row.remark || "" : "",
+      }));
       return json(res, 200, { events });
     }
 
