@@ -43,99 +43,8 @@
     return Array.from({ length: 5 }, (_, i) => [top[i], line[i], bottom[i]]);
   }
 
-  // ---------- audio (starts only after a tap) ----------
-  const Sound = (() => {
-    let ctx = null;
-    let master = null;
-    let muted = false;
-    let tickTimer = null;
-
-    function unlock() {
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        ctx = new AC();
-        master = ctx.createGain();
-        master.gain.value = muted ? 0 : 0.55;
-        master.connect(ctx.destination);
-      }
-      if (ctx.state === "suspended") ctx.resume();
-    }
-
-    function tone(freq, dur, { type = "sine", gain = 0.2, when = 0, slide = 0, attack = 0.005 } = {}) {
-      if (!ctx || muted) return;
-      const t = ctx.currentTime + when;
-      const osc = ctx.createOscillator();
-      const amp = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t);
-      if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * slide), t + dur);
-      amp.gain.setValueAtTime(0.0001, t);
-      amp.gain.exponentialRampToValueAtTime(gain, t + attack);
-      amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      osc.connect(amp).connect(master);
-      osc.start(t);
-      osc.stop(t + dur + 0.05);
-    }
-
-    function noise(dur, { gain = 0.15, when = 0, freq = 800 } = {}) {
-      if (!ctx || muted) return;
-      const t = ctx.currentTime + when;
-      const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-      const node = ctx.createBufferSource();
-      node.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = freq;
-      const amp = ctx.createGain();
-      amp.gain.value = gain;
-      node.connect(filter).connect(amp).connect(master);
-      node.start(t);
-    }
-
-    return {
-      unlock,
-      get muted() { return muted; },
-      toggle() {
-        muted = !muted;
-        if (master) master.gain.value = muted ? 0 : 0.55;
-        return muted;
-      },
-      click() { tone(1400, 0.05, { type: "triangle", gain: 0.08 }); },
-      lever() {
-        noise(0.18, { gain: 0.25, freq: 500 });
-        tone(220, 0.25, { type: "triangle", gain: 0.12, slide: 0.5 });
-      },
-      startTicks() {
-        this.stopTicks();
-        tickTimer = setInterval(() => tone(900 + Math.random() * 200, 0.03, { type: "square", gain: 0.025 }), 75);
-      },
-      stopTicks() { clearInterval(tickTimer); tickTimer = null; },
-      reelStop(i) {
-        tone(150 - i * 12, 0.18, { type: "sine", gain: 0.35, slide: 0.45 });
-        noise(0.07, { gain: 0.2, freq: 1800 });
-      },
-      tease() { tone(440, 0.6, { type: "sawtooth", gain: 0.05, slide: 2 }); },
-      lose() { tone(330, 0.18, { type: "triangle", gain: 0.08, slide: 0.8 }); },
-      win(level) {
-        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568];
-        const count = level >= 3 ? 6 : level === 2 ? 5 : 4;
-        for (let i = 0; i < count; i++) {
-          tone(notes[i], 0.22, { type: "triangle", gain: 0.16, when: i * 0.09 });
-          tone(notes[i] * 2, 0.12, { type: "sine", gain: 0.05, when: i * 0.09 });
-        }
-        if (level >= 2) {
-          for (let i = 0; i < 14 + level * 6; i++) tone(2000 + Math.random() * 1800, 0.08, { gain: 0.04, when: 0.4 + i * 0.07 });
-        }
-        if (level >= 3) {
-          [523.25, 659.25, 783.99].forEach((f) => tone(f, 1.4, { type: "sawtooth", gain: 0.05, when: 0.55, attack: 0.05 }));
-        }
-      },
-      error() { tone(180, 0.25, { type: "square", gain: 0.06 }); },
-    };
-  })();
+  // ---------- audio: see audio.js (starts only after a tap) ----------
+  const Sound = window.Classic777Audio;
 
   // ---------- coin fountain ----------
   const Fx = (() => {
@@ -375,10 +284,12 @@
 
   function countUp(to, ms) {
     const start = performance.now();
+    let lastTick = 0;
     return new Promise((resolve) => {
       const step = (now) => {
         const t = Math.min(1, (now - start) / ms);
         ui.win.textContent = fmt(Math.round(to * t * 100) / 100);
+        if (now - lastTick > 70 && t < 1) { lastTick = now; Sound.countTick(t); }
         if (t < 1) requestAnimationFrame(step);
         else { ui.win.textContent = fmt(to); resolve(); }
       };
@@ -392,7 +303,7 @@
     ui.machine.classList.add("winning");
     reels.forEach((r) => r.middleCell()?.classList.add("hit"));
     ui.app.querySelector(".meter.win").classList.add("lit");
-    Sound.win(level);
+    Sound.win(round.outcome === "seven" ? 4 : level);
     const box = ui.machine.getBoundingClientRect();
     Fx.burst(box.left + box.width / 2, box.top + box.height / 2, level === 3 ? 90 : level === 2 ? 50 : Math.min(26, 8 + mult * 4));
 
@@ -444,7 +355,7 @@
     say("Good luck!");
     syncControls();
     Sound.lever();
-    Sound.startTicks();
+    Sound.startSpin();
     const previous = reels.map((r) => [...r.symbols]);
     reels.forEach((r, i) => r.start(80 + i * 70));
     const began = performance.now();
@@ -461,7 +372,7 @@
     if (failure) {
       // No round was played: put the reels back where they were.
       await Promise.all(reels.map((r, i) => r.land(previous[i], 380 + i * 60)));
-      Sound.stopTicks();
+      Sound.stopSpin();
       Sound.error();
       const code = failure && failure.code;
       say(code === "insufficient_credits" ? "Not enough credits — lower your bet"
@@ -480,10 +391,12 @@
         && ["seven", "star", "wild"].includes(grid[0][1]);
       if (teasing) { Sound.tease(); await sleep(650); }
       await reels[i].land(grid[i], teasing ? 1150 : 620 + i * 45);
-      Sound.reelStop(i);
+      const shown = grid.slice(0, i + 1).map((column) => column[1]);
+      const lead = shown.find((s) => s !== "wild") || "wild";
+      Sound.reelStop(i, shown.every((s) => s === lead || s === "wild") ? shown.length : 1);
       if (i < reels.length - 1) await sleep(105);
     }
-    Sound.stopTicks();
+    Sound.stopSpin();
     showWallet(round.wallet);
 
     if (round.payout > 0) await celebrate(round);
@@ -520,11 +433,24 @@
   }
 
   // ---------- controls ----------
+  const SOUND_MODES = {
+    all: { icon: "♫", label: "Music and sound on", text: "Music and sound on" },
+    sfx: { icon: "♪", label: "Sound effects only", text: "Music off — sound effects on" },
+    off: { icon: "♪", label: "Sound off", text: "Sound off" },
+  };
+  function showSoundMode(mode) {
+    ui.sound.textContent = SOUND_MODES[mode].icon;
+    ui.sound.classList.toggle("off", mode === "off");
+    ui.sound.setAttribute("aria-label", SOUND_MODES[mode].label);
+    ui.sound.title = SOUND_MODES[mode].label;
+  }
+  showSoundMode(Sound.mode);
+
   document.addEventListener("pointerdown", () => Sound.unlock(), { passive: true });
 
   ui.spin.addEventListener("click", () => { Sound.unlock(); spin(); });
-  ui.betDown.addEventListener("click", () => { if (betIndex > 0) { betIndex--; Sound.click(); syncControls(); } });
-  ui.betUp.addEventListener("click", () => { if (betIndex < bets.length - 1) { betIndex++; Sound.click(); syncControls(); } });
+  ui.betDown.addEventListener("click", () => { if (betIndex > 0) { betIndex--; Sound.click(0.85); syncControls(); } });
+  ui.betUp.addEventListener("click", () => { if (betIndex < bets.length - 1) { betIndex++; Sound.click(1.15); syncControls(); } });
   ui.auto.addEventListener("click", () => {
     Sound.unlock();
     Sound.click();
@@ -539,9 +465,8 @@
   ui.sheet.addEventListener("click", (e) => { if (e.target === ui.sheet) ui.sheet.hidden = true; });
   ui.sound.addEventListener("click", () => {
     Sound.unlock();
-    const muted = Sound.toggle();
-    ui.sound.classList.toggle("off", muted);
-    ui.sound.setAttribute("aria-label", muted ? "Sound off" : "Sound on");
+    showSoundMode(Sound.cycle());
+    if (!busy) say(SOUND_MODES[Sound.mode].text);
   });
   document.addEventListener("keydown", (e) => {
     if (e.code === "Space" && ui.sheet.hidden) { e.preventDefault(); Sound.unlock(); if (!ui.spin.disabled) spin(); }
