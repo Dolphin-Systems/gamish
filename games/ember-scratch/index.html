@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Ember Scratch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=DM+Sans:wght@500;700;800&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game" id="game">
+    <section class="stage" aria-label="Ember Scratch game">
+      <div class="atmosphere" aria-hidden="true"></div>
+      <header class="brand">
+        <p>GAMISH777 PRESENTS</p>
+        <h1>EMBER <em>SCRATCH</em></h1>
+      </header>
+
+      <div class="cards" id="cards" aria-live="polite">
+        <article class="scratch-card" data-card="0"><div class="card-face"><span class="face-icon">✦</span><b></b><small></small></div><div class="foil"><span>SCRATCH</span></div></article>
+        <article class="scratch-card hero" data-card="1"><div class="card-face"><span class="face-icon">✦</span><b></b><small></small></div><div class="foil"><span>IGNITE</span></div></article>
+        <article class="scratch-card" data-card="2"><div class="card-face"><span class="face-icon">✦</span><b></b><small></small></div><div class="foil"><span>SCRATCH</span></div></article>
+      </div>
+
+      <p class="message" id="message" role="status">Choose a stake and ignite all three cards.</p>
+    </section>
+
+    <aside class="console" aria-label="Game controls">
+      <div class="balance-panel"><span>BALANCE</span><strong id="balance">—</strong></div>
+      <div class="stake-panel"><span>STAKE</span><strong id="stake">10</strong></div>
+      <div class="chips" id="chips" aria-label="Choose stake"></div>
+      <button class="ignite" id="ignite" type="button"><span>✦</span> IGNITE <span>✦</span></button>
+      <div class="payout"><span>LAST WIN</span><strong id="payout">0</strong></div>
+    </aside>
+  </main>
+
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

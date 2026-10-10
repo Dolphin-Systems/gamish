@@ -1,0 +1,131 @@
+:root {
+  --ember: #ff7133;
+  --gold: #ffc563;
+  --cream: #fff0c8;
+  --ink: #160918;
+  --plum: #290d28;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body {
+  color: var(--cream);
+  font-family: "DM Sans", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  background: #120712 url("cover.webp") center / cover no-repeat;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(16, 4, 14, .68), rgba(31, 7, 25, .18) 52%, rgba(12, 3, 12, .84));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+
+.game {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(190px, 26vw, 250px);
+  gap: clamp(8px, 1.6vw, 18px);
+  width: 100%;
+  height: 100%;
+  padding: calc(var(--safe-t) + 10px) max(12px, var(--safe-r)) calc(var(--safe-b) + 10px) max(12px, var(--safe-l));
+}
+
+.stage, .console { position: relative; z-index: 1; min-width: 0; }
+.stage {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  place-items: center;
+  padding-left: max(64px, calc(76px - var(--safe-l)));
+  overflow: hidden;
+}
+.atmosphere {
+  position: absolute;
+  inset: 7% 7% 2% 12%;
+  border: 1px solid rgba(255, 202, 111, .25);
+  border-radius: 36px;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 117, 43, .22), transparent 44%);
+  box-shadow: inset 0 0 44px rgba(255, 112, 34, .1), 0 0 50px rgba(0, 0, 0, .2);
+  pointer-events: none;
+}
+.brand { position: relative; z-index: 1; text-align: center; padding-top: 2px; }
+.brand p { margin: 0 0 1px; font-size: clamp(8px, 1.7vh, 11px); font-weight: 800; letter-spacing: .28em; color: #f5c675; }
+.brand h1 { margin: 0; font-family: Cinzel, serif; font-size: clamp(25px, 8vh, 47px); line-height: .95; letter-spacing: -.045em; text-shadow: 0 2px 0 #68120e, 0 0 22px rgba(255, 96, 32, .65); }
+.brand em { color: var(--gold); font-style: normal; }
+
+.cards { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: clamp(8px, 2vw, 22px); width: 100%; perspective: 900px; }
+.scratch-card {
+  position: relative;
+  width: clamp(103px, 18vw, 153px);
+  aspect-ratio: .7;
+  overflow: hidden;
+  border: 2px solid rgba(255, 202, 111, .82);
+  border-radius: 18px;
+  background: #210c20;
+  box-shadow: 0 0 0 3px rgba(75, 20, 18, .8), 0 13px 25px rgba(0, 0, 0, .42), inset 0 0 24px rgba(255, 126, 45, .2);
+  transform: rotate(-5deg) translateY(5px);
+}
+.scratch-card.hero { width: clamp(122px, 21vw, 176px); z-index: 2; transform: translateY(-6px); }
+.scratch-card:last-child { transform: rotate(5deg) translateY(5px); }
+.scratch-card::before { content: ""; position: absolute; inset: 5px; border: 1px solid rgba(255, 239, 184, .55); border-radius: 12px; pointer-events: none; z-index: 3; }
+.card-face { display: grid; place-content: center; justify-items: center; gap: 3px; width: 100%; height: 100%; background: radial-gradient(circle at 50% 40%, #5a162d, #1b0718 68%); }
+.face-icon { color: var(--gold); font-size: clamp(33px, 8vh, 54px); line-height: 1; text-shadow: 0 0 20px var(--ember); }
+.card-face b { font-family: Cinzel, serif; font-size: clamp(15px, 4.2vh, 27px); color: #fff1c8; }
+.card-face small { font-size: clamp(8px, 1.8vh, 11px); font-weight: 800; letter-spacing: .18em; color: #f7c372; }
+.foil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(115deg, transparent 33%, rgba(255,255,255,.4) 47%, transparent 59%),
+    repeating-linear-gradient(23deg, #5a2733 0 3px, #963b31 4px 7px, #3f1830 8px 12px);
+  background-size: 180% 100%, auto;
+  color: rgba(255, 238, 189, .94);
+  font-family: Cinzel, serif;
+  font-size: clamp(13px, 3vh, 20px);
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-shadow: 0 2px 2px #4d1217;
+}
+.scratch-card.reveal .foil { animation: scratch-away .78s cubic-bezier(.21,.9,.3,1) forwards; }
+.scratch-card.reveal { animation: card-pop .5s ease-out both; }
+.scratch-card.win { border-color: #fff0b8; box-shadow: 0 0 0 3px #a63e17, 0 0 30px rgba(255, 179, 60, .92), 0 13px 25px rgba(0, 0, 0, .42); }
+@keyframes scratch-away { 0% { clip-path: circle(140% at 50% 50%); background-position: 0 0, 0 0; } 50% { background-position: 220% 0, 0 0; } 100% { clip-path: circle(0% at 50% 50%); opacity: 0; } }
+@keyframes card-pop { 55% { transform: translateY(-11px) scale(1.08); } 100% { transform: translateY(0) scale(1); } }
+
+.message { position: relative; z-index: 1; width: 100%; margin: 0; padding: 4px 8px; text-align: center; font-size: clamp(11px, 2.5vh, 15px); font-weight: 700; color: #ffe7b0; text-shadow: 0 1px 8px #6a180d; }
+.message.error { color: #ffb2a3; }
+
+.console { display: flex; flex-direction: column; justify-content: center; gap: clamp(7px, 1.8vh, 12px); padding: 12px; border: 1px solid rgba(255, 203, 104, .68); border-radius: 22px; background: linear-gradient(160deg, rgba(48, 13, 34, .9), rgba(22, 5, 21, .93)); box-shadow: 0 15px 34px rgba(0, 0, 0, .44), inset 0 0 28px rgba(255, 99, 36, .09); }
+.balance-panel, .stake-panel, .payout { padding: 8px 10px; border: 1px solid rgba(255, 205, 112, .35); border-radius: 12px; background: rgba(10, 2, 12, .32); text-align: center; }
+.console span { display: block; font-size: 9px; font-weight: 800; letter-spacing: .18em; color: #d7ad79; }
+.console strong { display: block; margin-top: 2px; font-family: Cinzel, serif; font-size: clamp(18px, 4.7vh, 28px); color: var(--gold); font-variant-numeric: tabular-nums; }
+.chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.chips button { height: 31px; border: 1px solid rgba(255, 205, 112, .5); border-radius: 999px; background: rgba(85, 23, 37, .72); font-size: 12px; font-weight: 800; }
+.chips button.selected { border-color: #fff0bd; background: linear-gradient(180deg, #e64628, #8f1320); box-shadow: 0 0 13px rgba(255, 101, 45, .6); }
+.ignite { min-height: clamp(47px, 11vh, 62px); border: 2px solid #ffe4a4; border-radius: 15px; background: linear-gradient(180deg, #ff6c39, #c72226 55%, #751018); box-shadow: 0 5px 0 #4e0a12, 0 0 22px rgba(255, 91, 35, .62); color: #fff5d8; font-family: Cinzel, serif; font-size: clamp(17px, 4.6vh, 25px); font-weight: 900; letter-spacing: .05em; text-shadow: 0 2px #6c080d; }
+.ignite:not(:disabled):active { transform: translateY(3px); box-shadow: 0 2px 0 #4e0a12, 0 0 14px rgba(255, 91, 35, .48); }
+.ignite:disabled, .chips button:disabled { opacity: .46; }
+.payout strong { color: #fff0bd; }
+
+@media (max-width: 720px) {
+  .game { grid-template-columns: minmax(0, 1fr) 174px; gap: 7px; padding: calc(var(--safe-t) + 7px) max(7px, var(--safe-r)) calc(var(--safe-b) + 7px) max(7px, var(--safe-l)); }
+  .stage { padding-left: max(62px, calc(76px - var(--safe-l))); }
+  .console { padding: 9px; gap: 6px; border-radius: 18px; }
+  .balance-panel, .stake-panel, .payout { padding: 6px; }
+  .chips button { height: 28px; font-size: 11px; }
+  .cards { gap: 5px; }
+}
+@media (prefers-reduced-motion: reduce) { .scratch-card.reveal, .scratch-card.reveal .foil { animation-duration: .01ms; } }
