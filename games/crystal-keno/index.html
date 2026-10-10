@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Crystal Keno</title>
+  <link rel="stylesheet" href="/platform/gamish-ui.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="stage">
+    <div class="ambient" aria-hidden="true"></div>
+    <header class="topbar">
+      <div class="back-space" aria-hidden="true"></div>
+      <div class="brand"><i class="brand-gem"></i> CRYSTAL KENO</div>
+      <div class="wallet"><span>BALANCE</span><strong id="balance">--</strong></div>
+    </header>
+
+    <section class="game-shell">
+      <aside class="hero" aria-hidden="true">
+        <img src="cover.webp" alt="" />
+        <div class="hero-glow"></div>
+        <div class="hero-title"><span>LUCKY</span><b>CRYSTALS</b></div>
+      </aside>
+
+      <section class="console gamish-frame">
+        <div class="console-header">
+          <div>
+            <span class="eyebrow">PICK YOUR LUCKY CRYSTAL</span>
+            <h1>Find the glowing numbers</h1>
+          </div>
+          <div class="rounds"><span>ROUND</span><strong id="round-count">01</strong></div>
+        </div>
+
+        <div id="numbers" class="numbers" aria-label="Choose a lucky number"></div>
+        <div class="draw-zone" aria-live="polite">
+          <div class="draw-label"><span></span> LIVE CRYSTAL DRAW <span></span></div>
+          <div id="draws" class="draws" aria-label="Drawn crystal numbers">
+            <div class="draw-orb waiting">?</div><div class="draw-orb waiting">?</div><div class="draw-orb waiting">?</div>
+          </div>
+          <p id="status" class="status">Choose a crystal, then make your draw.</p>
+        </div>
+
+        <div class="bottom-row">
+          <div class="bet-box">
+            <span class="eyebrow">BET</span>
+            <div id="bets" class="bets" aria-label="Bet amount"></div>
+          </div>
+          <button id="play" class="play gamish-frame" type="button"><i class="play-spark"></i> DRAW CRYSTALS</button>
+          <div class="win-box"><span class="eyebrow">LAST WIN</span><strong id="last-win">$0.00</strong></div>
+        </div>
+      </section>
+    </section>
+
+    <div id="win-overlay" class="win-overlay" aria-live="assertive" aria-hidden="true">
+      <div class="win-card"><span id="win-kicker">CRYSTAL MATCH</span><strong id="win-amount">$0.00</strong><small id="win-detail">A bright little win</small></div>
+    </div>
+  </main>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "id": "crystal-keno",
+  "title": "Crystal Keno",
+  "category": "Numbers",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.webp",
+  "description": "Choose a lucky crystal and reveal a radiant Keno draw.",
+  "accent": "#69c9ff"
+}

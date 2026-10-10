@@ -72,6 +72,44 @@
       }
     },
     {
+      "id": "crystal-keno",
+      "title": "Crystal Keno",
+      "category": "Numbers",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/crystal-keno/index.html",
+      "cover": "/games/crystal-keno/cover.webp",
+      "description": "Choose a lucky crystal and reveal a radiant Keno draw.",
+      "accent": "#69c9ff",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100
+        ],
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "spark",
+            "multiplier": 1.5
+          },
+          {
+            "id": "double",
+            "multiplier": 3
+          },
+          {
+            "id": "prism",
+            "multiplier": 6
+          }
+        ]
+      }
+    },
+    {
       "id": "lucky-wheel",
       "title": "Lucky Wheel",
       "category": "Table Games",
