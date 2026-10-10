@@ -72,6 +72,48 @@
       }
     },
     {
+      "id": "ember-scratch",
+      "title": "Ember Scratch",
+      "category": "Instant",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/ember-scratch/index.html",
+      "cover": "/games/ember-scratch/cover.webp",
+      "description": "Ignite three ember cards and reveal prizes up to 12×.",
+      "accent": "#ff7a2d",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100
+        ],
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "spark",
+            "multiplier": 1
+          },
+          {
+            "id": "flame",
+            "multiplier": 2
+          },
+          {
+            "id": "crown",
+            "multiplier": 5
+          },
+          {
+            "id": "inferno",
+            "multiplier": 12
+          }
+        ]
+      }
+    },
+    {
       "id": "lucky-wheel",
       "title": "Lucky Wheel",
       "category": "Table Games",
