@@ -1,0 +1,11 @@
+{
+  "model": "weighted",
+  "bets": [10, 20, 50, 100],
+  "outcomes": [
+    { "id": "miss", "weight": 60, "multiplier": 0 },
+    { "id": "ember", "weight": 25, "multiplier": 1 },
+    { "id": "gem", "weight": 10, "multiplier": 2.5 },
+    { "id": "hoard", "weight": 4, "multiplier": 5 },
+    { "id": "dragon", "weight": 1, "multiplier": 15 }
+  ]
+}

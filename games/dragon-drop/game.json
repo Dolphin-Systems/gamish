@@ -1,0 +1,11 @@
+{
+  "id": "dragon-drop",
+  "title": "Dragon Drop",
+  "category": "Arcade",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.webp",
+  "description": "Drop a glowing ember through the dragon's treasure chute for up to 15X.",
+  "accent": "#ff9c47"
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Dragon Drop</title>
+  <link rel="stylesheet" href="/platform/gamish-ui.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell" aria-label="Dragon Drop arcade game">
+    <header class="topbar">
+      <div class="back-safe" aria-hidden="true"></div>
+      <div class="brand"><span class="brand-kicker">EMBER ARCADE</span><h1>DRAGON DROP</h1></div>
+      <div class="wallet gamish-frame"><span>WALLET</span><strong id="balance">$0</strong></div>
+      <button class="sound-toggle" id="sound" type="button" aria-label="Enable sound"><span></span></button>
+    </header>
+    <section class="game-area">
+      <div class="legend gamish-frame"><i></i> DROP THE EMBER INTO A GATE <i></i></div>
+      <div class="playfield">
+        <div class="mountain mountain-one"></div><div class="mountain mountain-two"></div>
+        <div class="ember ember-a"></div><div class="ember ember-b"></div><div class="ember ember-c"></div>
+        <div class="dragon" aria-hidden="true"><span class="dragon-wing wing-left"></span><span class="dragon-head"></span><span class="dragon-wing wing-right"></span></div>
+        <div class="chute" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div id="orb" class="orb" aria-hidden="true"><span></span></div><div id="impact" class="impact" aria-hidden="true"></div>
+        <div id="gates" class="gates" aria-label="Scoring gates"></div>
+      </div>
+    </section>
+    <section class="control-deck">
+      <div class="status-card gamish-frame"><span id="status-label">READY TO DROP</span><strong id="result" aria-live="polite">Choose your stake</strong></div>
+      <div class="bet-set" id="bets" aria-label="Choose stake"></div>
+      <button id="play" class="drop-button gamish-frame" type="button"><span class="button-mark"></span><span>DROP EMBER</span></button>
+    </section>
+  </main>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
