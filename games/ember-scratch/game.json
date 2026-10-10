@@ -1,0 +1,11 @@
+{
+  "id": "ember-scratch",
+  "title": "Ember Scratch",
+  "category": "Instant",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.webp",
+  "description": "Ignite three ember cards and reveal prizes up to 12×.",
+  "accent": "#ff7a2d"
+}

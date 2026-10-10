@@ -1,0 +1,12 @@
+{
+  "model": "weighted",
+  "bets": [10, 20, 50, 100],
+  "outcomes": [
+    { "id": "miss", "weight": 56, "multiplier": 0 },
+    { "id": "spark", "weight": 24, "multiplier": 1 },
+    { "id": "flame", "weight": 14, "multiplier": 2 },
+    { "id": "crown", "weight": 5, "multiplier": 5 },
+    { "id": "inferno", "weight": 1, "multiplier": 12 }
+  ]
+}
+
