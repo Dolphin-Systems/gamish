@@ -149,6 +149,48 @@
           }
         ]
       }
+    },
+    {
+      "id": "royal-draw",
+      "title": "Royal Draw",
+      "category": "Cards",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/royal-draw/index.html",
+      "cover": "/games/royal-draw/cover.webp",
+      "description": "Draw a royal three-card hand for up to 22x your bet.",
+      "accent": "#ff9c47",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100
+        ],
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "pair",
+            "multiplier": 1
+          },
+          {
+            "id": "two-pair",
+            "multiplier": 2
+          },
+          {
+            "id": "crown",
+            "multiplier": 5
+          },
+          {
+            "id": "vault",
+            "multiplier": 22
+          }
+        ]
+      }
     }
   ]
 }

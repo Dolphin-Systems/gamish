@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Royal Draw</title>
+  <link rel="stylesheet" href="/platform/gamish-ui.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="table" aria-live="polite">
+    <header class="topbar">
+      <div class="brand"><span class="crown-mark" aria-hidden="true"></span><span>ROYAL DRAW</span></div>
+      <div class="balance-panel"><span>Balance</span><strong id="balance">$0</strong></div>
+    </header>
+
+    <section class="felt" aria-label="Royal Draw card table">
+      <div class="table-light"></div>
+      <div class="title-lockup">
+        <p>THE ROYAL TABLE</p>
+        <h1>Draw the crown</h1>
+        <div class="ornament"><i></i><b></b><i></i></div>
+      </div>
+
+      <div id="cards" class="cards" aria-label="Three cards">
+        <article class="card slot-one"><div class="card-face"><span class="rank">?</span><span class="suit spade"></span><span class="corner">?</span></div></article>
+        <article class="card slot-two"><div class="card-face"><span class="rank">?</span><span class="suit diamond"></span><span class="corner">?</span></div></article>
+        <article class="card slot-three"><div class="card-face"><span class="rank">?</span><span class="suit heart"></span><span class="corner">?</span></div></article>
+      </div>
+
+      <div class="result-wrap">
+        <p id="result" class="result">Three royal cards can unlock the vault.</p>
+        <strong id="win" class="win" aria-hidden="true"></strong>
+      </div>
+    </section>
+
+    <footer class="controls">
+      <div id="bets" class="bets" aria-label="Choose bet"></div>
+      <button id="play" class="play gamish-frame" type="button"><span class="button-spark"></span>DRAW<span class="button-spark"></span></button>
+      <p class="payline">PAIR 1X <b></b> CROWN 5X <b></b> ROYAL VAULT 22X</p>
+    </footer>
+  </main>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
