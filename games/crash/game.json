@@ -1,0 +1,11 @@
+{
+  "id": "crash",
+  "title": "Rocket Crash",
+  "category": "Instant",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.png",
+  "description": "Launch the rocket and ride a server-drawn multiplier up to 20×.",
+  "accent": "#fb563c"
+}
