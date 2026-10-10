@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Rocket Crash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@600;700;800&family=Space+Grotesk:wght@600;700&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game" id="game">
+    <section class="flight" aria-label="Rocket flight">
+      <div class="stars" aria-hidden="true"></div>
+      <div class="brand">GAMISH777 <span>•</span> ROCKET CRASH</div>
+      <div class="flight-readout"><span id="state">READY TO LAUNCH</span><strong id="multiplier">1.00×</strong></div>
+      <div class="orbit" aria-hidden="true"><img id="rocket" src="cover.png" alt="" /></div>
+      <p id="result" class="result" role="status">Choose a cash-out target, then launch.</p>
+    </section>
+    <aside class="controls" aria-label="Rocket Crash controls">
+      <div class="wallet"><span>BALANCE</span><strong id="balance">—</strong></div>
+      <div class="field"><span>BET</span><div class="choices" id="bets"></div></div>
+      <div class="field"><span>CASH OUT AT</span><div class="targets" id="targets"></div></div>
+      <div class="target-readout"><span>IF IT REACHES</span><strong id="targetPayout">—</strong></div>
+      <button class="launch" id="launch" type="button">LAUNCH</button>
+    </aside>
+  </main>
+  <script src="/platform/gamish-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
