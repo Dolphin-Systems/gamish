@@ -1,0 +1,11 @@
+{
+  "id": "blackjack",
+  "title": "Blackjack",
+  "category": "Cards",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.png",
+  "description": "A cinematic single-hand Blackjack table with payouts up to 5×.",
+  "accent": "#e2b35a"
+}

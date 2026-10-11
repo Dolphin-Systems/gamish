@@ -1,6 +1,49 @@
 {
   "games": [
     {
+      "id": "blackjack",
+      "title": "Blackjack",
+      "category": "Cards",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/blackjack/index.html",
+      "cover": "/games/blackjack/cover.png",
+      "description": "A cinematic single-hand Blackjack table with payouts up to 5×.",
+      "accent": "#e2b35a",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100,
+          200
+        ],
+        "outcomes": [
+          {
+            "id": "bust",
+            "multiplier": 0
+          },
+          {
+            "id": "push",
+            "multiplier": 1
+          },
+          {
+            "id": "win",
+            "multiplier": 2
+          },
+          {
+            "id": "blackjack",
+            "multiplier": 2.5
+          },
+          {
+            "id": "royal",
+            "multiplier": 5
+          }
+        ]
+      }
+    },
+    {
       "id": "classic777",
       "title": "Classic 777",
       "category": "Slots",
