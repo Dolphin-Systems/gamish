@@ -190,6 +190,49 @@
       }
     },
     {
+      "id": "mines",
+      "title": "Mines",
+      "category": "Instant",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/mines/index.html",
+      "cover": "/games/mines/cover.png",
+      "description": "Excavate a crystal vault for prizes up to 8×.",
+      "accent": "#42dfff",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100,
+          200
+        ],
+        "outcomes": [
+          {
+            "id": "mine",
+            "multiplier": 0
+          },
+          {
+            "id": "shard",
+            "multiplier": 1.2
+          },
+          {
+            "id": "gem",
+            "multiplier": 2
+          },
+          {
+            "id": "vault",
+            "multiplier": 4
+          },
+          {
+            "id": "crown",
+            "multiplier": 8
+          }
+        ]
+      }
+    },
+    {
       "id": "phoenix-ruby",
       "title": "Phoenix Ruby",
       "category": "Slots",

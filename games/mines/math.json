@@ -1,0 +1,1 @@
+{"model":"weighted","bets":[10,20,50,100,200],"outcomes":[{"id":"mine","weight":57,"multiplier":0},{"id":"shard","weight":20,"multiplier":1.2},{"id":"gem","weight":14,"multiplier":2},{"id":"vault","weight":8,"multiplier":4},{"id":"crown","weight":1,"multiplier":8}]}
