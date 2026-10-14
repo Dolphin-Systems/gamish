@@ -1407,7 +1407,9 @@ let logoTarget = null;
 const SHEET = { url: "/assets/gamish-game-icons.png", width: 1484, height: 1060 };
 
 const logoStyle = (game, size = 56) => {
-  const image = game.logoUrl || game.coverUrl;
+  // Stock lobby art is the branded, named asset shown to players. An administrator's uploaded
+  // image still deliberately overrides it; a module cover is only used for new unseeded games.
+  const image = game.logoUrl || (game.artCell ? null : game.coverUrl);
   if (image) return `background-image:url('${image}');background-size:cover;background-position:center`;
   if (game.artCell) {
     const [x, y, w, h] = game.artCell;
