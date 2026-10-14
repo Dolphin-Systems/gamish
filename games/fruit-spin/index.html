@@ -13,16 +13,19 @@
 <body>
   <main class="game">
     <header><span>GAMISH777</span><h1>FRUIT SPIN</h1><p>LINE UP THE JUICE</p></header>
-    <section class="cabinet gamish-frame">
+    <section class="cabinet">
       <div class="winline" aria-hidden="true"></div>
-      <div class="reels" id="reels" aria-label="Fruit Spin reels"></div>
+      <div class="reel-stage">
+        <div class="reels" id="reels" aria-label="Fruit Spin reels"></div>
+        <img class="reel-frame" src="ui-reel-frame.png" alt="" aria-hidden="true">
+      </div>
       <div class="result" role="status" aria-live="polite">
         <span id="resultKicker">READY TO SPIN</span>
         <strong id="resultTitle">Pick your wager</strong>
         <small id="resultDetail">Land a fruit line for up to 7×.</small>
       </div>
     </section>
-    <aside class="controls gamish-frame">
+    <aside class="controls">
       <div class="betline"><span>BET</span><b id="selectedBet">—</b></div>
       <div class="bets" id="bets"></div>
       <button id="spin" type="button">SPIN</button>
