@@ -1,0 +1,11 @@
+{
+  "id": "royal-draw",
+  "title": "Royal Draw",
+  "category": "Cards",
+  "version": "1.0.0",
+  "runtime": "module",
+  "entry": "index.html",
+  "cover": "cover.webp",
+  "description": "Draw a royal three-card hand for up to 22x your bet.",
+  "accent": "#ff9c47"
+}
