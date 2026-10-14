@@ -144,6 +144,57 @@
       }
     },
     {
+      "id": "fruit-spin",
+      "title": "Fruit Spin",
+      "category": "Slots",
+      "version": "1.0.0",
+      "runtime": "module",
+      "url": "/games/fruit-spin/index.html",
+      "cover": "/games/fruit-spin/cover.png",
+      "description": "A glossy fruit slot with wins up to 7×.",
+      "accent": "#ffb54e",
+      "math": {
+        "model": "weighted",
+        "bets": [
+          10,
+          20,
+          50,
+          100,
+          200
+        ],
+        "outcomes": [
+          {
+            "id": "miss",
+            "multiplier": 0
+          },
+          {
+            "id": "cherry",
+            "multiplier": 1
+          },
+          {
+            "id": "lemon",
+            "multiplier": 1.5
+          },
+          {
+            "id": "orange",
+            "multiplier": 2
+          },
+          {
+            "id": "grape",
+            "multiplier": 3
+          },
+          {
+            "id": "bell",
+            "multiplier": 5
+          },
+          {
+            "id": "seven",
+            "multiplier": 7
+          }
+        ]
+      }
+    },
+    {
       "id": "lucky-wheel",
       "title": "Lucky Wheel",
       "category": "Table Games",
