@@ -147,8 +147,10 @@
         category: category.name,
         accent: category.accent,
         art: row.artCell ? GAME_ART_BY_CELL.get(`${row.artCell[0]},${row.artCell[1]}`) : GAME_ART_BY_TITLE.get(row.name),
-        // Uploaded logo first, then the game's own cover art (both loaded in Boot).
-        cover: row.logoUrl ? `logo:${row.id}` : row.coverUrl ? `cover:${row.id}` : null,
+        // Preserve an admin-uploaded logo, but otherwise prefer the lobby sprite sheet. Those
+        // tiles are the branded, named game logos; standalone module covers are only a fallback
+        // for new games without a matching lobby tile.
+        cover: row.logoUrl ? `logo:${row.id}` : row.artCell ? null : row.coverUrl ? `cover:${row.id}` : null,
         playable: row.id === "phoenix-ruby",
         module: modules.get(row.id) || null,
       };
@@ -728,7 +730,7 @@
       this.load.once("filecomplete-json-games-registry", (key, type, registry) => {
         (registry?.games || []).forEach((row) => {
           if (row.logoUrl) this.load.image(`logo:${row.id}`, row.logoUrl);
-          else if (row.coverUrl) this.load.image(`cover:${row.id}`, row.coverUrl);
+          else if (!row.artCell && row.coverUrl) this.load.image(`cover:${row.id}`, row.coverUrl);
         });
       });
       this.load.once("filecomplete-json-games-catalog", (key, type, catalog) => {
@@ -1220,7 +1222,7 @@
     addGameCard(game, cx, cy) {
       const card = this.add.container(cx, cy);
       const halo = this.add.circle(0, 0, LOBBY.tile * 0.58, game.accent, 0.05).setBlendMode(Phaser.BlendModes.ADD);
-      // An uploaded logo wins, then the lobby art sheet, then the Phoenix key art.
+      // An uploaded logo wins, then the lobby's named art sheet, then the Phoenix key art.
       // The art sheet's pictures already have the gold frame; the others get it baked on.
       const art = game.cover && this.textures.exists(game.cover)
         ? this.add.image(0, 0, framedTileTexture(this, game.cover, LOBBY.tile)).setScale(1 / textureScale())
