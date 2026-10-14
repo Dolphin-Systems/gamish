@@ -147,11 +147,11 @@
       "id": "fruit-spin",
       "title": "Fruit Spin",
       "category": "Slots",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "runtime": "module",
       "url": "/games/fruit-spin/index.html",
       "cover": "/games/fruit-spin/cover.png",
-      "description": "A glossy fruit slot with wins up to 7×.",
+      "description": "A Phaser-powered fruit slot with wins up to 7×.",
       "accent": "#ffb54e",
       "math": {
         "model": "weighted",
