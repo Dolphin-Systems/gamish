@@ -1,1 +1,1 @@
-{"id":"fruit-spin","title":"Fruit Spin","category":"Slots","version":"1.0.1","runtime":"module","entry":"index.html","cover":"cover.png","description":"A Phaser-powered fruit slot with wins up to 7×.","accent":"#ffb54e"}
+{"id":"fruit-spin","title":"Fruit Spin","category":"Slots","version":"1.0.2","runtime":"module","entry":"index.html","cover":"cover.png","description":"A Phaser-powered fruit slot with a bespoke fruit-and-ruby UI kit and wins up to 7×.","accent":"#ffb54e"}

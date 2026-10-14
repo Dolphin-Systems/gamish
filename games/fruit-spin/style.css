@@ -38,16 +38,21 @@ header p { margin: 0 0 1px; color: #e5a6a3; font-size: 8px; font-weight: 800; le
   background: linear-gradient(rgba(22, 0, 12, .16), rgba(9, 0, 7, .74)), url("cover.png") center / cover;
   box-shadow: inset 0 0 70px #12010c, 0 16px 40px rgba(0, 0, 0, .5);
 }
+.reel-stage {
+  position: absolute;
+  z-index: 1;
+  inset: 15% 5% 20%;
+}
 .reels {
   position: absolute;
   z-index: 1;
-  inset: 20% 12% 23%;
+  inset: 22% 14% 16%;
   overflow: hidden;
-  border: 2px solid #f4c564;
-  border-radius: 14px;
+  border-radius: 12px;
   background: linear-gradient(180deg, rgba(54, 10, 32, .93), rgba(9, 0, 8, .94));
-  box-shadow: inset 0 0 22px #000, 0 0 24px rgba(255, 134, 54, .36);
+  box-shadow: inset 0 0 22px #000;
 }
+.reel-frame { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
 .reels::before,
 .reels::after {
   content: "";
@@ -68,9 +73,9 @@ header p { margin: 0 0 1px; color: #e5a6a3; font-size: 8px; font-weight: 800; le
 .winline {
   position: absolute;
   z-index: 4;
-  top: 50%;
-  left: 8%;
-  right: 8%;
+  top: 45%;
+  left: 16%;
+  right: 16%;
   height: 2px;
   background: #fff3a5;
   box-shadow: 0 0 12px 4px #ff6a36;
@@ -82,24 +87,24 @@ header p { margin: 0 0 1px; color: #e5a6a3; font-size: 8px; font-weight: 800; le
 .result {
   position: absolute;
   z-index: 5;
-  bottom: 7px;
+  bottom: 2px;
   left: 50%;
   display: grid;
   justify-items: center;
-  min-width: 200px;
-  padding: 5px 15px;
-  border-radius: 14px;
-  background: rgba(18, 1, 12, .78);
+  width: min(53%, 360px);
+  min-width: 230px;
+  min-height: 68px;
+  padding: 20px 44px 14px;
+  background: url("ui-win-plaque.png") center / 100% 100% no-repeat;
   transform: translateX(-50%);
   text-align: center;
-  backdrop-filter: blur(4px);
 }
 .result span { color: #ffc66e; font-size: 8px; font-weight: 800; letter-spacing: .18em; }
 .result strong { font-family: "Playfair Display", Georgia, serif; font-size: clamp(16px, 3vw, 23px); line-height: 1.1; }
 .result small { color: #edcebd; font-size: 9px; font-weight: 700; }
 .result.win strong { color: #ffe28a; text-shadow: 0 0 14px #ff8c3a; }
 .result.loss strong { color: #ffb8bd; }
-.controls { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 12px; border-radius: 24px; background: linear-gradient(165deg, #48122a, #18030f); }
+.controls { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 18% 15%; background: url("ui-control-frame.png") center / 100% 100% no-repeat; }
 .betline { display: flex; justify-content: space-between; align-items: center; }
 .betline span { color: #ffc779; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
 .betline b { color: #fff0b3; font-family: "Playfair Display", Georgia, serif; font-size: 19px; }
@@ -110,11 +115,12 @@ header p { margin: 0 0 1px; color: #e5a6a3; font-size: 8px; font-weight: 800; le
 #spin:disabled, .bets button:disabled { opacity: .55; }
 @media (max-width: 700px) {
   .game { grid-template-columns: minmax(0, 1fr) 174px; gap: 7px; }
-  .controls { padding: 8px; gap: 7px; }
+  .controls { padding: 18% 15%; gap: 7px; }
   .bets { gap: 4px; }
   .bets button { min-height: 28px; font-size: 10px; }
   #spin { min-height: 48px; }
-  .reels { inset: 20% 9% 22%; }
+  .reel-stage { inset: 15% 3% 20%; }
+  .reels { inset: 22% 14% 16%; }
 }
 @media (orientation: portrait) {
   .game { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; gap: 7px; padding: calc(var(--safe-t) + 7px) max(8px, var(--safe-r)) calc(var(--safe-b) + 7px) max(8px, var(--safe-l)); }
@@ -125,9 +131,10 @@ header p { margin: 0 0 1px; color: #e5a6a3; font-size: 8px; font-weight: 800; le
 @media (orientation: landscape) and (max-height: 360px) {
   .game { padding: 5px max(8px, var(--safe-r)) 5px max(8px, var(--safe-l)); gap: 5px; }
   header { min-height: 22px; }
-  .controls { gap: 5px; padding: 7px; }
+  .controls { gap: 5px; padding: 16% 15%; }
   .bets button { min-height: 25px; }
   #spin { min-height: 40px; }
   .result small { display: none; }
-  .reels { inset: 19% 12% 19%; }
+  .reel-stage { inset: 13% 5% 18%; }
+  .reels { inset: 22% 14% 16%; }
 }
